@@ -9,9 +9,6 @@ interface ImmersiveViewProps {
   onClose: () => void;
 }
 
-// Klein Blue Hex for inline styles
-const KLEIN_BLUE = "#002FA7";
-
 const TrackItem: React.FC<{
     track: ProjectItem;
     index: number;
@@ -40,17 +37,23 @@ const TrackItem: React.FC<{
 
             <div className="relative flex items-start md:items-center gap-6 md:gap-10">
                 {/* Number */}
-                <span className={`
-                   text-xs font-mono font-medium transition-colors duration-300 w-8 pt-1 md:pt-0
-                   ${isHovered ? 'text-[var(--klein-blue)] font-bold' : 'text-neutral-400'}
-                `}>
+                <span 
+                    className={`
+                       text-xs font-mono font-medium transition-colors duration-300 w-8 pt-1 md:pt-0
+                       ${!isHovered ? 'text-neutral-400' : 'font-bold'}
+                    `}
+                    style={{ color: isHovered ? color : undefined }}
+                >
                     {String(index + 1).padStart(2, '0')}
                 </span>
 
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6 items-center">
                     {/* Title */}
                     <div className="md:col-span-6">
-                        <h3 className="text-xl md:text-2xl font-bold tracking-tight text-neutral-900 group-hover:text-[var(--klein-blue)] transition-colors">
+                        <h3 
+                            className="text-xl md:text-2xl font-bold tracking-tight text-neutral-900 transition-colors"
+                            style={{ color: isHovered ? color : undefined }}
+                        >
                              {track.title}
                         </h3>
                     </div>
@@ -74,8 +77,12 @@ const TrackItem: React.FC<{
                 <div 
                     className={`
                       w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 transform hidden md:flex
-                      ${isHovered ? 'bg-[var(--klein-blue)] text-white scale-100 shadow-lg shadow-blue-900/20' : 'bg-transparent text-neutral-300 scale-90'}
+                      ${isHovered ? 'text-white scale-100 shadow-lg' : 'bg-transparent text-neutral-300 scale-90'}
                     `}
+                    style={{ 
+                        backgroundColor: isHovered ? color : 'transparent',
+                        boxShadow: isHovered ? `0 10px 15px -3px ${color}33` : 'none' 
+                    }}
                 >
                     <ArrowUpRight size={18} strokeWidth={isHovered ? 2.5 : 2} />
                 </div>
@@ -159,8 +166,11 @@ const ProjectModal: React.FC<{
               {project.title}
             </h2>
 
-            {/* Klein Blue Accent Line */}
-            <div className="w-16 h-1.5 bg-[var(--klein-blue)] mb-8"></div>
+            {/* Dynamic Accent Line */}
+            <div 
+                className="w-16 h-1.5 mb-8"
+                style={{ backgroundColor: color }}
+            ></div>
 
             <div className="prose prose-neutral prose-lg max-w-none">
                 <p className="text-neutral-600 leading-relaxed font-light text-lg md:text-xl">
@@ -177,7 +187,11 @@ const ProjectModal: React.FC<{
                  href={project.link || "#"}
                  target="_blank"
                  rel="noopener noreferrer"
-                 className="w-full md:w-auto flex-1 bg-[var(--klein-blue)] text-white py-4 px-8 rounded-full text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 hover:shadow-xl hover:-translate-y-0.5"
+                 className="w-full md:w-auto flex-1 text-white py-4 px-8 rounded-full text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                 style={{ 
+                    backgroundColor: color,
+                    boxShadow: `0 10px 15px -3px ${color}40`
+                 }}
                >
                  View Live <ExternalLink size={16} />
                </a>
@@ -198,6 +212,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
   const [mounted, setMounted] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
+  const [backHovered, setBackHovered] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
@@ -235,10 +250,17 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
              />
           </div>
 
-          {/* Desktop Back Button */}
+          {/* Desktop Back Button (Dynamic Hover) */}
           <button 
             onClick={onClose}
-            className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-neutral-200 rounded-full hover:bg-[var(--klein-blue)] hover:text-white hover:border-transparent transition-all group shadow-sm hover:shadow-lg"
+            onMouseEnter={() => setBackHovered(true)}
+            onMouseLeave={() => setBackHovered(false)}
+            className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-neutral-200 rounded-full transition-all group shadow-sm hover:shadow-lg"
+            style={{
+                backgroundColor: backHovered ? album.color : 'rgba(255, 255, 255, 0.8)',
+                color: backHovered ? '#fff' : 'inherit',
+                borderColor: backHovered ? album.color : '#e5e5e5'
+            }}
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
             <span className="text-xs font-bold uppercase tracking-widest">Archive</span>

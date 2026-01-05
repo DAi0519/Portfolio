@@ -246,8 +246,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
              transition={{ duration: 0.4, ease: "easeOut" }}
              className="flex flex-col items-center"
           >
-            {/* Klein Blue Accent */}
-            <div className="w-1 h-8 bg-[var(--klein-blue)] mb-4 mx-auto"></div>
+            {/* Dynamic Color Accent Bar */}
+            <div 
+                className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
+                style={{ backgroundColor: albums[currentIndex].color }}
+            ></div>
 
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-black tracking-[-0.03em] text-neutral-900 mb-2 leading-none uppercase">
                 {albums[currentIndex].title}

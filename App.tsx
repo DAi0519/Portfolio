@@ -53,7 +53,11 @@ const App: React.FC = () => {
                   <h1 className="text-xs md:text-sm font-bold tracking-tight text-neutral-900">
                     DIETER RAMS<span className="text-neutral-400">.PORTFOLIO</span>
                   </h1>
-                  <div className="w-8 h-0.5 bg-orange-600 mt-2"></div>
+                  {/* Dynamic Brand Accent Bar */}
+                  <div 
+                    className="w-8 h-0.5 mt-2 transition-colors duration-500"
+                    style={{ backgroundColor: activeAlbum.color }}
+                  ></div>
                 </div>
                 <div className="text-right pointer-events-auto">
                    <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
