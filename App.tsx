@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
@@ -42,15 +43,6 @@ const App: React.FC = () => {
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden bg-[#e8e8e5]">
       
-      {/* Background Decor - Only visible in Stack Mode to keep Detail mode clean like the reference */}
-      <div 
-        className={`absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden transition-opacity duration-700 ${viewMode === 'STACK' ? 'opacity-100' : 'opacity-0'}`}
-      >
-        <h1 className="text-[15vw] md:text-[18vw] font-bold text-neutral-300/10 md:text-neutral-300/20 tracking-tighter leading-none select-none whitespace-nowrap">
-          ARCHIVE
-        </h1>
-      </div>
-
       {/* Main Content Area */}
       <main className="w-full h-full relative z-10">
         {viewMode === 'STACK' ? (
