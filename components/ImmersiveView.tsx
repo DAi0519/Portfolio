@@ -263,19 +263,28 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                      Updated padding-left (pl-8 md:pl-10) to match the new narrower index column width.
                   */}
                   <div className="pl-8 md:pl-10 w-full">
-                      {/* Title: Adjusted margin bottom (mb-5) */}
-                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-5 uppercase text-left">
+                      {/* Title: Adjusted margin bottom (mb-10) */}
+                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-10 uppercase text-left">
                           {album.title}
                       </h1>
 
-                      {/* Subtitle / Pill: Adjusted margin bottom (mb-10) to be 2x the Title gap */}
+                      {/* Subtitle / Technical Label: Minimalist Swiss Style */}
                       <div className="mb-10 flex items-center">
-                        <span 
-                          className="inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-neutral-300/80 text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-500 bg-white/50 backdrop-blur-sm"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full mr-3" style={{ backgroundColor: album.color }}></div>
-                          {album.id} Collection
-                        </span>
+                        <div className="flex items-center gap-3 select-none group">
+                           {/* Geometric Color Indicator (Restrained, Sharp) */}
+                           <div 
+                              className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
+                              style={{ backgroundColor: album.color }}
+                           ></div>
+                           
+                           {/* Technical Divider */}
+                           <div className="w-px h-3 bg-neutral-300"></div>
+
+                           {/* Monospace Metadata Label */}
+                           <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
+                              {album.id} Collection
+                           </span>
+                        </div>
                       </div>
                   </div>
               </div>
