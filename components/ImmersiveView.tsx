@@ -32,10 +32,10 @@ const TrackItem: React.FC<{
         >
             {/* 
               INDEX COLUMN
-              Placed outside the horizontal line (border).
-              Aligns in the gutter to the left of the main content.
+              Reduced width to bring index closer to title.
+              w-8 (32px) on mobile, w-10 (40px) on desktop.
             */}
-            <div className="w-10 md:w-16 shrink-0 flex items-center justify-start border-b border-transparent">
+            <div className="w-8 md:w-10 shrink-0 flex items-center justify-start border-b border-transparent">
                 <span 
                     className={`
                        text-[10px] font-mono transition-colors duration-300
@@ -260,17 +260,16 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                   
                   {/* 
                      Indented Title Block
-                     Added padding-left (pl-10 md:pl-16) to align with the Track List content column,
-                     leaving space for the "hanging" indices on the left.
+                     Updated padding-left (pl-8 md:pl-10) to match the new narrower index column width.
                   */}
-                  <div className="pl-10 md:pl-16 w-full">
-                      {/* Title */}
-                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-6 uppercase text-left">
+                  <div className="pl-8 md:pl-10 w-full">
+                      {/* Title: Adjusted margin bottom (mb-5) */}
+                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-5 uppercase text-left">
                           {album.title}
                       </h1>
 
-                      {/* Subtitle / Pill */}
-                      <div className="mb-20 flex items-center">
+                      {/* Subtitle / Pill: Adjusted margin bottom (mb-10) to be 2x the Title gap */}
+                      <div className="mb-10 flex items-center">
                         <span 
                           className="inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-neutral-300/80 text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-500 bg-white/50 backdrop-blur-sm"
                         >
@@ -285,12 +284,10 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
               <div className="space-y-0 pb-24">
                  {/* 
                    List Header 
-                   We use a flex spacer to push the "TRACKLIST" label to align with the Title column,
-                   not the Index column.
                  */}
                  <div className="flex w-full mb-0">
-                    {/* Spacer matches Index Column width */}
-                    <div className="w-10 md:w-16 shrink-0"></div>
+                    {/* Spacer matches Index Column width (w-8 md:w-10) */}
+                    <div className="w-8 md:w-10 shrink-0"></div>
                     
                     {/* Content Header (Aligned with track title) */}
                     <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
