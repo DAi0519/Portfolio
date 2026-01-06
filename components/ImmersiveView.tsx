@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Album, ProjectItem } from '../types';
-import { ArrowLeft, X, ExternalLink, Calendar, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, X, ExternalLink, ArrowUpRight, Disc } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
 
 interface ImmersiveViewProps {
@@ -210,13 +210,20 @@ const ProjectModal: React.FC<{
 
 export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) => {
   const [mounted, setMounted] = useState(false);
+  const [showVinyl, setShowVinyl] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
 
   useEffect(() => {
+    // Staggered entrance
     requestAnimationFrame(() => setMounted(true));
-    return () => setMounted(false);
+    // Delay the slide-out of the record to mimic pulling it out
+    const timer = setTimeout(() => setShowVinyl(true), 800);
+    return () => {
+        setMounted(false);
+        clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -231,31 +238,71 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
           <ArrowLeft size={20} />
         </button>
 
-        {/* LEFT COLUMN: Visuals (Sticky Vinyl) */}
-        <div className="relative w-full md:w-[45%] lg:w-[42%] h-[40vh] md:h-full bg-[#EAEAEA] flex items-center justify-center overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.05)]">
+        {/* 
+          LEFT COLUMN: The "Now Playing" Display 
+          Refined to look like a studio desk surface or gallery display.
+        */}
+        <div className="relative w-full md:w-[45%] lg:w-[42%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-center overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.06)]">
           
+          {/* Studio Floor Texture */}
+          <div className="absolute inset-0 bg-noise opacity-30"></div>
+          
+          {/* Metadata Labels (Rams Style) */}
+          <div className={`absolute top-8 left-8 hidden md:block transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1">Status</span>
+              <div className="flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                 <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-wider">Now Playing</span>
+              </div>
+          </div>
+
+          <div className={`absolute bottom-8 left-8 hidden md:block transition-opacity duration-1000 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1">Format</span>
+              <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-wider">LP, Album, 33 ⅓ RPM</span>
+          </div>
+
+          <div className={`absolute bottom-8 right-8 hidden md:block transition-opacity duration-1000 delay-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1 text-right">Label</span>
+              <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-wider">System Design</span>
+          </div>
+
           {/* Vinyl Container */}
-          <div className={`
-             relative transition-all duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]
-             ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-90'}
-             w-[70vw] h-[70vw] md:w-[32vw] md:h-[32vw] lg:w-[30vw] lg:h-[30vw] max-w-[500px] max-h-[500px]
-             shadow-2xl rounded-full
-          `}>
-             <RecordVinyl 
-                album={album} 
-                isActive={true} 
-                isSpinning={true} 
-                showSleeve={true}
-                layout="FLAT" 
+          {/* 
+            We use a scaling transform to fit the wide 'slid-out' composition into the viewport without clipping.
+            The translate-x ensures the SLEEVE is roughly centered initially, and the record slides RIGHT.
+          */}
+          <div 
+             className={`
+               relative transition-all duration-[1.2s] ease-[cubic-bezier(0.22,1,0.36,1)]
+               ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-24 scale-95'}
+             `}
+          >
+             <div className="w-[60vw] h-[60vw] md:w-[24vw] md:h-[24vw] max-w-[400px] max-h-[400px] relative -translate-x-[15%]">
+                <RecordVinyl 
+                    album={album} 
+                    isActive={showVinyl} 
+                    isSpinning={true} 
+                    showSleeve={true}
+                    layout="FLAT" 
+                />
+             </div>
+             
+             {/* Reflection/Shadow on the "floor" */}
+             <div 
+                className={`
+                    absolute -bottom-16 left-0 w-full h-8 bg-black/10 blur-2xl rounded-[100%]
+                    transition-all duration-1000 delay-500
+                    ${showVinyl ? 'opacity-100 translate-x-[20%] scale-x-150' : 'opacity-60 translate-x-0 scale-x-100'}
+                `}
              />
           </div>
 
-          {/* Desktop Back Button (Dynamic Hover) */}
+          {/* Desktop Back Button */}
           <button 
             onClick={onClose}
             onMouseEnter={() => setBackHovered(true)}
             onMouseLeave={() => setBackHovered(false)}
-            className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-neutral-200 rounded-full transition-all group shadow-sm hover:shadow-lg"
+            className="hidden md:flex absolute top-8 right-8 items-center gap-3 px-5 py-2.5 bg-white/80 backdrop-blur-sm border border-neutral-200 rounded-full transition-all group shadow-sm hover:shadow-lg z-20"
             style={{
                 backgroundColor: backHovered ? album.color : 'rgba(255, 255, 255, 0.8)',
                 color: backHovered ? '#fff' : 'inherit',
@@ -263,7 +310,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             }}
           >
             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest">Archive</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Back</span>
           </button>
         </div>
 

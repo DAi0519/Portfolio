@@ -32,65 +32,61 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
       */}
       <div 
         className={`
-          absolute inset-0 rounded-full bg-[#0a0a0a] shadow-2xl flex items-center justify-center z-10
-          transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)]
-          ${layout === '3D' && showSleeve && isActive ? 'translate-x-[40%] rotate-12' : ''}
-          ${layout === 'FLAT' ? 'translate-x-[45%]' : ''} 
-          ${!showSleeve ? 'scale-100' : 'scale-[0.93]'}
-          ${isSpinning ? 'animate-spin-slow' : ''}
+          absolute inset-0 rounded-full flex items-center justify-center z-10
+          transition-all duration-[1.2s] ease-[cubic-bezier(0.2,0.8,0.2,1)]
+          ${layout === '3D' && showSleeve && isActive ? 'translate-x-[40%] rotate-12 shadow-2xl' : ''}
+          ${layout === 'FLAT' && isActive ? 'translate-x-[55%] rotate-[360deg] shadow-[10px_0_30px_rgba(0,0,0,0.3)]' : ''}
+          ${layout === 'FLAT' && !isActive ? 'translate-x-0 rotate-0 shadow-none' : ''}
+          ${!showSleeve ? 'scale-100' : 'scale-[0.94]'}
         `}
-        style={{
-          boxShadow: '4px 0 20px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.05)'
-        }}
+        style={{ backgroundColor: album.color }}
       >
-        {/* Realistic Grooves Texture */}
-        <div className="absolute inset-[2%] rounded-full vinyl-grooves opacity-90"></div>
-        
-        {/* Anisotropic Shine (The "Pizza Slice" reflection) */}
-        <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-overlay opacity-60"></div>
-        
-        {/* Inner Dead Wax area */}
-        <div className="absolute inset-[32%] rounded-full bg-[#111] shadow-[0_0_0_1px_#222]"></div>
+        {/* Spinning Inner Container */}
+        <div className={`w-full h-full relative rounded-full ${isSpinning && isActive ? 'animate-spin-slow' : ''}`}>
+            
+            {/* Realistic Grooves Texture (Semi-transparent black overlaying the color) */}
+            <div className="absolute inset-[2%] rounded-full vinyl-grooves opacity-60 ring-1 ring-white/10"></div>
+            
+            {/* Anisotropic Shine (The "Pizza Slice" reflection) */}
+            <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-50 rotate-45"></div>
+            <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-25 -rotate-45"></div>
+            
+            {/* Inner Dead Wax area - Matches the theme color but slightly darker/different finish */}
+            <div 
+              className="absolute inset-[33%] rounded-full opacity-90 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]"
+              style={{ backgroundColor: album.color }}
+            >
+               {/* Subtle dark overlay to distinguish dead wax from playable area */}
+               <div className="absolute inset-0 bg-black/5 rounded-full"></div>
+            </div>
 
-        {/* Center Label */}
-        <div 
-          className="w-[30%] h-[30%] rounded-full flex items-center justify-center relative z-20 shadow-[inset_0_1px_4px_rgba(0,0,0,0.6),0_0_0_1px_rgba(0,0,0,0.2)]"
-          style={{ backgroundColor: album.color }}
-        >
-          {/* Paper Texture on Label */}
-          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] mix-blend-multiply rounded-full"></div>
-          
-          <div className="absolute inset-0 flex items-center justify-center">
-             <div className="flex flex-col items-center">
-                <span className="text-[5px] md:text-[6px] font-mono font-bold uppercase tracking-widest text-black/60 mb-0.5">
-                  Stereo
-                </span>
-                <span className="text-[6px] md:text-[8px] font-sans font-black uppercase tracking-widest text-black/80 rotate-[-5deg] mix-blend-multiply">
-                  {album.title.substring(0, 10)}
-                </span>
-             </div>
-          </div>
-          
-          {/* Spindle Hole */}
-          <div className="w-1.5 h-1.5 bg-[#e8e8e5] rounded-full shadow-[inset_1px_1px_2px_rgba(0,0,0,0.8)]" />
+            {/* Center Label (Black Vinyl Look) */}
+            <div 
+              className="absolute inset-[35%] rounded-full flex items-center justify-center bg-[#111] shadow-[inset_0_1px_4px_rgba(255,255,255,0.1),0_0_0_1px_rgba(0,0,0,0.2)]"
+            >
+              {/* Paper Texture on Label (Subtle matte finish) */}
+              <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] mix-blend-overlay rounded-full"></div>
+              
+              {/* Spindle Hole */}
+              <div className="w-1.5 h-1.5 bg-[#e8e8e5] rounded-full shadow-[inset_1px_1px_2px_rgba(0,0,0,0.8)] border border-white/10" />
+            </div>
         </div>
       </div>
 
       {/* 
         ALBUM SLEEVE
-        Enhanced for tactility: Cardboard texture, rim lighting, and realistic shadows.
       */}
       {showSleeve && (
         <div 
           className={`
             relative z-20 w-full h-full bg-[#fcfcfc] overflow-hidden rounded-[2px]
-            transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
-            ${layout === '3D' ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)]' : 'shadow-[15px_10px_40px_-10px_rgba(0,0,0,0.2)]'}
+            transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
+            ${layout === '3D' ? 'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)]' : 'shadow-[20px_0_50px_-10px_rgba(0,0,0,0.2)]'}
             ${layout === '3D' && isActive ? 'scale-100 translate-x-[-10%]' : ''}
             ${layout === '3D' && !isActive ? 'hover:scale-[1.02] hover:-translate-y-2' : ''}
           `}
         >
-          {/* Main Cover Image - REMOVED GRAYSCALE FILTER to support pure colors */}
+          {/* Main Cover Image */}
           <img 
             src={album.coverImage} 
             alt={album.title}
@@ -100,14 +96,14 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
           {/* Paper Texture Overlay (Grain) */}
           <div className="absolute inset-0 bg-noise opacity-[0.15] mix-blend-overlay pointer-events-none" />
           
-          {/* Subtle Gradient to simulate matte print finish */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20 pointer-events-none mix-blend-hard-light opacity-50" />
-          
           {/* Left Spine Shadow (Curve of the cardboard) */}
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-r from-black/20 to-transparent mix-blend-multiply"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-r from-black/10 to-transparent mix-blend-multiply"></div>
           
           {/* Right Open Edge (Shadow inside the sleeve) */}
           <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-black/10"></div>
+          
+          {/* Surface Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/5 pointer-events-none mix-blend-soft-light" />
 
           {/* Interaction Hint (Only for 3D stack mode) */}
           {layout === '3D' && isActive && onDoubleClick && (

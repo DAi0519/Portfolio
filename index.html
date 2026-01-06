@@ -60,7 +60,7 @@
         to { transform: rotate(360deg); }
       }
       .animate-spin-slow {
-        animation: spin-slow 4s linear infinite; /* Slightly faster for visual feedback */
+        animation: spin-slow 3s linear infinite; /* Slightly faster for visual feedback */
       }
       
       /* Card Stack Animations */
@@ -68,31 +68,32 @@
         will-change: transform;
       }
 
-      /* Vinyl Grooves & Sheen */
+      /* Vinyl Grooves & Sheen - REFINED */
       .vinyl-grooves {
         background: 
           repeating-radial-gradient(
-            #111 0, 
-            #111 2px, 
-            #222 3px, 
-            #222 4px
+            rgba(0,0,0,0.15) 0, 
+            rgba(0,0,0,0.15) 1px, 
+            transparent 2px, 
+            rgba(0,0,0,0.1) 3px
           );
+        mix-blend-mode: multiply;
       }
       .vinyl-shine {
         background: conic-gradient(
           from 0deg,
           transparent 0deg,
-          rgba(255, 255, 255, 0.05) 20deg,
-          rgba(255, 255, 255, 0.15) 45deg,
-          rgba(255, 255, 255, 0.05) 70deg,
+          rgba(255, 255, 255, 0.1) 20deg,
+          rgba(255, 255, 255, 0.35) 45deg,
+          rgba(255, 255, 255, 0.1) 70deg,
           transparent 90deg,
           transparent 180deg,
-          rgba(255, 255, 255, 0.05) 200deg,
-          rgba(255, 255, 255, 0.15) 225deg,
-          rgba(255, 255, 255, 0.05) 250deg,
+          rgba(255, 255, 255, 0.1) 200deg,
+          rgba(255, 255, 255, 0.35) 225deg,
+          rgba(255, 255, 255, 0.1) 250deg,
           transparent 270deg
         );
-        filter: blur(1px);
+        filter: blur(14px);
       }
     </style>
     <script type="importmap">
