@@ -253,7 +253,14 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
 
         {/* RIGHT COLUMN: Content */}
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative bg-[#F3F3F1]">
-          <div className="min-h-full p-8 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
+          {/* 
+            UPDATED PADDING LOGIC for Mobile Centering:
+            py-8: Vertical padding
+            pl-8 (32px): Left Padding + Track Index/Indent (32px) = 64px visual gap from left
+            pr-16 (64px): Right Padding = 64px visual gap from right
+            This balances the text content content in the viewport.
+          */}
+          <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
               
               {/* Header */}
               <div className={`transition-all duration-700 delay-100 flex flex-col items-start ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
