@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Album, ProjectItem } from '../types';
-import { ArrowLeft, X, ExternalLink, ArrowUpRight, Disc } from 'lucide-react';
+import { ArrowLeft, X, ExternalLink } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
 
 interface ImmersiveViewProps {
@@ -22,62 +22,50 @@ const TrackItem: React.FC<{
     return (
         <div 
           onClick={onClick}
+          onMouseEnter={() => onHover(track.id)}
+          onMouseLeave={() => onHover(null)}
           className={`
-            group relative py-4 md:py-5 cursor-pointer transition-all duration-500 border-b border-neutral-100 last:border-0
+            group flex items-stretch w-full cursor-pointer
             ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
           `}
           style={{ transitionDelay: `${delay}ms` }}
-          onMouseEnter={() => onHover(track.id)}
-          onMouseLeave={() => onHover(null)}
         >
-            {/* Minimal Hover Indicator */}
-            <div 
-              className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 -translate-x-2'}`}
-              style={{ backgroundColor: color }}
-            />
+            {/* 
+              INDEX COLUMN
+              Placed outside the horizontal line (border).
+              Aligns in the gutter to the left of the main content.
+            */}
+            <div className="w-10 md:w-16 shrink-0 flex items-center justify-start border-b border-transparent">
+                <span 
+                    className={`
+                       text-[10px] font-mono transition-colors duration-300
+                       ${!isHovered ? 'text-neutral-300' : 'font-bold'}
+                    `}
+                    style={{ color: isHovered ? color : undefined }}
+                >
+                    {String(index + 1).padStart(2, '0')}
+                </span>
+            </div>
 
-            <div className="relative flex items-center justify-between gap-4 pl-4 md:pl-6">
-                <div className="flex items-center gap-6 md:gap-8 overflow-hidden">
-                    {/* Number - Very subtle unless hovered */}
-                    <span 
-                        className={`
-                           text-[10px] font-mono transition-colors duration-300 w-6 shrink-0
-                           ${!isHovered ? 'text-neutral-300' : 'font-bold'}
-                        `}
-                        style={{ color: isHovered ? color : undefined }}
-                    >
-                        {String(index + 1).padStart(2, '0')}
-                    </span>
+            {/* 
+              MAIN CONTENT AREA (Underlined)
+              Includes: Title, Date
+              Aligns with the 'Tracklist' header and Main Title above.
+            */}
+            <div className="flex-1 flex items-center justify-between py-5 border-b border-neutral-200 transition-colors duration-500 group-hover:border-neutral-300">
+                
+                {/* Title */}
+                <h3 
+                    className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors truncate pr-4"
+                    style={{ color: isHovered ? color : undefined }}
+                >
+                     {track.title}
+                </h3>
 
-                    {/* Title - The Hero of the list */}
-                    <h3 
-                        className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors truncate"
-                        style={{ color: isHovered ? color : undefined }}
-                    >
-                         {track.title}
-                    </h3>
-                </div>
-
-                <div className="flex items-center gap-6 shrink-0">
-                    {/* Date - Technical aesthetic */}
-                    <span className="text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider">
-                        {track.date}
-                    </span>
-
-                    {/* Arrow Action - Only appears on intent */}
-                    <div 
-                        className={`
-                          w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 transform
-                          ${isHovered ? 'opacity-100 scale-100 rotate-45' : 'opacity-0 scale-75 rotate-0'}
-                        `}
-                        style={{ 
-                            backgroundColor: color,
-                            color: '#fff'
-                        }}
-                    >
-                        <ArrowUpRight size={14} />
-                    </div>
-                </div>
+                {/* Date - Aligned to the right */}
+                <span className="hidden md:block text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px]">
+                    {track.date}
+                </span>
             </div>
         </div>
     )
@@ -214,9 +202,9 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
 
         {/* 
           LEFT COLUMN: The "Now Playing" Display 
-          UPDATED: Narrower column (32%) and left-shifted alignment
+          UPDATED: Increased width (32% -> 42%) to give the record more breathing room
         */}
-        <div className="relative w-full md:w-[32%] lg:w-[30%] h-[35vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)]">
+        <div className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)]">
           
           {/* Texture */}
           <div className="absolute inset-0 bg-noise opacity-30"></div>
@@ -228,12 +216,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}
              `}
           >
-             {/* 
-               Size & Positioning Update:
-               - Increased base size slightly for impact
-               - Added negative translate-x to crop the sleeve off-screen
-             */}
-             <div className="w-[60vw] h-[60vw] md:w-[28vw] md:h-[28vw] max-w-[420px] max-h-[420px] relative -translate-x-[20%] md:-translate-x-[45%]">
+             {/* Adjusted positioning to account for wider column */}
+             <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
                 <RecordVinyl 
                     album={album} 
                     isActive={showVinyl} 
@@ -243,10 +227,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                 />
              </div>
              
-             {/* 
-               Reflection/Shadow 
-               - Adjusted position to track the record sliding out to the right
-             */}
+             {/* Reflection/Shadow */}
              <div 
                 className={`
                     absolute -bottom-16 left-0 w-full h-8 bg-black/5 blur-2xl rounded-[100%]
@@ -261,7 +242,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             onClick={onClose}
             onMouseEnter={() => setBackHovered(true)}
             onMouseLeave={() => setBackHovered(false)}
-            className="hidden md:flex absolute top-8 left-8 items-center gap-3 px-0 py-2 transition-all group z-20"
+            className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
           >
             <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? 'border-transparent text-white' : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
                 <ArrowLeft size={14} />
@@ -275,22 +256,48 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
           <div className="min-h-full p-8 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
               
               {/* Header */}
-              <div className={`transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                  {/* Super minimal header */}
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">
-                      {album.id} Collection
-                  </span>
+              <div className={`transition-all duration-700 delay-100 flex flex-col items-start ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                  
+                  {/* 
+                     Indented Title Block
+                     Added padding-left (pl-10 md:pl-16) to align with the Track List content column,
+                     leaving space for the "hanging" indices on the left.
+                  */}
+                  <div className="pl-10 md:pl-16 w-full">
+                      {/* Title */}
+                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-6 uppercase text-left">
+                          {album.title}
+                      </h1>
 
-                  <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-12 uppercase">
-                      {album.title}
-                  </h1>
+                      {/* Subtitle / Pill */}
+                      <div className="mb-20 flex items-center">
+                        <span 
+                          className="inline-flex items-center justify-center px-3 py-1.5 rounded-full border border-neutral-300/80 text-[9px] font-bold uppercase tracking-[0.2em] text-neutral-500 bg-white/50 backdrop-blur-sm"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full mr-3" style={{ backgroundColor: album.color }}></div>
+                          {album.id} Collection
+                        </span>
+                      </div>
+                  </div>
               </div>
 
               {/* List */}
               <div className="space-y-0 pb-24">
-                 <div className="flex items-end justify-between border-b border-black pb-2 mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-black">Tracklist</span>
-                    <span className="text-[10px] font-mono text-neutral-400">{album.tracks.length} Items</span>
+                 {/* 
+                   List Header 
+                   We use a flex spacer to push the "TRACKLIST" label to align with the Title column,
+                   not the Index column.
+                 */}
+                 <div className="flex w-full mb-0">
+                    {/* Spacer matches Index Column width */}
+                    <div className="w-10 md:w-16 shrink-0"></div>
+                    
+                    {/* Content Header (Aligned with track title) */}
+                    <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-black">Tracklist</span>
+                        {/* Aligned to the right of the underlined area */}
+                        <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} Items</span>
+                    </div>
                  </div>
 
                  {album.tracks.map((track, index) => (
