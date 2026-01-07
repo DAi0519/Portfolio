@@ -62,11 +62,6 @@
       .animate-spin-slow {
         animation: spin-slow 3s linear infinite; /* Slightly faster for visual feedback */
       }
-
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
       
       /* Card Stack Animations */
       .card-stack-item {
@@ -101,11 +96,22 @@
         filter: blur(14px);
       }
     </style>
-
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react/": "https://esm.sh/react@18.3.1/",
+        "react-dom": "https://esm.sh/react-dom@18.3.1",
+        "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+        "framer-motion": "https://esm.sh/framer-motion@11.0.8?external=react,react-dom"
+      }
+    }
+    </script>
   </head>
   <body>
     <div class="bg-noise"></div>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
