@@ -30,9 +30,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       stageBottom: 260
   });
 
-  // Touch state
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
+  // Drag / Interaction State
+  const [dragX, setDragX] = useState(0);
+  const isDragging = useRef(false);
+  const isPressed = useRef(false);
+  const startX = useRef(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -103,34 +105,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     }
   };
 
-  // Touch Handlers
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe && currentIndex < albums.length - 1) {
-      onIndexChange(currentIndex + 1);
-    }
-
-    if (isRightSwipe && currentIndex > 0) {
-      onIndexChange(currentIndex - 1);
-    }
-
-    // Reset
-    touchStartX.current = null;
-    touchEndX.current = null;
-  };
 
   // Wheel / Scroll support
   useEffect(() => {
@@ -179,174 +154,230 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
   return (
     <div 
         ref={containerRef}
-        className="w-full h-full flex flex-col relative perspective-1000 touch-pan-y overflow-hidden items-center justify-center"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+        className="w-full h-full flex flex-col relative perspective-1000 touch-pan-y overflow-hidden items-center justify-center cursor-grab active:cursor-grabbing"
+    onPointerDown={(e) => {
+        isPressed.current = true;
+        startX.current = e.clientX;
+        isDragging.current = false;
+        // Important: capture pointer to track movement even if it leaves the element
+        (e.target as Element).setPointerCapture(e.pointerId);
+    }}
+    onPointerMove={(e) => {
+        if (!isPressed.current) return;
+        const currentX = e.clientX;
+        const rawDiff = currentX - startX.current;
+        
+        // Add rubber-band resistance
+        // The drag will asymptotically approach 'limit' (1.5x the card spacing)
+        // This prevents the stack from flying off-screen while maintaining 1:1 control for small movements.
+        const limit = layout.xSpacing * 1.5;
+        const dampedDiff = (rawDiff * limit) / (limit + Math.abs(rawDiff));
+        
+        setDragX(dampedDiff);
+
+        // Determine if this is a drag or a click
+        if (Math.abs(dampedDiff) > 10) {
+            isDragging.current = true;
+        }
+    }}
+    onPointerUp={(e) => {
+        if (!isPressed.current) return;
+        
+        isPressed.current = false;
+        (e.target as Element).releasePointerCapture(e.pointerId);
+
+        // Threshold for switching
+        const THRESHOLD = 50; 
+
+        if (isDragging.current) {
+            if (dragX > THRESHOLD && currentIndex > 0) {
+                // Dragged Right -> Previous
+                onIndexChange(currentIndex - 1);
+            } else if (dragX < -THRESHOLD && currentIndex < albums.length - 1) {
+                // Dragged Left -> Next
+                onIndexChange(currentIndex + 1);
+            }
+        }
+        
+        // Reset
+        setDragX(0);
+        isDragging.current = false;
+    }}
+    onPointerLeave={() => {
+        // Optional: Reset if pointer leaves window, but setPointerCapture usually prevents this need.
+        // We'll trust setPointerCapture.
+    }}
+  >
+    {/* 
+      Stack Container - UNIFIED STAGE
+      All devices use absolute positioning constraints now.
+      "No Scroll" philosophy.
+    */}
+    <div 
+      className="absolute w-full flex items-center justify-center transform-style-3d z-10"
+      style={{
+          top: layout.stageTop,
+          bottom: layout.stageBottom
+      }}
     >
-      {/* 
-        Stack Container - UNIFIED STAGE
-        All devices use absolute positioning constraints now.
-        "No Scroll" philosophy.
-      */}
-      <div 
-        className="absolute w-full flex items-center justify-center transform-style-3d z-10"
-        style={{
-            top: layout.stageTop,
-            bottom: layout.stageBottom
-        }}
-      >
-        <div className="relative w-full h-full flex items-center justify-center transform-style-3d">
-            <AnimatePresence initial={false} custom={currentIndex}>
-            {albums.map((album, index) => {
-                const distance = index - currentIndex;
-                const isActive = index === currentIndex;
-                
-                // Render range logic
-                const renderRange = layout.mode === 'MOBILE' ? 1 : 2;
-                if (Math.abs(distance) > renderRange) return null; 
+      <div className="relative w-full h-full flex items-center justify-center transform-style-3d">
+          <AnimatePresence initial={false} custom={currentIndex}>
+          {albums.map((album, index) => {
+              const distance = index - currentIndex;
+              const isActive = index === currentIndex;
+              
+              // Render range logic
+              const renderRange = layout.mode === 'MOBILE' ? 1 : 2;
+              if (Math.abs(distance) > renderRange) return null; 
 
-                // UX/Physics Constants
-                // USE SYSTEMATIC METRICS
-                const X_SPACING = layout.xSpacing;
-                const Z_DEPTH = layout.mode === 'MOBILE' ? -150 : -200;
-                const ROTATION = layout.mode === 'MOBILE' ? -10 : -15; 
-                
-                return (
-                <motion.div
-                    key={album.id}
-                    onClick={() => handleItemClick(index)}
-                    className="absolute cursor-pointer"
-                    initial={false}
-                    animate={{
-                    x: distance * X_SPACING, 
-                    y: 0,
-                    z: isActive ? 0 : Math.abs(distance) * Z_DEPTH,
-                    rotateY: distance * ROTATION, 
-                    scale: isActive ? 1.1 : 1 - Math.abs(distance) * 0.1, 
-                    opacity: 1, 
-                    zIndex: 100 - Math.abs(distance),
-                    }}
-                    transition={{
-                    type: "spring",
-                    stiffness: 150,
-                    damping: 20,
-                    mass: 0.8
-                    }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                >
-                    {/* 
-                    Card Sizing & Construction
-                    Uses INLINE STYLES for dynamic sizing based on system metrics.
-                    */}
-                    <div 
-                        style={{
-                            width: layout.cardSize,
-                            height: layout.cardSize
-                        }}
-                        className={`
-                            relative z-20
-                            bg-[#F9F9F9] rounded-[2px] overflow-hidden group
-                            transition-all duration-500 ease-out
-                            ring-1 ring-white/20 
-                            ${isActive 
-                                ? 'shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)]' 
-                                : 'shadow-2xl'} 
-                        `}
-                    >
-                        {/* Image */}
-                        <img 
-                            src={album.coverImage} 
-                            alt={album.title} 
-                            className={`
-                            w-full h-full object-cover pointer-events-none select-none transition-all duration-500
-                            ${isActive ? 'grayscale-0 contrast-100' : 'grayscale-[0.5] contrast-[0.9]'}
-                            `}
-                        />
-                        
-                        {/* Atmospheric Depth Layer */}
-                        <div 
-                        className={`
-                            absolute inset-0 bg-black transition-opacity duration-500 pointer-events-none
-                            ${isActive ? 'opacity-0' : 'opacity-40'}
-                        `} 
-                        />
+              // UX/Physics Constants
+              // USE SYSTEMATIC METRICS
+              const X_SPACING = layout.xSpacing;
+              const Z_DEPTH = layout.mode === 'MOBILE' ? -150 : -200;
+              const ROTATION = layout.mode === 'MOBILE' ? -10 : -15; 
+              
+              return (
+              <motion.div
+                  key={album.id}
+                  onClick={(e) => {
+                      if (isDragging.current) {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          return;
+                      }
+                      handleItemClick(index);
+                  }}
+                  className="absolute cursor-pointer"
+                  initial={false}
+                  animate={{
+                  x: distance * X_SPACING + dragX, // Add dragX here
+                  y: 0,
+                  z: isActive ? 0 : Math.abs(distance) * Z_DEPTH,
+                  rotateY: distance * ROTATION + (dragX / 20), // Subtle rotation on drag
+                  scale: isActive ? 1.1 : 1 - Math.abs(distance) * 0.1, 
+                  opacity: 1, 
+                  zIndex: 100 - Math.abs(distance),
+                  }}
+                  transition={{
+                  type: "spring",
+                  stiffness: 150,
+                  damping: 20,
+                  mass: 0.8
+                  }}
+                  style={{ transformStyle: 'preserve-3d' }}
+              >
+                  {/* 
+                  Card Sizing & Construction
+                  Uses INLINE STYLES for dynamic sizing based on system metrics.
+                  */}
+                  <div 
+                      style={{
+                          width: layout.cardSize,
+                          height: layout.cardSize
+                      }}
+                      className={`
+                          relative z-20
+                          bg-[#F9F9F9] rounded-[2px] overflow-hidden group
+                          transition-all duration-500 ease-out
+                          ring-1 ring-white/20 
+                          ${isActive 
+                              ? 'shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)]' 
+                              : 'shadow-2xl'} 
+                      `}
+                  >
+                      {/* Image */}
+                      <img 
+                          src={album.coverImage} 
+                          alt={album.title} 
+                          className={`
+                          w-full h-full object-cover pointer-events-none select-none transition-all duration-500
+                          ${isActive ? 'grayscale-0 contrast-100' : 'grayscale-[0.5] contrast-[0.9]'}
+                          `}
+                      />
+                      
+                      {/* Atmospheric Depth Layer */}
+                      <div 
+                      className={`
+                          absolute inset-0 bg-black transition-opacity duration-500 pointer-events-none
+                          ${isActive ? 'opacity-0' : 'opacity-40'}
+                      `} 
+                      />
 
-                        {/* Gloss / Plastic Wrap Sheen */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10" />
-                        
-                        {/* Subtle Noise Texture */}
-                        <div className="absolute inset-0 bg-noise opacity-30 mix-blend-overlay pointer-events-none z-10" />
-                    </div>
+                      {/* Gloss / Plastic Wrap Sheen */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10" />
+                      
+                      {/* Subtle Noise Texture */}
+                      <div className="absolute inset-0 bg-noise opacity-30 mix-blend-overlay pointer-events-none z-10" />
+                  </div>
 
-                    {/* 
-                    THEMED AMBIENT GLOW
-                    */}
-                    <div 
-                        className={`
-                            absolute -bottom-8 left-6 right-6 h-16 z-10
-                            rounded-[100%]
-                            blur-[45px]
-                            transition-all duration-700 ease-in-out
-                            pointer-events-none
-                            mix-blend-multiply
-                        `}
-                        style={{ 
-                            backgroundColor: album.color,
-                            opacity: isActive ? 0.6 : 0,
-                            transform: isActive ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.8)'
-                        }}
-                    />
-                </motion.div>
-                );
-            })}
-            </AnimatePresence>
-        </div>
+                  {/* 
+                  THEMED AMBIENT GLOW
+                  */}
+                  <div 
+                      className={`
+                          absolute -bottom-8 left-6 right-6 h-16 z-10
+                          rounded-[100%]
+                          blur-[45px]
+                          transition-all duration-700 ease-in-out
+                          pointer-events-none
+                          mix-blend-multiply
+                      `}
+                      style={{ 
+                          backgroundColor: album.color,
+                          opacity: isActive ? 0.6 : 0,
+                          transform: isActive ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.8)'
+                      }}
+                  />
+              </motion.div>
+              );
+          })}
+          </AnimatePresence>
       </div>
-
-      {/* 
-        Active Item Typography 
-        Hybrid Approach:
-        - Mobile/Tablet: Relative 'pb-20' (Bottom of flow)
-        - Desktop: Absolute 'bottom-12' (Pinned to viewport bottom)
-      */}
-      <div className={`
-          pointer-events-none px-6 z-50 text-center
-          ${isMobileOrTablet 
-             ? 'absolute bottom-20 left-0 right-0' // Now Absolute on Mobile too! "Stage" logic.
-             : 'absolute bottom-12 left-0 right-0'
-          }
-      `}>
-        <AnimatePresence mode="wait">
-          <motion.div
-             key={currentIndex}
-             initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-             exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
-             transition={{ duration: 0.4, ease: "easeOut" }}
-             className="flex flex-col items-center"
-          >
-            {/* Dynamic Color Accent Bar */}
-            <div 
-                className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
-                style={{ backgroundColor: albums[currentIndex].color }}
-            ></div>
-
-            <h2 className={`
-                ${layout.isShort ? 'text-3xl lg:text-5xl mb-1' : 'text-3xl md:text-5xl lg:text-7xl mb-2'}
-                font-black tracking-[-0.03em] text-neutral-900 leading-none uppercase
-            `}>
-                {albums[currentIndex].title}
-            </h2>
-            
-            <p className="text-[10px] md:text-xs lg:text-sm font-medium text-neutral-500 tracking-widest uppercase mt-3">
-                {albums[currentIndex].subtitle}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-      
     </div>
+
+    {/* 
+      Active Item Typography 
+      Hybrid Approach:
+      - Mobile/Tablet: Relative 'pb-20' (Bottom of flow)
+      - Desktop: Absolute 'bottom-12' (Pinned to viewport bottom)
+    */}
+    <div className={`
+        pointer-events-none px-6 z-50 text-center
+        ${isMobileOrTablet 
+           ? 'absolute bottom-20 left-0 right-0' // Now Absolute on Mobile too! "Stage" logic.
+           : 'absolute bottom-12 left-0 right-0'
+        }
+    `}>
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={currentIndex}
+           initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+           exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
+           transition={{ duration: 0.4, ease: "easeOut" }}
+           className="flex flex-col items-center"
+        >
+          {/* Dynamic Color Accent Bar */}
+          <div 
+              className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
+              style={{ backgroundColor: albums[currentIndex].color }}
+          ></div>
+
+          <h2 className={`
+              ${layout.isShort ? 'text-3xl lg:text-5xl mb-1' : 'text-3xl md:text-5xl lg:text-7xl mb-2'}
+              font-black tracking-[-0.03em] text-neutral-900 leading-none uppercase
+          `}>
+              {albums[currentIndex].title}
+          </h2>
+          
+          <p className="text-[10px] md:text-xs lg:text-sm font-medium text-neutral-500 tracking-widest uppercase mt-3">
+              {albums[currentIndex].subtitle}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+    
+  </div>
   );
 };
 
