@@ -1,8 +1,8 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Album, ProjectItem } from '../types';
 import { ArrowLeft, X, ExternalLink } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
+import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
 
 interface ImmersiveViewProps {
   album: Album;
@@ -17,24 +17,23 @@ const TrackItem: React.FC<{
     onHover: (id: string | null) => void;
     onClick: () => void;
     delay: number;
-    mounted: boolean;
-}> = ({ track, index, color, isHovered, onHover, onClick, delay, mounted }) => {
+}> = ({ track, index, color, isHovered, onHover, onClick, delay }) => {
     return (
-        <div 
+        <motion.div 
           onClick={onClick}
           onMouseEnter={() => onHover(track.id)}
           onMouseLeave={() => onHover(null)}
-          className={`
-            group flex items-stretch w-full cursor-pointer
-            ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-          `}
-          style={{ transitionDelay: `${delay}ms` }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            delay: delay / 1000,
+            type: "spring",
+            stiffness: 400,
+            damping: 30
+          }}
+          className="group flex items-stretch w-full cursor-pointer"
         >
-            {/* 
-              INDEX COLUMN
-              Reduced width to bring index closer to title.
-              w-8 (32px) on mobile, w-10 (40px) on desktop.
-            */}
+            {/* INDEX COLUMN */}
             <div className="w-8 md:w-10 shrink-0 flex items-center justify-start border-b border-transparent">
                 <span 
                     className={`
@@ -47,27 +46,19 @@ const TrackItem: React.FC<{
                 </span>
             </div>
 
-            {/* 
-              MAIN CONTENT AREA (Underlined)
-              Includes: Title, Date
-              Aligns with the 'Tracklist' header and Main Title above.
-            */}
+            {/* MAIN CONTENT AREA */}
             <div className="flex-1 flex items-center justify-between py-5 border-b border-neutral-200 transition-colors duration-500 group-hover:border-neutral-300">
-                
-                {/* Title */}
                 <h3 
                     className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors truncate pr-4"
                     style={{ color: isHovered ? color : undefined }}
                 >
                      {track.title}
                 </h3>
-
-                {/* Date - Aligned to the right */}
                 <span className="hidden md:block text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px]">
                     {track.date}
                 </span>
             </div>
-        </div>
+        </motion.div>
     )
 }
 
@@ -76,42 +67,32 @@ const ProjectModal: React.FC<{
   color: string;
   onClose: () => void;
 }> = ({ project, color, onClose }) => {
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setActive(true));
-  }, []);
-
-  const handleClose = () => {
-    setActive(false);
-    setTimeout(onClose, 300);
-  };
-
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
-      
-      {/* Backdrop */}
-      <div 
-        onClick={handleClose}
-        className={`absolute inset-0 bg-neutral-100/80 backdrop-blur-xl transition-all duration-500 ${active ? 'opacity-100' : 'opacity-0'}`}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-neutral-100/80 backdrop-blur-xl"
       />
 
-      {/* Modal Card */}
-      <div className={`
-        relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col 
-        max-h-[90vh] md:max-h-[85vh]
-        transition-all duration-500 cubic-bezier(0.19, 1, 0.22, 1) transform origin-bottom
-        ${active ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-full md:translate-y-12 opacity-0 md:scale-95'}
-      `}>
+      <motion.div 
+        initial={{ y: "100%", opacity: 0.5, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: "100%", opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300, mass: 0.8 }}
+        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
+      >
          
          {/* Mobile Pull Handle */}
-         <div className="md:hidden w-full flex justify-center pt-4 pb-2 absolute top-0 z-20 pointer-events-none" onClick={handleClose}>
+         <div className="md:hidden w-full flex justify-center pt-4 pb-2 absolute top-0 z-20 pointer-events-none">
              <div className="w-12 h-1 bg-black/10 rounded-full"></div>
          </div>
 
          {/* Close Button */}
          <button 
-           onClick={handleClose}
+           onClick={onClose}
            className="hidden md:flex absolute top-6 right-6 z-20 w-8 h-8 rounded-full bg-white/50 hover:bg-neutral-100 items-center justify-center transition-all group"
          >
            <X size={16} className="text-neutral-400 group-hover:text-black transition-colors" />
@@ -165,58 +146,78 @@ const ProjectModal: React.FC<{
                )}
             </div>
          </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
 export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) => {
-  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [showVinyl, setShowVinyl] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
 
+  // Scroll Linked Animations (Mobile Parallax)
+  const { scrollY } = useScroll({ container: containerRef });
+  
+  // Transform scrollY to values
+  // Range: 0 to 300px scroll
+  const vinylScale = useTransform(scrollY, [0, 300], [1, 0.8]);
+  const vinylOpacity = useTransform(scrollY, [0, 300], [1, 0.3]);
+  const vinylY = useTransform(scrollY, [0, 300], [0, 50]);
+  const vinylBlur = useTransform(scrollY, [0, 300], [0, 10]);
+
+  // Smooth out the transform values with a spring
+  // Silkier config: Lower stiffness, adjusted damping for a floaty feel
+  const springConfig = { stiffness: 70, damping: 25, mass: 1 };
+  
+  const smoothScale = useSpring(vinylScale, springConfig);
+  const smoothOpacity = useSpring(vinylOpacity, springConfig);
+  const smoothY = useSpring(vinylY, springConfig);
+  
+  // We can't directly use 'filter' in style props as a motion value in older versions, 
+  // but let's try standard motion.div style prop.
+  // Actually, 'filter' is supported.
+
   useEffect(() => {
-    // Staggered entrance
-    requestAnimationFrame(() => setMounted(true));
-    // Delay the slide-out of the record to mimic pulling it out
+    // Delay the slide-out of the record
     const timer = setTimeout(() => setShowVinyl(true), 600);
-    return () => {
-        setMounted(false);
-        clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-[#F3F3F1] text-[#111] flex flex-col md:flex-row overflow-hidden">
+      <div 
+        ref={containerRef}
+        className="fixed inset-0 z-50 bg-[#F3F3F1] text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-proximity scroll-smooth"
+      >
         
-        {/* Mobile Back Button */}
+        {/* Mobile Back Button - Fixed */}
         <button 
           onClick={onClose}
-          className="md:hidden absolute top-6 left-6 z-40 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
+          className="md:hidden fixed top-6 left-6 z-40 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
         >
           <ArrowLeft size={18} />
         </button>
 
-        {/* 
-          LEFT COLUMN: The "Now Playing" Display 
-          UPDATED: Increased width (32% -> 42%) to give the record more breathing room
-        */}
-        <div className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)]">
+        {/* LEFT COLUMN: VISUALS */}
+        <div className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-0 snap-start">
           
-          {/* Texture */}
-
-          
-          {/* Vinyl Container */}
-          <div 
-             className={`
-               relative transition-all duration-[1.2s] ease-[cubic-bezier(0.22,1,0.36,1)]
-               ${mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95'}
-             `}
+          {/* Vinyl Container with Parallax */}
+          <motion.div 
+             style={{ 
+               scale: smoothScale, 
+               opacity: smoothOpacity, 
+               y: smoothY 
+               // filter: `blur(${useTransform(scrollY, [0, 300], [0, 4])}px)` // simplified for safety
+             }}
+             initial={{ opacity: 0, y: 50, scale: 0.95 }}
+             animate={{ opacity: 1, y: 0, scale: 1 }}
+             transition={{ type: "spring", duration: 0.8, bounce: 0.2 }}
+             className="relative w-full h-full flex items-center overflow-hidden"
           >
-             {/* Adjusted positioning to account for wider column */}
+             {/* Adjusted positioning */}
              <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
                 <RecordVinyl 
                     album={album} 
@@ -235,7 +236,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                     ${showVinyl ? 'opacity-100 translate-x-[25%] md:translate-x-[50%] scale-x-125' : 'opacity-0 translate-x-0 scale-x-75'}
                 `}
              />
-          </div>
+          </motion.div>
 
           {/* Desktop Back Button */}
           <button 
@@ -252,66 +253,50 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         </div>
 
         {/* RIGHT COLUMN: Content */}
-        <div className="flex-1 h-full overflow-y-auto no-scrollbar relative bg-[#F3F3F1]">
-          {/* 
-            UPDATED PADDING LOGIC for Mobile Centering:
-            py-8: Vertical padding
-            pl-8 (32px): Left Padding + Track Index/Indent (32px) = 64px visual gap from left
-            pr-16 (64px): Right Padding = 64px visual gap from right
-            This balances the text content content in the viewport.
-          */}
+        <div className="flex-1 min-h-screen md:min-h-0 md:h-full md:overflow-y-auto no-scrollbar relative z-10 bg-[#F3F3F1] snap-start">
           <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
               
               {/* Header */}
-              <div className={`transition-all duration-700 delay-100 flex flex-col items-start ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                  
-                  {/* 
-                     Indented Title Block
-                     Updated padding-left (pl-8 md:pl-10) to match the new narrower index column width.
-                  */}
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
+                className="flex flex-col items-start"
+              >
                   <div className="pl-8 md:pl-10 w-full">
-                      {/* Title: Adjusted margin bottom (mb-10) */}
                       <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-10 uppercase text-left">
                           {album.title}
                       </h1>
 
-                      {/* Subtitle / Technical Label: Minimalist Swiss Style */}
                       <div className="mb-10 flex items-center">
                         <div className="flex items-center gap-3 select-none group">
-                           {/* Geometric Color Indicator (Restrained, Sharp) */}
                            <div 
                               className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
                               style={{ backgroundColor: album.color }}
                            ></div>
-                           
-                           {/* Technical Divider */}
                            <div className="w-px h-3 bg-neutral-300"></div>
-
-                           {/* Monospace Metadata Label */}
                            <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
                               {album.id} Collection
                            </span>
                         </div>
                       </div>
                   </div>
-              </div>
+              </motion.div>
 
               {/* List */}
               <div className="space-y-0 pb-24">
-                 {/* 
-                   List Header 
-                 */}
-                 <div className="flex w-full mb-0">
-                    {/* Spacer matches Index Column width (w-8 md:w-10) */}
+                 <motion.div 
+                   initial={{ opacity: 0 }} 
+                   animate={{ opacity: 1 }} 
+                   transition={{ delay: 0.4 }}
+                   className="flex w-full mb-0"
+                 >
                     <div className="w-8 md:w-10 shrink-0"></div>
-                    
-                    {/* Content Header (Aligned with track title) */}
                     <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-black">Tracklist</span>
-                        {/* Aligned to the right of the underlined area */}
                         <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} Items</span>
                     </div>
-                 </div>
+                 </motion.div>
 
                  {album.tracks.map((track, index) => (
                      <TrackItem 
@@ -322,8 +307,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                         isHovered={hoveredTrack === track.id}
                         onHover={setHoveredTrack}
                         onClick={() => setSelectedProject(track)}
-                        delay={200 + (index * 80)}
-                        mounted={mounted}
+                        delay={400 + (index * 80)}
                      />
                  ))}
               </div>
@@ -332,13 +316,16 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
       </div>
 
       {/* PROJECT MODAL */}
-      {selectedProject && (
-        <ProjectModal 
-          project={selectedProject} 
-          color={album.color} 
-          onClose={() => setSelectedProject(null)} 
-        />
-      )}
+      <AnimatePresence>
+        {selectedProject && (
+          <ProjectModal 
+            project={selectedProject} 
+            color={album.color} 
+            onClose={() => setSelectedProject(null)} 
+            key="modal"
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
