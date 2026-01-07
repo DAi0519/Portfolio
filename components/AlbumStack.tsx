@@ -16,8 +16,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
   // Responsive Layout State
   const [layout, setLayout] = useState({
       mode: 'DESKTOP' as 'MOBILE' | 'TABLET' | 'DESKTOP',
-      width: typeof window !== 'undefined' ? window.innerWidth : 1024,
-      height: typeof window !== 'undefined' ? window.innerHeight : 768
+      width: window.innerWidth
   });
 
   // Touch state
@@ -27,12 +26,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
   useEffect(() => {
     const handleResize = () => {
         const w = window.innerWidth;
-        const h = window.innerHeight;
         let mode: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
         if (w < 768) mode = 'MOBILE';
         else if (w < 1280) mode = 'TABLET'; // Laptops / Small Desktops
         
-        setLayout({ mode, width: w, height: h });
+        setLayout({ mode, width: w });
     };
     
     handleResize(); // Initial check
@@ -118,8 +116,6 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
     };
   }, [albums.length, currentIndex, onIndexChange]);
 
-  const isLandscapeMobile = layout.width < 900 && layout.height < 500;
-
   return (
     <div 
         ref={containerRef}
@@ -131,7 +127,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
       {/* 
         Stack Container
       */}
-      <div className={`relative w-full flex items-center justify-center transform-style-3d z-10 ${isLandscapeMobile ? 'h-[200px] mt-0' : 'h-[280px] md:h-[360px] lg:h-[450px] -mt-16 md:-mt-8 lg:mt-0'}`}>
+      <div className="relative w-full h-[280px] md:h-[360px] lg:h-[450px] flex items-center justify-center transform-style-3d -mt-16 md:-mt-8 lg:mt-0 z-10">
         <AnimatePresence initial={false} custom={currentIndex}>
           {albums.map((album, index) => {
             const distance = index - currentIndex;
@@ -142,11 +138,9 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
             if (Math.abs(distance) > renderRange) return null; 
 
             // UX/Physics Constants
-            // Mobile: Tighter stack, less rotation to avoid bleeding off screen
-            // UPDATED: Increased spacing (50 -> 90) to ensure the "next" card is visible enough to suggest swiping.
-            const X_SPACING = layout.mode === 'MOBILE' ? (isLandscapeMobile ? 120 : 90) : layout.mode === 'TABLET' ? 220 : 320;
-            const Z_DEPTH = layout.mode === 'MOBILE' ? -180 : -200; // Deeper Z on mobile to hide back cards better
-            const ROTATION = layout.mode === 'MOBILE' ? -8 : -15;   // Flatten rotation on mobile
+            const X_SPACING = layout.mode === 'MOBILE' ? 60 : layout.mode === 'TABLET' ? 220 : 320;
+            const Z_DEPTH = layout.mode === 'MOBILE' ? -150 : -200;
+            const ROTATION = layout.mode === 'MOBILE' ? -10 : -15; 
             
             return (
               <motion.div
@@ -159,7 +153,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
                   y: 0,
                   z: isActive ? 0 : Math.abs(distance) * Z_DEPTH,
                   rotateY: distance * ROTATION, 
-                  scale: isActive ? 1.05 : 1 - Math.abs(distance) * 0.12, // Slightly less scale up on active
+                  scale: isActive ? 1.1 : 1 - Math.abs(distance) * 0.1, 
                   opacity: 1, 
                   zIndex: 100 - Math.abs(distance),
                 }}
@@ -177,7 +171,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
                 <div 
                     className={`
                         relative z-20
-                        ${isLandscapeMobile ? 'w-[45vh] h-[45vh] max-w-[220px] max-h-[220px]' : 'w-[75vw] h-[75vw] max-w-[340px] max-h-[340px]'}
+                        w-[65vw] h-[65vw] max-w-[300px] max-h-[300px] 
                         md:w-72 md:h-72 
                         lg:w-96 lg:h-96 
                         bg-[#F9F9F9] rounded-[2px] overflow-hidden group
@@ -242,7 +236,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
       {/* 
         Active Item Typography 
       */}
-      <div className={`absolute left-0 right-0 text-center pointer-events-none px-6 z-50 ${isLandscapeMobile ? 'bottom-2' : 'bottom-[10%] md:bottom-[8%] lg:bottom-12'}`}>
+      <div className="absolute bottom-[10%] md:bottom-[8%] lg:bottom-12 left-0 right-0 text-center pointer-events-none px-6 z-50">
         <AnimatePresence mode="wait">
           <motion.div
              key={currentIndex}
@@ -254,15 +248,15 @@ const AlbumStack: React.FC<AlbumStackProps> = ({ albums, currentIndex, onIndexCh
           >
             {/* Dynamic Color Accent Bar */}
             <div 
-                className={`w-1 mx-auto transition-colors duration-500 ${isLandscapeMobile ? 'h-3 mb-2' : 'h-6 mb-3 md:h-8 md:mb-4'}`}
+                className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
                 style={{ backgroundColor: albums[currentIndex].color }}
             ></div>
 
-            <h2 className={`font-black tracking-[-0.03em] text-neutral-900 mb-2 leading-none uppercase ${isLandscapeMobile ? 'text-2xl' : 'text-3xl md:text-5xl lg:text-7xl'}`}>
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-black tracking-[-0.03em] text-neutral-900 mb-2 leading-none uppercase">
                 {albums[currentIndex].title}
             </h2>
             
-            <p className={`font-medium text-neutral-500 tracking-widest uppercase ${isLandscapeMobile ? 'text-[9px] mt-1' : 'text-[9px] md:text-xs lg:text-sm mt-3'}`}>
+            <p className="text-[10px] md:text-xs lg:text-sm font-medium text-neutral-500 tracking-widest uppercase mt-3">
                 {albums[currentIndex].subtitle}
             </p>
           </motion.div>
