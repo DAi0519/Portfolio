@@ -216,7 +216,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
         {/* Mobile Back Button */}
         <button
           onClick={onClose}
-          className="md:hidden absolute top-6 left-6 z-40 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
+          className="md:hidden absolute top-6 left-6 z-50 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
         >
           <ArrowLeft size={18} />
         </button>
@@ -225,9 +225,9 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
           LEFT COLUMN: The "Now Playing" Display 
           UPDATED: Increased width (32% -> 42%) to give the record more breathing room
         */}
-        <div className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-40">
+        <div className="relative w-full md:w-[42%] lg:w-[38%] h-[35vh] md:h-full bg-[#E8E8E6] flex items-center justify-start pl-6 md:pl-0 md:justify-start shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-0 md:z-40">
           {/* Texture */}
-          <div className="absolute inset-0 bg-noise opacity-30"></div>
+          <div className="absolute inset-0 bg-noise opacity-[0.03]"></div>
 
           {/* Vinyl Container */}
           <div
@@ -241,7 +241,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
              `}
           >
             {/* Adjusted positioning to account for wider column */}
-            <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
+            <div className="w-[55vw] h-[55vw] md:w-[32vw] md:h-[32vw] max-w-[320px] max-h-[320px] md:max-w-[500px] md:max-h-[500px] relative md:-translate-x-[40%]">
               <RecordVinyl
                 album={album}
                 isActive={showVinyl}
@@ -254,11 +254,11 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
             {/* Reflection/Shadow */}
             <div
               className={`
-                    absolute -bottom-16 left-0 w-full h-8 bg-black/5 blur-2xl rounded-[100%]
+                    absolute -bottom-12 md:-bottom-16 left-0 w-full h-8 bg-black/5 blur-2xl rounded-[100%]
                     transition-all duration-1000 delay-500
                     ${
                       showVinyl
-                        ? "opacity-100 translate-x-[25%] md:translate-x-[50%] scale-x-125"
+                        ? "opacity-100 scale-x-110 md:translate-x-[50%] md:scale-x-125"
                         : "opacity-0 translate-x-0 scale-x-75"
                     }
                 `}
@@ -295,7 +295,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
         </div>
 
         {/* RIGHT COLUMN: Content - Added z-30 to ensure it sits ABOVE the vinyl if there's any overflow/overlap */}
-        <div className="flex-1 h-full overflow-y-auto no-scrollbar relative bg-[#F3F3F1]">
+        <div className="flex-1 h-full overflow-y-auto no-scrollbar relative bg-[#F3F3F1] z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] md:shadow-none">
           {/* 
             UPDATED PADDING LOGIC for Mobile Centering:
             py-8: Vertical padding
@@ -303,7 +303,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
             pr-16 (64px): Right Padding = 64px visual gap from right
             This balances the text content content in the viewport.
           */}
-          <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
+          <div className="min-h-full py-6 pl-6 pr-6 md:py-8 md:pl-8 md:pr-16 lg:p-24 flex flex-col justify-start md:justify-center">
             {/* Header */}
             <div
               className={`transition-all duration-700 delay-100 flex flex-col items-start ${
@@ -316,14 +316,17 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
                      Indented Title Block
                      Updated padding-left (pl-8 md:pl-10) to match the new narrower index column width.
                   */}
+              {/* 
+                     Indented Title Block
+                  */}
               <div className="pl-8 md:pl-10 w-full">
                 {/* Title: Adjusted margin bottom (mb-10) */}
-                <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-10 uppercase text-left">
+                <h1 className="text-3xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-6 md:mb-10 uppercase text-left">
                   {album.title}
                 </h1>
 
                 {/* Subtitle / Technical Label: Minimalist Swiss Style */}
-                <div className="mb-10 flex items-center">
+                <div className="mb-8 md:mb-10 flex items-center">
                   <div className="flex items-center gap-3 select-none group">
                     {/* Geometric Color Indicator (Restrained, Sharp) */}
                     <div
@@ -335,7 +338,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({
                     <div className="w-px h-3 bg-neutral-300"></div>
 
                     {/* Monospace Metadata Label */}
-                    <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
+                    <span className="text-[9px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
                       {album.id} Collection
                     </span>
                   </div>
