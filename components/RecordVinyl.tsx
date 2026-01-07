@@ -24,7 +24,7 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
 }) => {
   return (
     <div 
-      className={`relative group select-none ${className} ${layout === '3D' ? 'perspective-1000' : ''}`}
+      className={`relative group select-none w-full h-full ${className} ${layout === '3D' ? 'perspective-1000' : ''}`}
       onDoubleClick={onDoubleClick}
     >
       {/* 
