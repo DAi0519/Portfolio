@@ -48,19 +48,19 @@ const App: React.FC = () => {
         {viewMode === 'STACK' ? (
            <>
               {/* Header for Stack Mode */}
-              <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-start pointer-events-none">
+              <header className="absolute top-0 left-0 right-0 z-30 px-5 py-5 md:p-8 flex justify-between items-start pointer-events-none">
                 <div className="pointer-events-auto">
-                  <h1 className="text-xs md:text-sm font-bold tracking-tight text-neutral-900">
+                  <h1 className="text-[10px] md:text-sm font-bold tracking-tight text-neutral-900">
                     DIETER RAMS<span className="text-neutral-400">.PORTFOLIO</span>
                   </h1>
                   {/* Dynamic Brand Accent Bar */}
                   <div 
-                    className="w-8 h-0.5 mt-2 transition-colors duration-500"
+                    className="w-6 h-0.5 md:w-8 mt-2 transition-colors duration-500"
                     style={{ backgroundColor: activeAlbum.color }}
                   ></div>
                 </div>
                 <div className="text-right pointer-events-auto">
-                   <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
+                   <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest hidden md:block">
                       Select Record
                    </p>
                 </div>
