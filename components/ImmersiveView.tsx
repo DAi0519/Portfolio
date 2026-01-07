@@ -207,7 +207,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         <div className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)]">
           
           {/* Texture */}
-          <div className="absolute inset-0 bg-noise opacity-30"></div>
+
           
           {/* Vinyl Container */}
           <div 
