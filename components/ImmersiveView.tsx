@@ -295,7 +295,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             onMouseLeave={() => setBackHovered(false)}
             className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
           >
-            <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? 'border-transparent text-white' : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
+            <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${album.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
                 <ArrowLeft size={14} />
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
