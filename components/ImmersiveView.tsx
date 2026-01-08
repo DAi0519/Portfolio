@@ -16,28 +16,28 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
     <div className="prose prose-neutral max-w-none pl-8 md:pl-10">
       {content.split('\n').map((line, i) => {
         const trimmed = line.trim();
-        if (!trimmed) return <div key={i} className="h-6" />;
+        if (!trimmed) return <div key={i} className="h-2" />;
         
         if (trimmed.startsWith('### ')) {
           return (
-            <h3 key={i} className="text-xl font-black uppercase tracking-widest mt-12 mb-6 border-b pb-4" style={{ borderColor: safeColor }}>
+            <h3 key={i} className="text-[10px] font-bold uppercase tracking-[0.2em] mt-8 mb-4 text-neutral-500 font-sans">
               {trimmed.replace('### ', '')}
             </h3>
           );
         }
         
         if (trimmed.startsWith('---')) {
-             return <hr key={i} className="my-12 border-neutral-200" />;
+             return <hr key={i} className="my-8 border-neutral-200" />;
         }
 
         if (trimmed.startsWith('- ')) {
            const parts = trimmed.replace('- ', '').split('**');
            return (
-             <div key={i} className="flex items-start gap-4 my-3 pl-2">
-                <span className="mt-[10px] w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: safeColor }} />
-                <p className="flex-1 text-neutral-600 leading-relaxed m-0 text-lg">
+             <div key={i} className="flex items-baseline gap-3 my-2 pl-0">
+                <span className="w-1 h-1 rounded-full shrink-0 translate-y-[-2px] opacity-40" style={{ backgroundColor: safeColor }} />
+                <p className="flex-1 text-[#1A1A1A] leading-[1.6] m-0 text-[16px] font-serif">
                    {parts.map((part, idx) => 
-                      idx % 2 === 1 ? <strong key={idx} className="font-bold text-neutral-900">{part}</strong> : part
+                      idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
                    )}
                 </p>
              </div>
@@ -46,9 +46,9 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
 
         const parts = trimmed.split('**');
         return (
-          <p key={i} className="text-neutral-600 leading-relaxed mb-4 font-normal text-lg">
+          <p key={i} className="text-[#1A1A1A] leading-[1.6] mb-4 font-serif text-[16px]">
              {parts.map((part, idx) => 
-                idx % 2 === 1 ? <strong key={idx} className="font-bold text-neutral-900">{part}</strong> : part
+                idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
              )}
           </p>
         );
@@ -314,7 +314,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                 className="flex flex-col items-start"
               >
                   <div className="pl-8 md:pl-10 w-full">
-                      <h1 className="text-4xl md:text-6xl font-black tracking-[-0.03em] leading-[0.9] text-neutral-900 mb-10 uppercase text-left">
+                      <h1 className="text-5xl md:text-7xl font-black tracking-[-0.04em] leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif">
                           {album.title}
                       </h1>
 
@@ -357,6 +357,10 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4, duration: 0.8 }}
                     >
+                        {/* Elegant Divider Line */}
+                        <div className="pl-8 md:pl-10 w-full mb-8">
+                           <div className="w-full h-px bg-neutral-200" />
+                        </div>
                         <SimpleMarkdown content={album.introContent} color={album.color} />
                     </motion.div>
                  ) : (
