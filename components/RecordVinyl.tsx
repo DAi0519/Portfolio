@@ -133,7 +133,7 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
               <div className="bg-white/95 px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-transform border border-white/50">
                 <Play size={12} fill="#000" className="text-black" />
                 <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-black">
-                  Open
+                  打开
                 </span>
               </div>
             </div>

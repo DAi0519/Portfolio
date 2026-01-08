@@ -51,7 +51,7 @@ const App: React.FC = () => {
               <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-start pointer-events-none">
                 <div className="pointer-events-auto">
                   <h1 className="text-xs md:text-sm font-bold tracking-tight text-neutral-900">
-                    DIETER RAMS<span className="text-neutral-400">.PORTFOLIO</span>
+                    迪特·拉姆斯<span className="text-neutral-400">.作品集</span>
                   </h1>
                   {/* Dynamic Brand Accent Bar */}
                   <div 
@@ -61,7 +61,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="text-right pointer-events-auto">
                    <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
-                      Select Record
+                      选择唱片
                    </p>
                 </div>
               </header>
@@ -78,7 +78,7 @@ const App: React.FC = () => {
                {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
                 <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
-                   {new Date().getFullYear()} System
+                   {new Date().getFullYear()} 系统
                 </p>
               </footer>
            </>

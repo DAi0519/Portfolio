@@ -141,7 +141,7 @@ const ProjectModal: React.FC<{
                    className="w-full md:w-auto flex-1 text-white py-3 px-6 rounded-sm text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                    style={{ backgroundColor: color }}
                  >
-                   View <ExternalLink size={12} />
+                   查看 <ExternalLink size={12} />
                  </a>
                )}
             </div>
@@ -190,7 +190,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
     <>
       <div 
         ref={containerRef}
-        className="fixed inset-0 z-50 bg-[#F3F3F1] text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-proximity scroll-smooth"
+        className="fixed inset-0 z-50 bg-[#F3F3F1] text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-mandatory scroll-smooth"
       >
         
         {/* Mobile Back Button - Fixed */}
@@ -248,7 +248,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? 'border-transparent text-white' : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
                 <ArrowLeft size={14} />
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>Back</span>
+            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
           </button>
         </div>
 
@@ -276,7 +276,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                            ></div>
                            <div className="w-px h-3 bg-neutral-300"></div>
                            <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
-                              {album.id} Collection
+                              {album.id} 合集
                            </span>
                         </div>
                       </div>
@@ -293,8 +293,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                  >
                     <div className="w-8 md:w-10 shrink-0"></div>
                     <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-black">Tracklist</span>
-                        <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} Items</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
+                        <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
                     </div>
                  </motion.div>
 
