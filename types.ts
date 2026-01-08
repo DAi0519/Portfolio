@@ -2,7 +2,8 @@ export enum AlbumType {
   WRITING = 'WRITING',
   CODING = 'CODING',
   VIDEO = 'VIDEO',
-  PHOTO = 'PHOTO'
+  PHOTO = 'PHOTO',
+  INTRO = 'INTRO'
 }
 
 export interface ProjectItem {
@@ -21,5 +22,6 @@ export interface Album {
   subtitle: string;
   color: string; // Hex code for accent
   coverImage: string;
+  introContent?: string; // Optional full-text content for INTRO albums
   tracks: ProjectItem[];
 }
