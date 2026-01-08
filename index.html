@@ -6,11 +6,37 @@
     <title>Portfolio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* Fonts */
+      @font-face {
+        font-family: "ChillHuoSong";
+        src: url("/fonts/ChillHuoSong_F_Regular.otf") format("opentype");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "ChillHuoSong";
+        src: url("/fonts/ChillHuoSong_F_Bold.otf") format("opentype");
+        font-weight: 700;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "ChillHuoSong";
+        src: url("/fonts/ChillHuoSong_F_ExBold.otf") format("opentype");
+        font-weight: 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "ChillHuoSong";
+        src: url("/fonts/ChillHuoSong_F_ConRegular.otf") format("opentype");
+        font-weight: 400;
+        font-stretch: condensed;
+      }
+
       :root {
-        --bg-color: #F3F3F1; /* Rams/Gallery "Warm White" */
+        --bg-color: #f3f3f1; /* Rams/Gallery "Warm White" */
         --text-color: #111111;
-        --klein-blue: #002FA7; /* International Klein Blue */
-        --rams-orange: #EB5A28; /* Braun Orange */
+        --klein-blue: #002fa7; /* International Klein Blue */
+        --rams-orange: #eb5a28; /* Braun Orange */
         --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
       }
       body {
@@ -19,9 +45,10 @@
         background-color: var(--bg-color);
         color: var(--text-color);
         overflow: hidden; /* App handles scrolling */
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; /* Classic Rams Typography */
+        font-family: "ChillHuoSong", "Helvetica Neue", Helvetica, Arial,
+          sans-serif; /* Update to new font */
       }
-      
+
       /* Utilities */
       .perspective-1000 {
         perspective: 1000px;
@@ -32,7 +59,7 @@
       .transform-style-3d {
         transform-style: preserve-3d;
       }
-      
+
       /* Film Grain / Paper Texture */
       .bg-noise {
         position: fixed;
@@ -56,13 +83,17 @@
       }
 
       @keyframes spin-slow {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
       }
       .animate-spin-slow {
         animation: spin-slow 3s linear infinite; /* Slightly faster for visual feedback */
       }
-      
+
       /* Card Stack Animations */
       .card-stack-item {
         will-change: transform;
@@ -70,13 +101,12 @@
 
       /* Vinyl Grooves & Sheen - REFINED */
       .vinyl-grooves {
-        background: 
-          repeating-radial-gradient(
-            rgba(0,0,0,0.15) 0, 
-            rgba(0,0,0,0.15) 1px, 
-            transparent 2px, 
-            rgba(0,0,0,0.1) 3px
-          );
+        background: repeating-radial-gradient(
+          rgba(0, 0, 0, 0.15) 0,
+          rgba(0, 0, 0, 0.15) 1px,
+          transparent 2px,
+          rgba(0, 0, 0, 0.1) 3px
+        );
         mix-blend-mode: multiply;
       }
       .vinyl-shine {
@@ -97,17 +127,17 @@
       }
     </style>
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.3.1",
-        "react/": "https://esm.sh/react@18.3.1/",
-        "react-dom": "https://esm.sh/react-dom@18.3.1",
-        "react-dom/": "https://esm.sh/react-dom@18.3.1/",
-        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
-        "framer-motion": "https://esm.sh/framer-motion@11.0.8?external=react,react-dom"
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react/": "https://esm.sh/react@18.3.1/",
+          "react-dom": "https://esm.sh/react-dom@18.3.1",
+          "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+          "framer-motion": "https://esm.sh/framer-motion@11.0.8?external=react,react-dom"
+        }
       }
-    }
     </script>
   </head>
   <body>
