@@ -61,11 +61,20 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
           }`}
         >
           {/* Realistic Grooves Texture (Semi-transparent black overlaying the color) */}
-          <div className="absolute inset-[2%] rounded-full vinyl-grooves opacity-60 ring-1 ring-white/10"></div>
+          <div className={`absolute inset-[2%] rounded-full vinyl-grooves opacity-60 ring-1 ${album.color.toLowerCase() === '#ffffff' ? 'ring-black/5' : 'ring-white/10'}`}></div>
 
           {/* Anisotropic Shine (The "Pizza Slice" reflection) */}
-          <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-50 rotate-45"></div>
-          <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-25 -rotate-45"></div>
+          {album.color.toLowerCase() === '#ffffff' ? (
+             <>
+                <div className="absolute inset-0 rounded-full vinyl-shine-dark mix-blend-multiply opacity-60 rotate-45"></div>
+                <div className="absolute inset-0 rounded-full vinyl-shine-dark mix-blend-multiply opacity-30 -rotate-45"></div>
+             </>
+          ) : (
+             <>
+                <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-50 rotate-45"></div>
+                <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-25 -rotate-45"></div>
+             </>
+          )}
 
           {/* Inner Dead Wax area - Matches the theme color but slightly darker/different finish */}
           <div

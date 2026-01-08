@@ -6,7 +6,8 @@ const COLORS = {
   KLEIN_BLUE: "#002FA7",
   FILM_ORANGE: "#F05A28", // Vibrant Kodak/Film Orange
   INK_CHARCOAL: "#1A1A1A", // Deep Matte Black
-  DEVELOPING_CYAN: "#00C2CB" // Chemical Cyan
+  DEVELOPING_CYAN: "#00C2CB", // Chemical Cyan
+  PURE_WHITE: "#FFFFFF" // Pure White
 };
 
 /**
@@ -19,6 +20,43 @@ const solidColor = (hex: string) => {
 };
 
 export const ALBUMS: Album[] = [
+  {
+    id: AlbumType.INTRO,
+    title: "WHO AM I",
+    subtitle: "个人介绍",
+    color: COLORS.PURE_WHITE,
+    // Solid Pure White
+    coverImage: solidColor(COLORS.PURE_WHITE),
+    introContent: `
+### HELLO, WORLD.
+
+我是一名游走在 **设计与代码** 边界的创造者。
+我相信最好的数字产品不仅好用，更要动人。
+
+---
+
+### TECH STACK
+
+- **Frontend:** React, TypeScript, Next.js, Framer Motion
+- **Creative:** Three.js, WebGL, Shader Programming
+- **Design:** Figma, Blender, Adobe Suite
+
+---
+
+### PHILOSOPHY
+
+**"Less but Better"**
+这是 Dieter Rams 的设计十诫中我最以此为然的一条。
+在信息过载的时代，我致力于通过做减法来还原事物的本质。
+我的代码追求语义化的清晰，我的设计追求功能的纯粹。
+
+### CONTACT
+
+如果你对我的项目感兴趣，或者想聊聊设计与技术：
+hello@dai.design / @daidesign
+    `,
+    tracks: []
+  },
   {
     id: AlbumType.WRITING,
     title: "Think Piece_01",

@@ -9,6 +9,54 @@ interface ImmersiveViewProps {
   onClose: () => void;
 }
 
+const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content, color }) => {
+  const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+  
+  return (
+    <div className="prose prose-neutral max-w-none pl-8 md:pl-10">
+      {content.split('\n').map((line, i) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={i} className="h-6" />;
+        
+        if (trimmed.startsWith('### ')) {
+          return (
+            <h3 key={i} className="text-xl font-black uppercase tracking-widest mt-12 mb-6 border-b pb-4" style={{ borderColor: safeColor }}>
+              {trimmed.replace('### ', '')}
+            </h3>
+          );
+        }
+        
+        if (trimmed.startsWith('---')) {
+             return <hr key={i} className="my-12 border-neutral-200" />;
+        }
+
+        if (trimmed.startsWith('- ')) {
+           const parts = trimmed.replace('- ', '').split('**');
+           return (
+             <div key={i} className="flex items-start gap-4 my-3 pl-2">
+                <span className="mt-[10px] w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: safeColor }} />
+                <p className="flex-1 text-neutral-600 leading-relaxed m-0 text-lg">
+                   {parts.map((part, idx) => 
+                      idx % 2 === 1 ? <strong key={idx} className="font-bold text-neutral-900">{part}</strong> : part
+                   )}
+                </p>
+             </div>
+           );
+        }
+
+        const parts = trimmed.split('**');
+        return (
+          <p key={i} className="text-neutral-600 leading-relaxed mb-4 font-normal text-lg">
+             {parts.map((part, idx) => 
+                idx % 2 === 1 ? <strong key={idx} className="font-bold text-neutral-900">{part}</strong> : part
+             )}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 const TrackItem: React.FC<{
     track: ProjectItem;
     index: number;
@@ -18,6 +66,7 @@ const TrackItem: React.FC<{
     onClick: () => void;
     delay: number;
 }> = ({ track, index, color, isHovered, onHover, onClick, delay }) => {
+    const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
     return (
         <motion.div 
           onClick={onClick}
@@ -40,7 +89,7 @@ const TrackItem: React.FC<{
                        text-[10px] font-mono transition-colors duration-300
                        ${!isHovered ? 'text-neutral-300' : 'font-bold'}
                     `}
-                    style={{ color: isHovered ? color : undefined }}
+                    style={{ color: isHovered ? safeColor : undefined }}
                 >
                     {String(index + 1).padStart(2, '0')}
                 </span>
@@ -50,7 +99,7 @@ const TrackItem: React.FC<{
             <div className="flex-1 flex items-center justify-between py-5 border-b border-neutral-200 transition-colors duration-500 group-hover:border-neutral-300">
                 <h3 
                     className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors truncate pr-4"
-                    style={{ color: isHovered ? color : undefined }}
+                    style={{ color: isHovered ? safeColor : undefined }}
                 >
                      {track.title}
                 </h3>
@@ -67,6 +116,7 @@ const ProjectModal: React.FC<{
   color: string;
   onClose: () => void;
 }> = ({ project, color, onClose }) => {
+  const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
       <motion.div 
@@ -122,7 +172,7 @@ const ProjectModal: React.FC<{
             {/* Content Divider */}
             <div 
                 className="w-8 h-1 mb-8"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: safeColor }}
             ></div>
 
             <div className="prose prose-neutral prose-lg max-w-none">
@@ -139,7 +189,7 @@ const ProjectModal: React.FC<{
                    target="_blank"
                    rel="noopener noreferrer"
                    className="w-full md:w-auto flex-1 text-white py-3 px-6 rounded-sm text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                   style={{ backgroundColor: color }}
+                   style={{ backgroundColor: safeColor }}
                  >
                    查看 <ExternalLink size={12} />
                  </a>
@@ -253,7 +303,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         </div>
 
         {/* RIGHT COLUMN: Content */}
-        <div className="flex-1 min-h-screen md:min-h-0 md:h-full md:overflow-y-auto no-scrollbar relative z-10 bg-[#F3F3F1] snap-start">
+        <div className="flex-1 w-full h-[100dvh] md:h-full md:overflow-y-auto no-scrollbar relative z-10 bg-[#F3F3F1] snap-start overflow-y-auto">
           <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
               
               {/* Header */}
@@ -283,33 +333,46 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                   </div>
               </motion.div>
 
-              {/* List */}
+              {/* List or Intro Content */}
               <div className="space-y-0 pb-24">
-                 <motion.div 
-                   initial={{ opacity: 0 }} 
-                   animate={{ opacity: 1 }} 
-                   transition={{ delay: 0.4 }}
-                   className="flex w-full mb-0"
-                 >
-                    <div className="w-8 md:w-10 shrink-0"></div>
-                    <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
-                        <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
-                    </div>
-                 </motion.div>
+                 {/* Conditional Header for Tracks */}
+                 {!album.introContent && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        transition={{ delay: 0.4 }}
+                        className="flex w-full mb-0"
+                    >
+                        <div className="w-8 md:w-10 shrink-0"></div>
+                        <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
+                            <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
+                        </div>
+                    </motion.div>
+                 )}
 
-                 {album.tracks.map((track, index) => (
-                     <TrackItem 
-                        key={track.id} 
-                        track={track} 
-                        index={index} 
-                        color={album.color}
-                        isHovered={hoveredTrack === track.id}
-                        onHover={setHoveredTrack}
-                        onClick={() => setSelectedProject(track)}
-                        delay={400 + (index * 80)}
-                     />
-                 ))}
+                 {album.introContent ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                    >
+                        <SimpleMarkdown content={album.introContent} color={album.color} />
+                    </motion.div>
+                 ) : (
+                     album.tracks.map((track, index) => (
+                        <TrackItem 
+                            key={track.id} 
+                            track={track} 
+                            index={index} 
+                            color={album.color}
+                            isHovered={hoveredTrack === track.id}
+                            onHover={setHoveredTrack}
+                            onClick={() => setSelectedProject(track)}
+                            delay={400 + (index * 80)}
+                        />
+                     ))
+                 )}
               </div>
           </div>
         </div>

@@ -7,29 +7,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* Fonts */
+      /* Fonts */
       @font-face {
-        font-family: "ChillHuoSong";
-        src: url("/fonts/ChillHuoSong_F_Regular.otf") format("opentype");
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-ExtraLight.ttf") format("truetype");
+        font-weight: 200;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-Light.ttf") format("truetype");
+        font-weight: 300;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-Regular.ttf") format("truetype");
         font-weight: 400;
         font-style: normal;
       }
       @font-face {
-        font-family: "ChillHuoSong";
-        src: url("/fonts/ChillHuoSong_F_Bold.otf") format("opentype");
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-Medium.ttf") format("truetype");
+        font-weight: 500;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-SemiBold.ttf") format("truetype");
+        font-weight: 600;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-Bold.ttf") format("truetype");
         font-weight: 700;
         font-style: normal;
       }
       @font-face {
-        font-family: "ChillHuoSong";
-        src: url("/fonts/ChillHuoSong_F_ExBold.otf") format("opentype");
+        font-family: "EarlySummerSerif";
+        src: url("/fonts/EarlySummerSerif-Heavy.ttf") format("truetype");
         font-weight: 900;
         font-style: normal;
-      }
-      @font-face {
-        font-family: "ChillHuoSong";
-        src: url("/fonts/ChillHuoSong_F_ConRegular.otf") format("opentype");
-        font-weight: 400;
-        font-stretch: condensed;
       }
 
       :root {
@@ -45,7 +64,7 @@
         background-color: var(--bg-color);
         color: var(--text-color);
         overflow: hidden; /* App handles scrolling */
-        font-family: "ChillHuoSong", "Helvetica Neue", Helvetica, Arial,
+        font-family: "EarlySummerSerif", "Helvetica Neue", Helvetica, Arial,
           sans-serif; /* Update to new font */
       }
 
@@ -121,6 +140,22 @@
           rgba(255, 255, 255, 0.1) 200deg,
           rgba(255, 255, 255, 0.35) 225deg,
           rgba(255, 255, 255, 0.1) 250deg,
+          transparent 270deg
+        );
+        filter: blur(14px);
+      }
+      .vinyl-shine-dark {
+        background: conic-gradient(
+          from 0deg,
+          transparent 0deg,
+          rgba(0, 0, 0, 0.05) 20deg,
+          rgba(0, 0, 0, 0.15) 45deg,
+          rgba(0, 0, 0, 0.05) 70deg,
+          transparent 90deg,
+          transparent 180deg,
+          rgba(0, 0, 0, 0.05) 200deg,
+          rgba(0, 0, 0, 0.15) 225deg,
+          rgba(0, 0, 0, 0.05) 250deg,
           transparent 270deg
         );
         filter: blur(14px);

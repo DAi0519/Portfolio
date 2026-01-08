@@ -25,10 +25,11 @@ Strict adherence to these colors for their respective categories. Album covers m
 | **Coding**  | **Klein Blue**      | `#002FA7` | Electric, Precision, Digital, Pure Logic.      |
 | **Video**   | **Film Orange**     | `#F05A28` | Kinetic, Warmth, Light Leaks, Motion Blur.     |
 | **Photo**   | **Developing Cyan** | `#00C2CB` | Chemical, Glass, Cool Observation, Ethereal.   |
+| **Intro**   | **Pure White**      | `#FFFFFF` | Clean, Minimalist, Open, Tabula Rasa.          |
 
 ## 3. Typography
 
-**Typeface:** Helvetica Neue (Fallback: Arial, Sans-serif)
+**Typeface:** EarlySummerSerif (Fallback: Helvetica Neue, Arial, Sans-serif) - a Serif font to bring a literary feel
 
 - **Headings:** Uppercase, Bold/Black weight. Tracking (letter-spacing) is tight (`-0.03em`) for large headers, wide (`0.1em`) for small labels.
 - **Metadata:** Monospace or small caps.
