@@ -1,56 +1,76 @@
-# RAMS VINYL PORTFOLIO - DESIGN SYSTEM
+# RAMS VINYL PORTFOLIO - DESIGN SYSTEM v2.0
 
-## 1. Core Philosophy
+## 1. Core Philosophy: "Apple Editorial"
 
-**"Less but Better" meets "Analog Tactility"**
+**"Object Permanence meets Editorial Rigor"**
 
-- **Reductionism:** Remove non-essential elements. Use whitespace (negative space) as an active layout component.
-- **Physicality:** Although digital, elements must behave like physical objects. Cards have thickness (rim lighting), weight (spring physics), and occlusion (shadows).
-- **Abstraction:** Imagery should not be literal. Use color fields, gradients, and textures to evoke mood rather than represent objects.
+We combine the physical tactility of vinyl records (object permanence, physics, lighting) with the strict, grid-based layout of high-end editorial magazines (Monocle, Kinfolk).
 
-## 2. Color System (The "Four Pillars")
+- **The Mix:** Content is **Serif** (Human, Story). UI is **Sans-Serif** (System, Function).
+- **The Grid:** All spacing is a multiple of **4px**.
+- **The Feel:** Dense but legible. High contrast. No "gray on gray" for body text.
+
+---
+
+## 2. Typography System
+
+We use a "Dual Typeface" system to separate _Story_ from _System_.
+
+### Primary Typeface (Content): **EarlySummerSerif**
+
+_Used for: Headings, Body Text, Quotes_
+
+| Role        | Size (Mobile/Desk) | Weight       | Leading | Tracking | Color     | Usage                             |
+| :---------- | :----------------- | :----------- | :------ | :------- | :-------- | :-------------------------------- |
+| **Display** | 48px / 80px        | Heavy (900)  | 0.9     | -0.04em  | `#111`    | Album Titles                      |
+| **H1**      | 32px / 48px        | Bold (700)   | 1.0     | -0.02em  | `#111`    | Page Titles                       |
+| **Body**    | 16px / 18px        | Medium (500) | 1.6     | 0        | `#1A1A1A` | Main reading text. **Never #666** |
+| **Quote**   | 20px / 24px        | Light (300)  | 1.4     | 0        | `#1A1A1A` | Blockquotes                       |
+
+### Secondary Typeface (System): **Helvetica Neue**
+
+_Used for: Labels, Metadata, Navigation, Captions_
+
+| Role       | Size | Weight       | Case    | Tracking | Color  | Usage                        |
+| :--------- | :--- | :----------- | :------ | :------- | :----- | :--------------------------- |
+| **Label**  | 10px | Bold (700)   | UPPER   | 0.2em    | `#888` | Section Headers (TECH STACK) |
+| **Meta**   | 11px | Medium (500) | Regular | 0.05em   | `#666` | Dates, File sizes            |
+| **Button** | 12px | Bold (700)   | UPPER   | 0.1em    | `#FFF` | Interactions                 |
+
+---
+
+## 3. Spacing System (The 4px Grid)
+
+Strict adherence is required.
+
+- **XS (4px):** Tight component grouping (icon + text).
+- **S (8px):** Within a component.
+- **M (16px):** Standard separation.
+- **L (24px):** Section divider (Article paragraphs).
+- **XL (40px):** Major Section break.
+- **2XL (64px+):** Global clear space.
+
+---
+
+## 4. Color System
 
 ### Base
 
-- **Canvas:** `#F3F3F1` (Warm White / Gallery Plaster) - Never pure white.
+- **Canvas:** `#F3F3F1` (Warm White / Gallery Plaster)
 - **Ink:** `#111111` (Off-Black) - For primary text.
+- **Divider:** `#E5E5E5` - Subtle structural lines.
 
-### Thematic Accents
+### Functional Roles
 
-Strict adherence to these colors for their respective categories. Album covers must be abstract representations of these hues.
+- **Structure:** `#000000` (10% opacity) - Shadows, texture.
+- **Focus:** Album specific brand color (Klein Blue, Rams Orange, etc).
 
-| Category    | Name                | Hex       | Vibe / Meaning                                 |
-| :---------- | :------------------ | :-------- | :--------------------------------------------- |
-| **Writing** | **Ink / Charcoal**  | `#1A1A1A` | Deep, Monochromatic, Texture of paper and ink. |
-| **Coding**  | **Klein Blue**      | `#002FA7` | Electric, Precision, Digital, Pure Logic.      |
-| **Video**   | **Film Orange**     | `#F05A28` | Kinetic, Warmth, Light Leaks, Motion Blur.     |
-| **Photo**   | **Developing Cyan** | `#00C2CB` | Chemical, Glass, Cool Observation, Ethereal.   |
-| **Intro**   | **Pure White**      | `#FFFFFF` | Clean, Minimalist, Open, Tabula Rasa.          |
+---
 
-## 3. Typography
+## 5. Implementation Rules (The "Editor's Check")
 
-**Typeface:** EarlySummerSerif (Fallback: Helvetica Neue, Arial, Sans-serif) - a Serif font to bring a literary feel
-
-- **Headings:** Uppercase, Bold/Black weight. Tracking (letter-spacing) is tight (`-0.03em`) for large headers, wide (`0.1em`) for small labels.
-- **Metadata:** Monospace or small caps.
-- **Sizing:** Scale is dramatic. Contrast between huge titles and tiny metadata is key.
-
-## 4. Materials & Texture
-
-- **Vinyl Record:** Glossy, Anisotropic reflection (conic gradient), Micro-grooves texture.
-- **Sleeves:** Matte cardboard finish. Needs specific "Rim Light" (`ring-1 ring-white/20`) to show edge thickness.
-- **Atmosphere:** Global CSS noise overlay (`mix-blend-mode: multiply`, `opacity: 0.08`) to unify all colors with a film grain look. _Exception: Immersive View left panel uses a clean, solid surface to highlight physical objects._
-
-## 5. Motion & Physics (Framer Motion)
-
-- **Stacking:** No transparency on covers. Use `Z-Index` and `Brightness` masking to create depth.
-- **Springs:** Stiffness `150`, Damping `20`, Mass `0.8`. Snappy but weighted.
-- **Interaction:**
-  - **Active:** Scale 1.1, Shadow `0 40px 80px rgba(0,0,0,0.5)`, No grayscale.
-  - **Inactive:** Scale < 1.0, Grayscale `0.5`, Brightness `0.4`, Overlay Black `40%`.
-
-## 6. Implementation Rules
-
-1. **No Ghosting:** Always use solid backgrounds on cards. Never `opacity < 1` for the main container of a card in a 3D stack.
-2. **Clipping Fix:** Increase X-axis spacing and Z-axis depth significantly to prevent 3D clipping artifacts.
-3. **Imagery:** Do not use complex photos. Use abstract textures, gradients, or geometric forms that match the color pillar.
+1.  **Hierarchy Check:** Can you tell the difference between a "Section Header" and "Body Text" from 3 meters away?
+    - _If slightly unsure:_ Make the Header **SMALLER** (10px) and **WIDER** (tracking). Make the Body **DARKER** (#111).
+2.  **No orphans:** Text max-width should be controlled (approx 65 chars).
+3.  **Vertical Rhythm:** Every element must sit on the rhythm. No arbitrary `mt-[13px]`.
+4.  **Contrast:** Body text opacity must never be below 90% (#222). Only metadata gets to be gray.
