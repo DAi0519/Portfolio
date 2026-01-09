@@ -25,6 +25,8 @@ export const ALBUMS: Album[] = [
     title: "WHO AM I",
     subtitle: "个人介绍",
     color: COLORS.PURE_WHITE,
+    backgroundColor: "#EFF0F1", // Cool Grey Paper
+    textColor: COLORS.INK_CHARCOAL,
     // Solid Pure White
     coverImage: solidColor(COLORS.PURE_WHITE),
     introContent: `
@@ -62,6 +64,8 @@ hello@dai.design / @daidesign
     title: "Think Piece_01",
     subtitle: "随笔与文章",
     color: COLORS.INK_CHARCOAL,
+    backgroundColor: "#F2F2F2", // Neutral Grey
+    textColor: "#111111", // Deep Black
     // Solid Matte Charcoal
     coverImage: solidColor(COLORS.INK_CHARCOAL), 
     tracks: [
@@ -93,6 +97,8 @@ hello@dai.design / @daidesign
     title: "Vibe.Code",
     subtitle: "开发项目",
     color: COLORS.KLEIN_BLUE,
+    backgroundColor: "#F0F4FC", // Very Pale Blue Tint
+    textColor: "#0A1629", // Deep Blue-Black
     // Solid International Klein Blue
     coverImage: solidColor(COLORS.KLEIN_BLUE), 
     tracks: [
@@ -127,6 +133,8 @@ hello@dai.design / @daidesign
     title: "Cinematics",
     subtitle: "动态与影像",
     color: COLORS.FILM_ORANGE,
+    backgroundColor: "#FAF2EF", // Warm Paper
+    textColor: "#2B140E", // Warm Black
     // Solid Safety Orange
     coverImage: solidColor(COLORS.FILM_ORANGE), 
     tracks: [
@@ -153,6 +161,8 @@ hello@dai.design / @daidesign
     title: "Exposures",
     subtitle: "摄影画廊",
     color: COLORS.DEVELOPING_CYAN,
+    backgroundColor: "#F0F7F7", // Pale Cyan Tint
+    textColor: "#0E2424", // Deep Green-Black
     // Solid Cyan
     coverImage: solidColor(COLORS.DEVELOPING_CYAN), 
     tracks: [

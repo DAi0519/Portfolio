@@ -21,6 +21,8 @@ export interface Album {
   title: string;
   subtitle: string;
   color: string; // Hex code for accent
+  backgroundColor: string; // Hex for full-screen background
+  textColor: string; // Hex for UI text (Header/Footer)
   coverImage: string;
   introContent?: string; // Optional full-text content for INTRO albums
   tracks: ProjectItem[];

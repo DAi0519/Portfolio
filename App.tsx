@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
+import { motion } from 'framer-motion';
+
+import CinematicBackground from './components/CinematicBackground';
 
 const App: React.FC = () => {
   // Simple Router: 'STACK' (Home) or 'DETAIL' (Project List)
@@ -41,8 +44,14 @@ const App: React.FC = () => {
   }, [viewMode, currentIndex]);
 
   return (
-    <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden bg-[#e8e8e5]">
+    <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
+      {/* Background Layer */}
+      <CinematicBackground 
+          color={activeAlbum.color} 
+          backgroundColor={activeAlbum.backgroundColor} 
+      />
+
       {/* Main Content Area */}
       <main className="w-full h-full relative z-10">
         {viewMode === 'STACK' ? (
@@ -50,9 +59,13 @@ const App: React.FC = () => {
               {/* Header for Stack Mode */}
               <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-start pointer-events-none">
                 <div className="pointer-events-auto">
-                  <h1 className="text-xs md:text-sm font-bold tracking-tight text-neutral-900">
-                    迪特·拉姆斯<span className="text-neutral-400">.作品集</span>
-                  </h1>
+                  <motion.h1 
+                    className="text-xs md:text-sm font-bold tracking-tight"
+                    animate={{ color: activeAlbum.textColor }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    迪特·拉姆斯<span style={{ opacity: 0.5 }}>.作品集</span>
+                  </motion.h1>
                   {/* Dynamic Brand Accent Bar */}
                   <div 
                     className="w-8 h-0.5 mt-2 transition-colors duration-500"
@@ -60,9 +73,14 @@ const App: React.FC = () => {
                   ></div>
                 </div>
                 <div className="text-right pointer-events-auto">
-                   <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
+                   <motion.p 
+                    className="text-[9px] font-mono uppercase tracking-widest"
+                    animate={{ color: activeAlbum.textColor }}
+                    style={{ opacity: 0.6 }} // Static opacity for hierarchy
+                    transition={{ duration: 0.5 }}
+                   >
                       选择唱片
-                   </p>
+                   </motion.p>
                 </div>
               </header>
 
@@ -77,9 +95,14 @@ const App: React.FC = () => {
 
                {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
-                <p className="text-[9px] font-mono text-neutral-400 uppercase tracking-widest">
+                <motion.p 
+                  className="text-[9px] font-mono uppercase tracking-widest"
+                  animate={{ color: activeAlbum.textColor }}
+                  style={{ opacity: 0.6 }}
+                  transition={{ duration: 0.5 }}
+                >
                    {new Date().getFullYear()} 系统
-                </p>
+                </motion.p>
               </footer>
            </>
         ) : (
