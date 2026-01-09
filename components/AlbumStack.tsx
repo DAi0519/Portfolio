@@ -363,16 +363,25 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
               style={{ backgroundColor: albums[currentIndex].color }}
           ></div>
 
-          <h2 className={`
-              ${layout.isShort ? 'text-3xl lg:text-5xl mb-1' : 'text-3xl md:text-5xl lg:text-7xl mb-2'}
-              font-black tracking-[-0.03em] text-neutral-900 leading-none uppercase
-          `}>
+          <motion.h2 
+              className={`
+                  ${layout.isShort ? 'text-3xl lg:text-5xl mb-1' : 'text-3xl md:text-5xl lg:text-7xl mb-2'}
+                  font-black tracking-[-0.03em] leading-none uppercase
+              `}
+              animate={{ color: albums[currentIndex].textColor }}
+              transition={{ duration: 0.5 }}
+          >
               {albums[currentIndex].title}
-          </h2>
+          </motion.h2>
           
-          <p className="text-[10px] md:text-xs lg:text-sm font-medium text-neutral-500 tracking-widest uppercase mt-3">
+          <motion.p 
+              className="text-[10px] md:text-xs lg:text-sm font-medium tracking-widest uppercase mt-3"
+              animate={{ color: albums[currentIndex].textColor }}
+              style={{ opacity: 0.6 }} // Use opacity for hierarchy instead of grey color
+              transition={{ duration: 0.5 }}
+          >
               {albums[currentIndex].subtitle}
-          </p>
+          </motion.p>
         </motion.div>
       </AnimatePresence>
     </div>

@@ -240,7 +240,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
     <>
       <div 
         ref={containerRef}
-        className="fixed inset-0 z-50 bg-[#F3F3F1] text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-mandatory scroll-smooth"
+        className="fixed inset-0 z-50 text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-mandatory scroll-smooth"
+        style={{ backgroundColor: album.backgroundColor }}
       >
         
         {/* Mobile Back Button - Fixed */}
@@ -252,7 +253,13 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         </button>
 
         {/* LEFT COLUMN: VISUALS */}
-        <div className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full bg-[#E8E8E6] flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-0 snap-start">
+        <div 
+            className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-0 snap-start"
+            style={{ 
+                backgroundColor: album.backgroundColor,
+                filter: 'brightness(0.97)' // Subtle darkening for visual hierarchy
+            }}
+        >
           
           {/* Vinyl Container with Parallax */}
           <motion.div 
@@ -303,7 +310,10 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         </div>
 
         {/* RIGHT COLUMN: Content */}
-        <div className="flex-1 w-full h-[100dvh] md:h-full md:overflow-y-auto no-scrollbar relative z-10 bg-[#F3F3F1] snap-start overflow-y-auto">
+        <div 
+            className="flex-1 w-full h-[100dvh] md:h-full md:overflow-y-auto no-scrollbar relative z-10 snap-start overflow-y-auto"
+            style={{ backgroundColor: album.backgroundColor }}
+        >
           <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
               
               {/* Header */}
