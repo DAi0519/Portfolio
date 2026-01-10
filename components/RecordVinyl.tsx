@@ -106,8 +106,8 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
             transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]
             ${
               layout === "3D"
-                ? "shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)]"
-                : "shadow-[20px_0_50px_-10px_rgba(0,0,0,0.2)]"
+                ? "shadow-[0_20px_40px_-12px_rgba(0,0,0,0.2)]" // Softer shadow for High Key
+                : "shadow-[15px_0_40px_-10px_rgba(0,0,0,0.15)]"
             }
             ${layout === "3D" && isActive ? "scale-100 translate-x-[-10%]" : ""}
             ${
