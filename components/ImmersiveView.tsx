@@ -73,12 +73,15 @@ const TrackItem: React.FC<{
           onMouseEnter={() => onHover(track.id)}
           onMouseLeave={() => onHover(null)}
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ 
+              opacity: 1, 
+              y: 0,
+              x: isHovered ? 6 : 0 // Magnetic pull
+          }}
           transition={{ 
-            delay: delay / 1000,
-            type: "spring",
-            stiffness: 400,
-            damping: 30
+            opacity: { delay: delay / 1000, duration: 0.5 },
+            y: { delay: delay / 1000, type: "spring", stiffness: 400, damping: 30 },
+            x: { type: "spring", stiffness: 400, damping: 25 } // snappy but smooth
           }}
           className="group flex items-stretch w-full cursor-pointer"
         >
@@ -86,7 +89,7 @@ const TrackItem: React.FC<{
             <div className="w-8 md:w-10 shrink-0 flex items-center justify-start border-b border-transparent">
                 <span 
                     className={`
-                       text-[10px] font-mono transition-colors duration-300
+                       text-[10px] font-mono transition-colors duration-300 tabular-nums
                        ${!isHovered ? 'text-neutral-300' : 'font-bold'}
                     `}
                     style={{ color: isHovered ? safeColor : undefined }}
@@ -103,7 +106,7 @@ const TrackItem: React.FC<{
                 >
                      {track.title}
                 </h3>
-                <span className="hidden md:block text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px]">
+                <span className="hidden md:block text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px] tabular-nums">
                     {track.date}
                 </span>
             </div>
@@ -128,10 +131,15 @@ const ProjectModal: React.FC<{
       />
 
       <motion.div 
-        initial={{ y: "100%", opacity: 0.5, scale: 0.95 }}
+        initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "100%", opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", damping: 28, stiffness: 300, mass: 0.8 }}
+        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
+        transition={{ 
+            type: "spring", 
+            damping: 32, // More dampening = heavier feel
+            stiffness: 300, 
+            mass: 1.2 // More mass = satisfying thud
+        }}
         className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
       >
          
@@ -254,10 +262,11 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
 
         {/* LEFT COLUMN: VISUALS */}
         <div 
-            className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 shadow-[inset_-1px_0_0_rgba(0,0,0,0.04)] z-0 snap-start"
+            className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 snap-start border-r border-black/5"
             style={{ 
                 backgroundColor: album.backgroundColor,
-                filter: 'brightness(0.97)' // Subtle darkening for visual hierarchy
+                // Removed brightness filter for cleaner "High Key" look.
+                // Added distinct border-r for structural separation instead.
             }}
         >
           
@@ -324,7 +333,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                 className="flex flex-col items-start"
               >
                   <div className="pl-8 md:pl-10 w-full">
-                      <h1 className="text-5xl md:text-7xl font-black tracking-[-0.04em] leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif">
+                      <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif">
                           {album.title}
                       </h1>
 
