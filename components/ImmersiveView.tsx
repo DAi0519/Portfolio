@@ -125,31 +125,37 @@ const VideoGridItem: React.FC<{
     return (
         <motion.div
             onClick={onClick}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: delay / 1000, duration: 0.5 }}
-            className="group cursor-pointer flex flex-col gap-3"
+            transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
+            className="group cursor-pointer mb-8 break-inside-avoid"
         >
-            <div className="relative aspect-video w-full overflow-hidden rounded-sm bg-neutral-200">
+            {/* 
+                MASONRY ITEM
+                No forced aspect ratio. Just w-full.
+            */}
+            <div className="relative w-full overflow-hidden rounded-sm bg-neutral-200 mb-3">
                 {track.imageUrl && (
                     <img 
                         src={track.imageUrl} 
                         alt={track.title} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                 )}
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-lg transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                {/* Overlay Play Button */}
+                <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
+                    <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                         <Play size={20} className="ml-1" style={{ color: safeColor }} fill={safeColor} />
                     </div>
                 </div>
             </div>
+            
             <div>
                 <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
                     {track.title}
                 </h3>
-                <p className="text-[10px] font-mono text-neutral-400 mt-1">
-                    {track.date} • {track.tags.join(' / ')}
+                <p className="text-[10px] font-mono text-neutral-400 mt-1 line-clamp-1">
+                    {track.description}
                 </p>
             </div>
         </motion.div>
@@ -166,20 +172,26 @@ const PhotoGridItem: React.FC<{
     return (
         <motion.div
             onClick={onClick}
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: delay / 1000, duration: 0.5 }}
-            className="group cursor-pointer relative aspect-[4/5] overflow-hidden bg-neutral-100"
+            transition={{ delay: delay / 1000, duration: 0.6, type: "spring" }}
+            className="group cursor-pointer relative w-full mb-4 break-inside-avoid overflow-hidden rounded-sm bg-neutral-100"
         >
+             {/* 
+                MASONRY ITEM
+                No forced aspect ratio. Just w-full.
+            */}
             {track.imageUrl && (
                 <img 
                     src={track.imageUrl} 
                     alt={track.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
                 />
             )}
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end">
-                <h3 className="text-white text-sm font-bold tracking-wide">
+            
+            {/* Minimal Overlay Info */}
+            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <h3 className="text-white text-xs font-bold tracking-widest uppercase">
                     {track.title}
                 </h3>
             </div>
@@ -200,7 +212,7 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/80 backdrop-blur-xl"
+        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
       />
 
       <motion.div 
@@ -231,13 +243,13 @@ const ProjectModal: React.FC<{
 
          {/* Image Header */}
          {project.imageUrl && (
-           <div className="w-full h-56 md:h-72 bg-neutral-50 relative shrink-0 grayscale hover:grayscale-0 transition-all duration-700">
-             <img src={project.imageUrl} alt={project.title} className="w-full h-full object-cover" />
+           <div className="w-full max-h-[50vh] bg-neutral-50 relative shrink-0 grayscale hover:grayscale-0 transition-all duration-700 overflow-hidden">
+             <img src={project.imageUrl} alt={project.title} className="w-full h-full object-contain bg-neutral-100" />
            </div>
          )}
 
          {/* Content Body */}
-         <div className="p-8 md:p-10 overflow-y-auto bg-white">
+         <div className="p-8 md:p-10 overflow-y-auto bg-white flex-1">
             <div className="flex flex-wrap gap-2 mb-8">
                {project.tags.map(tag => (
                   <span key={tag} className="text-[9px] uppercase font-bold tracking-[0.15em] text-neutral-400">
@@ -324,7 +336,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             
             {/* LEFT COLUMN: VISUALS */}
             <div 
-                className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 border-r border-black/5"
+                className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 border-r border-black/5"
                 style={{ 
                     backgroundColor: album.backgroundColor,
                 }}
@@ -443,8 +455,9 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                      ) : (
                          <div className="pl-0 md:pl-10">
                             {album.id === AlbumType.VIDEO ? (
-                                // VIDEO GRID
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-0">
+                                // VIDEO GRID - MASONRY
+                                // columns-1 md:columns-2
+                                <div className="columns-1 md:columns-2 gap-6 pt-4 pl-8 md:pl-0 block">
                                     {album.tracks.map((track, index) => (
                                         <VideoGridItem
                                             key={track.id}
@@ -457,8 +470,9 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                                     ))}
                                 </div>
                             ) : album.id === AlbumType.PHOTO ? (
-                                // PHOTO GRID
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pl-8 md:pl-0">
+                                // PHOTO GRID - MASONRY
+                                // columns-2 md:columns-3
+                                <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-0 block">
                                     {album.tracks.map((track, index) => (
                                         <PhotoGridItem
                                             key={track.id}

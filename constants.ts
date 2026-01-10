@@ -109,17 +109,41 @@ hello@dai.design / @daidesign
         id: "v1",
         title: "城市节奏",
         date: "2023.10",
-        description: "一部捕捉东京夜景心搏的短片。",
+        description: "16:9 • 一部捕捉东京夜景心搏的短片。",
         tags: ["导演", "剪辑"],
-        imageUrl: "https://picsum.photos/id/49/600/400"
+        imageUrl: "https://picsum.photos/800/450" // 16:9 Aspect Ratio
       },
       {
         id: "v2",
         title: "产品发布",
         date: "2023.08",
-        description: "本地极简家具品牌的商业广告。",
+        description: "21:9 Video • 本地极简家具品牌的商业广告。",
         tags: ["商业", "调色"],
-        imageUrl: "https://picsum.photos/id/50/600/400"
+        imageUrl: "https://picsum.photos/1050/450" // 21:9 Aspect Ratio (Wide)
+      },
+      {
+        id: "v3",
+        title: "竖屏叙事",
+        date: "2023.06",
+        description: "9:16 Short • 专为移动端设计的短视频叙事实验。",
+        tags: ["短视频", "实验"],
+        imageUrl: "https://picsum.photos/450/800" // 9:16 Aspect Ratio (Vertical)
+      },
+      {
+        id: "v4",
+        title: "复古记录",
+        date: "2023.05",
+        description: "4:3 Classic • 使用 16mm 胶片风格拍摄的记录片。",
+        tags: ["胶片", "复古"],
+        imageUrl: "https://picsum.photos/800/600" // 4:3 Aspect Ratio
+      },
+      {
+        id: "v5",
+        title: "正方形构图",
+        date: "2023.01",
+        description: "1:1 Square • 艺术影像实验。",
+        tags: ["实验", "构图"],
+        imageUrl: "https://picsum.photos/600/600" // 1:1 Aspect Ratio (Square)
       }
     ]
   },
@@ -137,25 +161,97 @@ hello@dai.design / @daidesign
         id: "p1",
         title: "建筑研究",
         date: "2023.07",
-        description: "东欧的野兽派建筑结构。",
+        description: "4:5 Portrait • 东欧的野兽派建筑结构。",
         tags: ["黑白", "建筑"],
-        imageUrl: "https://picsum.photos/id/61/600/400"
+        imageUrl: "https://picsum.photos/800/1000" // 4:5
       },
       {
         id: "p2",
         title: "雨中人像",
         date: "2023.04",
-        description: "季风季节光线与纹理的研究。",
+        description: "2:3 Portrait • 季风季节光线与纹理的研究。",
         tags: ["人像", "自然"],
-        imageUrl: "https://picsum.photos/id/62/600/400"
+        imageUrl: "https://picsum.photos/600/900" // 2:3
       },
       {
         id: "p3",
         title: "微距抽象",
         date: "2023.02",
-        description: "近距离观察日常物品。",
+        description: "3:2 Landscape • 近距离观察日常物品。",
         tags: ["微距", "抽象"],
-        imageUrl: "https://picsum.photos/id/63/600/400"
+        imageUrl: "https://picsum.photos/900/600" // 3:2
+      },
+       {
+        id: "p4",
+        title: "极简构图",
+        date: "2023.01",
+        description: "1:1 Square • 负空间的运用。",
+        tags: ["极简"],
+        imageUrl: "https://picsum.photos/800/800" // 1:1
+      },
+      {
+        id: "p5",
+        title: "街头瞬间",
+        date: "2022.12",
+        description: "16:9 Landscape • 决定性瞬间。",
+        tags: ["街头"],
+        imageUrl: "https://picsum.photos/1600/900" // 16:9
+      },
+       {
+        id: "p6",
+        title: "光影游戏",
+        date: "2022.11",
+        description: "9:16 Vertical • 高对比度光影。",
+        tags: ["光影"],
+        imageUrl: "https://picsum.photos/450/800" // 9:16
+      },
+      {
+        id: "p7",
+        title: "工业遗迹",
+        date: "2022.10",
+        description: "21:9 Panorama • 废弃工厂的记录。",
+        tags: ["纪实"],
+        imageUrl: "https://picsum.photos/1050/450" // 21:9
+      },
+      {
+        id: "p8",
+        title: "城市几何",
+        date: "2022.09",
+        description: "3:4 Portrait • 线条与形状。",
+        tags: ["建筑"],
+        imageUrl: "https://picsum.photos/600/800" // 3:4
+      },
+      {
+        id: "p9",
+        title: "自然肌理",
+        date: "2022.08",
+        description: "1:1 Square • 树皮与岩石。",
+        tags: ["自然"],
+        imageUrl: "https://picsum.photos/700/700" // 1:1
+      },
+      {
+        id: "p10",
+        title: "夜间色调",
+        date: "2022.07",
+        description: "4:3 Landscape • 霓虹灯下的街道。",
+        tags: ["夜景"],
+        imageUrl: "https://picsum.photos/800/600" // 4:3
+      },
+      {
+        id: "p11",
+        title: "人物特写",
+        date: "2022.06",
+        description: "2:3 Portrait • 情绪表达。",
+        tags: ["人像"],
+        imageUrl: "https://picsum.photos/500/750" // 2:3
+      },
+      {
+        id: "p12",
+        title: "极简主义",
+        date: "2022.05",
+        description: "16:9 Landscape • 白色的层次。",
+        tags: ["极简"],
+        imageUrl: "https://picsum.photos/960/540" // 16:9
       }
     ]
   },
