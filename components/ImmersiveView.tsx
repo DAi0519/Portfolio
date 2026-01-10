@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Album, ProjectItem } from '../types';
-import { ArrowLeft, X, ExternalLink } from 'lucide-react';
+import { Album, ProjectItem, AlbumType } from '../types';
+import { ArrowLeft, X, ExternalLink, Play } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
-import { motion, AnimatePresence, useScroll, useTransform, useSpring } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ImmersiveViewProps {
   album: Album;
@@ -114,6 +114,79 @@ const TrackItem: React.FC<{
     )
 }
 
+const VideoGridItem: React.FC<{
+    track: ProjectItem;
+    index: number;
+    color: string;
+    onClick: () => void;
+    delay: number;
+}> = ({ track, color, onClick, delay }) => {
+    const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+    return (
+        <motion.div
+            onClick={onClick}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay / 1000, duration: 0.5 }}
+            className="group cursor-pointer flex flex-col gap-3"
+        >
+            <div className="relative aspect-video w-full overflow-hidden rounded-sm bg-neutral-200">
+                {track.imageUrl && (
+                    <img 
+                        src={track.imageUrl} 
+                        alt={track.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                )}
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-lg transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                        <Play size={20} className="ml-1" style={{ color: safeColor }} fill={safeColor} />
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                    {track.title}
+                </h3>
+                <p className="text-[10px] font-mono text-neutral-400 mt-1">
+                    {track.date} • {track.tags.join(' / ')}
+                </p>
+            </div>
+        </motion.div>
+    );
+};
+
+const PhotoGridItem: React.FC<{
+    track: ProjectItem;
+    index: number;
+    color: string;
+    onClick: () => void;
+    delay: number;
+}> = ({ track, onClick, delay }) => {
+    return (
+        <motion.div
+            onClick={onClick}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: delay / 1000, duration: 0.5 }}
+            className="group cursor-pointer relative aspect-[4/5] overflow-hidden bg-neutral-100"
+        >
+            {track.imageUrl && (
+                <img 
+                    src={track.imageUrl} 
+                    alt={track.title} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+            )}
+            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end">
+                <h3 className="text-white text-sm font-bold tracking-wide">
+                    {track.title}
+                </h3>
+            </div>
+        </motion.div>
+    );
+};
+
 const ProjectModal: React.FC<{
   project: ProjectItem;
   color: string;
@@ -140,7 +213,7 @@ const ProjectModal: React.FC<{
             stiffness: 300, 
             mass: 1.2 // More mass = satisfying thud
         }}
-        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
+        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
          
          {/* Mobile Pull Handle */}
@@ -216,27 +289,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
 
-  // Scroll Linked Animations (Mobile Parallax)
-  const { scrollY } = useScroll({ container: containerRef });
-  
-  // Transform scrollY to values
-  // Range: 0 to 300px scroll
-  const vinylScale = useTransform(scrollY, [0, 300], [1, 0.8]);
-  const vinylOpacity = useTransform(scrollY, [0, 300], [1, 0.3]);
-  const vinylY = useTransform(scrollY, [0, 300], [0, 50]);
-  const vinylBlur = useTransform(scrollY, [0, 300], [0, 10]);
-
-  // Smooth out the transform values with a spring
-  // Silkier config: Lower stiffness, adjusted damping for a floaty feel
-  const springConfig = { stiffness: 70, damping: 25, mass: 1 };
-  
-  const smoothScale = useSpring(vinylScale, springConfig);
-  const smoothOpacity = useSpring(vinylOpacity, springConfig);
-  const smoothY = useSpring(vinylY, springConfig);
-  
-  // We can't directly use 'filter' in style props as a motion value in older versions, 
-  // but let's try standard motion.div style prop.
-  // Actually, 'filter' is supported.
+  // No scroll-linked scaling. Purity and stillness.
 
   useEffect(() => {
     // Delay the slide-out of the record
@@ -246,160 +299,199 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
 
   return (
     <>
-      <div 
+      <motion.div 
         ref={containerRef}
-        className="fixed inset-0 z-50 text-[#111] flex flex-col md:flex-row overflow-y-auto md:overflow-hidden snap-y snap-mandatory scroll-smooth"
+        className="fixed inset-0 z-50 text-[#111] overflow-hidden flex flex-col"
         style={{ backgroundColor: album.backgroundColor }}
+        initial={{ y: '100%' }}
+        animate={{ y: '0%' }}
+        exit={{ y: '100%' }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
       >
         
-        {/* Mobile Back Button - Fixed */}
+        {/* Mobile Back Button - Now outside the scroll container, pinned to the Viewport/Root */}
         <button 
           onClick={onClose}
-          className="md:hidden fixed top-6 left-6 z-40 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
+          className="md:hidden absolute top-6 left-6 z-50 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
         >
           <ArrowLeft size={18} />
         </button>
 
-        {/* LEFT COLUMN: VISUALS */}
-        <div 
-            className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 snap-start border-r border-black/5"
-            style={{ 
-                backgroundColor: album.backgroundColor,
-                // Removed brightness filter for cleaner "High Key" look.
-                // Added distinct border-r for structural separation instead.
-            }}
-        >
-          
-          {/* Vinyl Container with Parallax */}
-          <motion.div 
-             style={{ 
-               scale: smoothScale, 
-               opacity: smoothOpacity, 
-               y: smoothY 
-               // filter: `blur(${useTransform(scrollY, [0, 300], [0, 4])}px)` // simplified for safety
-             }}
-             initial={{ opacity: 0, y: 50, scale: 0.95 }}
-             animate={{ opacity: 1, y: 0, scale: 1 }}
-             transition={{ type: "spring", duration: 0.8, bounce: 0.2 }}
-             className="relative w-full h-full flex items-center overflow-hidden"
-          >
-             {/* Adjusted positioning */}
-             <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
-                <RecordVinyl 
-                    album={album} 
-                    isActive={showVinyl} 
-                    isSpinning={true} 
-                    showSleeve={true}
-                    layout="FLAT" 
-                />
-             </div>
-             
-             {/* Reflection/Shadow */}
-             <div 
-                className={`
-                    absolute -bottom-16 left-0 w-full h-8 bg-black/5 blur-2xl rounded-[100%]
-                    transition-all duration-1000 delay-500
-                    ${showVinyl ? 'opacity-100 translate-x-[25%] md:translate-x-[50%] scale-x-125' : 'opacity-0 translate-x-0 scale-x-75'}
-                `}
-             />
-          </motion.div>
-
-          {/* Desktop Back Button */}
-          <button 
-            onClick={onClose}
-            onMouseEnter={() => setBackHovered(true)}
-            onMouseLeave={() => setBackHovered(false)}
-            className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
-          >
-            <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${album.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
-                <ArrowLeft size={14} />
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
-          </button>
-        </div>
-
-        {/* RIGHT COLUMN: Content */}
-        <div 
-            className="flex-1 w-full h-[100dvh] md:h-full md:overflow-y-auto no-scrollbar relative z-10 snap-start overflow-y-auto"
-            style={{ backgroundColor: album.backgroundColor }}
-        >
-          <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
+        {/* SCROLL CONTAINER WRAPPER */}
+        {/* On Mobile: This handles the vertical scroll for the whole page. */}
+        {/* On Desktop: This sits still, allowing the Right Column to scroll internally. */}
+        <div className="w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
+            
+            {/* LEFT COLUMN: VISUALS */}
+            <div 
+                className="sticky top-0 md:relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 border-r border-black/5"
+                style={{ 
+                    backgroundColor: album.backgroundColor,
+                }}
+            >
               
-              {/* Header */}
+              {/* Vinyl Container */}
               <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
-                className="flex flex-col items-start"
+                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                 animate={{ opacity: 1, y: 0, scale: 1 }}
+                 transition={{ type: "spring", duration: 0.8, bounce: 0.2 }}
+                 className="relative w-full h-full flex items-center overflow-hidden"
               >
-                  <div className="pl-8 md:pl-10 w-full">
-                      <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif">
-                          {album.title}
-                      </h1>
-
-                      <div className="mb-10 flex items-center">
-                        <div className="flex items-center gap-3 select-none group">
-                           <div 
-                              className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
-                              style={{ backgroundColor: album.color }}
-                           ></div>
-                           <div className="w-px h-3 bg-neutral-300"></div>
-                           <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
-                              {album.id} 合集
-                           </span>
-                        </div>
-                      </div>
-                  </div>
+                 {/* Adjusted positioning */}
+                 <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
+                    <RecordVinyl 
+                        album={album} 
+                        isActive={showVinyl} 
+                        isSpinning={true} 
+                        showSleeve={true}
+                        layout="FLAT" 
+                    />
+                 </div>
+                 
+                 {/* Reflection/Shadow */}
+                 <div 
+                     className={`
+                         absolute -bottom-16 left-0 w-full h-8 bg-black/5 blur-2xl rounded-[100%]
+                         transition-all duration-1000 delay-500
+                         ${showVinyl ? 'opacity-100 translate-x-[25%] md:translate-x-[50%] scale-x-125' : 'opacity-0 translate-x-0 scale-x-75'}
+                     `}
+                 />
               </motion.div>
 
-              {/* List or Intro Content */}
-              <div className="space-y-0 pb-24">
-                 {/* Conditional Header for Tracks */}
-                 {!album.introContent && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
-                        transition={{ delay: 0.4 }}
-                        className="flex w-full mb-0"
-                    >
-                        <div className="w-8 md:w-10 shrink-0"></div>
-                        <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
-                            <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
-                        </div>
-                    </motion.div>
-                 )}
+              {/* Desktop Back Button */}
+              <button 
+                onClick={onClose}
+                onMouseEnter={() => setBackHovered(true)}
+                onMouseLeave={() => setBackHovered(false)}
+                className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
+              >
+                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${album.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-neutral-900'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
+                    <ArrowLeft size={14} />
+                </div>
+                <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
+              </button>
+            </div>
 
-                 {album.introContent ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.8 }}
-                    >
-                        {/* Elegant Divider Line */}
-                        <div className="pl-8 md:pl-10 w-full mb-8">
-                           <div className="w-full h-px bg-neutral-200" />
-                        </div>
-                        <SimpleMarkdown content={album.introContent} color={album.color} />
-                    </motion.div>
-                 ) : (
-                     album.tracks.map((track, index) => (
-                        <TrackItem 
-                            key={track.id} 
-                            track={track} 
-                            index={index} 
-                            color={album.color}
-                            isHovered={hoveredTrack === track.id}
-                            onHover={setHoveredTrack}
-                            onClick={() => setSelectedProject(track)}
-                            delay={400 + (index * 80)}
-                        />
-                     ))
-                 )}
+            {/* RIGHT COLUMN: Content */}
+            <div 
+                className="relative z-10 flex-1 w-full min-h-[100dvh] md:min-h-0 md:h-full md:overflow-y-auto no-scrollbar"
+                style={{ backgroundColor: album.backgroundColor }}
+            >
+              <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
+                  
+                  {/* Header */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
+                    className="flex flex-col items-start"
+                  >
+                      <div className="pl-8 md:pl-10 w-full">
+                          {/* 
+                              FLUID TYPOGRAPHY: 
+                              Using clamp() to ensure the title scales with the viewport width.
+                          */}
+                          <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif break-words hyphens-auto">
+                              {album.title}
+                          </h1>
+
+                          <div className="mb-10 flex items-center">
+                            <div className="flex items-center gap-3 select-none group">
+                               <div 
+                                  className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
+                                  style={{ backgroundColor: album.color }}
+                               ></div>
+                               <div className="w-px h-3 bg-neutral-300"></div>
+                               <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
+                                  {album.id} 合集
+                               </span>
+                            </div>
+                          </div>
+                      </div>
+                  </motion.div>
+
+                  {/* List or Intro Content */}
+                  <div className="space-y-0 pb-24">
+                     {/* Conditional Header for Tracks */}
+                     {!album.introContent && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            transition={{ delay: 0.4 }}
+                            className="flex w-full mb-0"
+                        >
+                            <div className="w-8 md:w-10 shrink-0"></div>
+                            <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
+                                <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
+                            </div>
+                        </motion.div>
+                     )}
+
+                     {album.introContent ? (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4, duration: 0.8 }}
+                        >
+                            {/* Elegant Divider Line */}
+                            <div className="pl-8 md:pl-10 w-full mb-8">
+                                <div className="w-full h-px bg-neutral-200" />
+                            </div>
+                            <SimpleMarkdown content={album.introContent} color={album.color} />
+                        </motion.div>
+                     ) : (
+                         <div className="pl-0 md:pl-10">
+                            {album.id === AlbumType.VIDEO ? (
+                                // VIDEO GRID
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-0">
+                                    {album.tracks.map((track, index) => (
+                                        <VideoGridItem
+                                            key={track.id}
+                                            track={track}
+                                            index={index}
+                                            color={album.color}
+                                            onClick={() => setSelectedProject(track)}
+                                            delay={400 + (index * 80)}
+                                        />
+                                    ))}
+                                </div>
+                            ) : album.id === AlbumType.PHOTO ? (
+                                // PHOTO GRID
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pl-8 md:pl-0">
+                                    {album.tracks.map((track, index) => (
+                                        <PhotoGridItem
+                                            key={track.id}
+                                            track={track}
+                                            index={index}
+                                            color={album.color}
+                                            onClick={() => setSelectedProject(track)}
+                                            delay={400 + (index * 80)}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                // DEFAULT LIST (WRITING, CODING)
+                                album.tracks.map((track, index) => (
+                                    <TrackItem 
+                                        key={track.id} 
+                                        track={track} 
+                                        index={index} 
+                                        color={album.color}
+                                        isHovered={hoveredTrack === track.id}
+                                        onHover={setHoveredTrack}
+                                        onClick={() => setSelectedProject(track)}
+                                        delay={400 + (index * 80)}
+                                    />
+                                ))
+                            )}
+                         </div>
+                     )}
+                  </div>
               </div>
-          </div>
+            </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* PROJECT MODAL */}
       <AnimatePresence>

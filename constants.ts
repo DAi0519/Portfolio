@@ -60,39 +60,6 @@ hello@dai.design / @daidesign
     tracks: []
   },
   {
-    id: AlbumType.WRITING,
-    title: "Think Piece_01",
-    subtitle: "随笔与文章",
-    color: COLORS.INK_CHARCOAL,
-    backgroundColor: "#F2F2F2", // Neutral Grey
-    textColor: "#111111", // Deep Black
-    // Solid Matte Charcoal
-    coverImage: solidColor(COLORS.INK_CHARCOAL), 
-    tracks: [
-      {
-        id: "w1",
-        title: "少即是多的哲学",
-        date: "2023.11",
-        description: "探索数字界面设计中的极简主义，以及它为何比以往任何时候都重要。",
-        tags: ["设计", "哲学"]
-      },
-      {
-        id: "w2",
-        title: "系统化思维",
-        date: "2023.09",
-        description: "如何通过将复杂问题分解为原子组件来解决它们。",
-        tags: ["系统", "逻辑"]
-      },
-      {
-        id: "w3",
-        title: "数字花园",
-        date: "2023.05",
-        description: "为什么我不再写博客，而是开始耕耘我的笔记。",
-        tags: ["个人", "成长"]
-      }
-    ]
-  },
-  {
     id: AlbumType.CODING,
     title: "Vibe.Code",
     subtitle: "开发项目",
@@ -189,6 +156,39 @@ hello@dai.design / @daidesign
         description: "近距离观察日常物品。",
         tags: ["微距", "抽象"],
         imageUrl: "https://picsum.photos/id/63/600/400"
+      }
+    ]
+  },
+  {
+    id: AlbumType.WRITING,
+    title: "Think Piece_01",
+    subtitle: "随笔与文章",
+    color: COLORS.INK_CHARCOAL,
+    backgroundColor: "#F2F2F2", // Neutral Grey
+    textColor: "#111111", // Deep Black
+    // Solid Matte Charcoal
+    coverImage: solidColor(COLORS.INK_CHARCOAL), 
+    tracks: [
+      {
+        id: "w1",
+        title: "少即是多的哲学",
+        date: "2023.11",
+        description: "探索数字界面设计中的极简主义，以及它为何比以往任何时候都重要。",
+        tags: ["设计", "哲学"]
+      },
+      {
+        id: "w2",
+        title: "系统化思维",
+        date: "2023.09",
+        description: "如何通过将复杂问题分解为原子组件来解决它们。",
+        tags: ["系统", "逻辑"]
+      },
+      {
+        id: "w3",
+        title: "数字花园",
+        date: "2023.05",
+        description: "为什么我不再写博客，而是开始耕耘我的笔记。",
+        tags: ["个人", "成长"]
       }
     ]
   }
