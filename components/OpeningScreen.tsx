@@ -61,7 +61,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const lastAngleRef = useRef(0);
   
   // Disc size (responsive) - Reduced for delicate Japanese feel
-  const discSize = "min(45vw, 45vh)";
+  const discSize = "min(54vw, 54vh)";
   
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     setIsDragging(true);
@@ -258,11 +258,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                     top: '0%', // Align with top edge of vinyl box
                     right: '0%', // Align with right edge of vinyl box
                     width: '30%', // Scale relative to vinyl size
-                    height: '60%',
+                    height: '72%', // increased by 1.2x
                     originX: 0.5,
                     originY: 0.15, // Pivot point near the top
-                    translateX: '50%', // Move out to the corner (2 o'clock)
-                    translateY: '-10%',
+                    translateX: '53.5%', // Move out to the corner (adjusted for new length)
+                    translateY: '-19%', // Shift up to keep needle position constant
                     filter: 'drop-shadow(6px 10px 12px rgba(0,0,0,0.15)) drop-shadow(0 2px 4px rgba(0,0,0,0.1))', // Complex expanding shadow for depth
                   }}
                   animate={{
@@ -276,20 +276,20 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                   }}
                 >
                   {/* Pivot Base (The Round Part) */}
-                  <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[25%] aspect-square rounded-full bg-[#fcfcfc] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 z-10 flex items-center justify-center">
+                  <div className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[25%] aspect-square rounded-full bg-[#fcfcfc] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border border-gray-100 z-10 flex items-center justify-center">
                      <div className="w-[50%] h-[50%] rounded-full bg-[#f0f0f0] shadow-inner" />
                   </div>
 
                   {/* The Arm (Long Tube) - Matte Grey */}
-                  <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[4%] h-[70%] bg-[#e5e5e5] rounded-full origin-top" />
+                  <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[4%] h-[70%] bg-[#e5e5e5] rounded-full origin-top" />
 
                   {/* Counterweight (Top of Arm) - White Block */}
-                  <div className="absolute top-[5%] left-1/2 -translate-x-1/2 w-[16%] h-[12%] rounded-sm bg-[#fafafa] shadow-md border border-gray-100 flex flex-col items-center justify-center">
+                  <div className="absolute top-[4%] left-1/2 -translate-x-1/2 w-[16%] h-[10%] rounded-sm bg-[#fafafa] shadow-md border border-gray-100 flex flex-col items-center justify-center">
                     <div className="w-full h-[2px] bg-gray-200 mb-[2px]"></div>
                   </div>
 
                   {/* Headshell (The Tip) - Sleek White */}
-                  <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 translate-y-1 w-[12%] h-[14%] bg-[#fcfcfc] shadow-md rounded-sm flex flex-col items-center justify-end pb-1 origin-top rotate-[25deg] border border-gray-50/50">
+                  <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 translate-y-1 w-[12%] h-[11.5%] bg-[#fcfcfc] shadow-md rounded-sm flex flex-col items-center justify-end pb-1 origin-top rotate-[25deg] border border-gray-50/50">
                     {/* Finger Lift - Simple Wire */}
                     <div className="absolute -right-[40%] top-2 w-[50%] h-[60%] border-r-[1.5px] border-gray-400 rounded-r-full skew-y-12 opacity-50" />
                     
