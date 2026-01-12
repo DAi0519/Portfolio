@@ -315,10 +315,13 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         ref={containerRef}
         className="fixed inset-0 z-50 text-[#111] overflow-hidden flex flex-col"
         style={{ backgroundColor: album.backgroundColor }}
-        initial={{ y: '100%' }}
-        animate={{ y: '0%' }}
-        exit={{ y: '100%' }}
-        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        initial={{ opacity: 0, scale: 0.92, filter: 'blur(20px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
+        transition={{ 
+            duration: 0.8, 
+            ease: [0.16, 1, 0.3, 1] // Apple-style ease-out
+        }}
       >
         
         {/* Mobile Back Button - Now outside the scroll container, pinned to the Viewport/Root */}

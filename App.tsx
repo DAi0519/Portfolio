@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import OpeningScreen from './components/OpeningScreen';
 
 import CinematicBackground from './components/CinematicBackground';
@@ -68,6 +68,7 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className={`w-full h-full relative z-10 transition-opacity duration-1000 ${showOpening ? 'opacity-0' : 'opacity-100'}`}>
+        <AnimatePresence mode="wait">
         {viewMode === 'STACK' ? (
            <>
               {/* Header for Stack Mode */}
@@ -98,14 +99,20 @@ const App: React.FC = () => {
                 </div>
               </header>
 
-              <div className="w-full h-full animate-[fadeIn_0.5s_ease-out]">
+              <motion.div 
+                key="stack"
+                className="w-full h-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] } }}
+              >
                 <AlbumStack 
                     albums={ALBUMS} 
                     currentIndex={currentIndex}
                     onIndexChange={handleIndexChange}
                     onSelect={handleSelectAlbum} 
                 />
-              </div>
+              </motion.div>
 
                {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
@@ -130,10 +137,12 @@ const App: React.FC = () => {
         ) : (
           /* DETAIL VIEW (Immersive) - No animation wrapper here, handled inside component */
           <ImmersiveView 
+            key="detail"
             album={activeAlbum} 
             onClose={handleBackToStack} 
           />
         )}
+        </AnimatePresence>
       </main>
 
     </div>

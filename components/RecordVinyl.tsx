@@ -34,7 +34,7 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
       <div
         className={`
           absolute inset-0 rounded-full flex items-center justify-center z-10
-          transition-all duration-[1.2s] ease-[cubic-bezier(0.2,0.8,0.2,1)]
+          transition-all duration-[1.8s] ease-[cubic-bezier(0.2,0.8,0.2,1)]
           ${
             layout === "3D" && showSleeve && isActive
               ? "translate-x-[40%] rotate-12 shadow-2xl"
@@ -42,7 +42,7 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
           }
           ${
             layout === "FLAT" && isActive
-              ? "translate-x-[55%] rotate-[360deg] shadow-[10px_0_30px_rgba(0,0,0,0.3)]"
+              ? "translate-x-[55%] rotate-[120deg] shadow-[10px_0_30px_rgba(0,0,0,0.3)]"
               : ""
           }
           ${
@@ -54,10 +54,9 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
         `}
         style={{ backgroundColor: album.color }}
       >
-        {/* Spinning Inner Container */}
         <div
           className={`w-full h-full relative rounded-full ${
-            isSpinning && isActive ? "animate-spin-slow" : ""
+            isSpinning && isActive ? "animate-[spin_8s_linear_infinite]" : ""
           }`}
         >
           {/* Realistic Grooves Texture (Semi-transparent black overlaying the color) */}
