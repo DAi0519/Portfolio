@@ -14,12 +14,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
       animate={{ backgroundColor }}
       transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} // Slower, heavier ease
     >
-        {/* Global Grain Overlay: Adds physical texture */}
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-multiply" 
-             style={{ 
-                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-             }} 
-        />
+
 
         {/* 
             LAYER 1: The "Atmosphere" 
@@ -27,7 +22,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
             Provides the main directional light source.
         */}
         <motion.div
-           className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] rounded-full blur-[120px] mix-blend-multiply opacity-20"
+           className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full blur-[120px] mix-blend-multiply opacity-20 md:opacity-15"
            animate={{ backgroundColor: color }}
            transition={{ duration: 1.5 }}
         />
@@ -38,7 +33,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
             It breathes very slowly to keep the page 'alive'.
         */}
         <motion.div
-           className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full blur-[100px] mix-blend-multiply opacity-15"
+           className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] rounded-full blur-[100px] mix-blend-multiply opacity-15 md:opacity-10"
            animate={{ 
                backgroundColor: color,
                scale: [1, 1.05, 1],

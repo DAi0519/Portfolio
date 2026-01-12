@@ -418,7 +418,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                                ></div>
                                <div className="w-px h-3 bg-neutral-300"></div>
                                <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
-                                  {album.id} 合集
+                                  {album.id} COLLECTION
                                </span>
                             </div>
                           </div>
@@ -437,8 +437,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                         >
                             <div className="w-8 md:w-10 shrink-0"></div>
                             <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-black">曲目列表</span>
-                                <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} 项目</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-black">TRACKLIST</span>
+                                <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} ITEMS</span>
                             </div>
                         </motion.div>
                      )}

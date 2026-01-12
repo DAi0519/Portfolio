@@ -122,7 +122,7 @@ const App: React.FC = () => {
                   style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
                 >
-                   © MMXXVI
+                   Stay hungry,Stay foolish
                 </motion.p>
                 <motion.p 
                   className="text-[9px] font-mono uppercase tracking-widest"
