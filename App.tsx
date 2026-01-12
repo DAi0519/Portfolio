@@ -4,6 +4,7 @@ import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
 import { motion } from 'framer-motion';
+import OpeningScreen from './components/OpeningScreen';
 
 import CinematicBackground from './components/CinematicBackground';
 
@@ -11,6 +12,7 @@ const App: React.FC = () => {
   // Simple Router: 'STACK' (Home) or 'DETAIL' (Project List)
   const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>('STACK');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showOpening, setShowOpening] = useState(true);
 
   const activeAlbum = ALBUMS[currentIndex];
 
@@ -30,6 +32,14 @@ const App: React.FC = () => {
   // Keyboard navigation for global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If opening screen is visible, any key dismisses it (optional, but good UX)
+      if (showOpening) {
+         // Let the component handle its own internal transition logic if we wanted, 
+         // but here we just ignore or could force close. 
+         // For now, let's rely on the scroll/click listeners in OpeningScreen
+         return;
+      }
+
       if (viewMode === 'DETAIL') {
         if (e.key === 'Escape') handleBackToStack();
       } else {
@@ -41,11 +51,15 @@ const App: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, currentIndex]);
+  }, [viewMode, currentIndex, showOpening]);
 
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
+      {showOpening && (
+        <OpeningScreen onComplete={() => setShowOpening(false)} />
+      )}
+
       {/* Background Layer */}
       <CinematicBackground 
           color={activeAlbum.color} 
@@ -53,7 +67,7 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="w-full h-full relative z-10">
+      <main className={`w-full h-full relative z-10 transition-opacity duration-1000 ${showOpening ? 'opacity-0' : 'opacity-100'}`}>
         {viewMode === 'STACK' ? (
            <>
               {/* Header for Stack Mode */}
@@ -64,7 +78,7 @@ const App: React.FC = () => {
                     animate={{ color: activeAlbum.textColor }}
                     transition={{ duration: 0.5 }}
                   >
-                    迪特·拉姆斯<span style={{ opacity: 0.5 }}>.作品集</span>
+                    DAI<span style={{ opacity: 0.4 }}>.DESIGN</span>
                   </motion.h1>
                   {/* Dynamic Brand Accent Bar */}
                   <div 
@@ -76,10 +90,10 @@ const App: React.FC = () => {
                    <motion.p 
                     className="text-[9px] font-mono uppercase tracking-widest"
                     animate={{ color: activeAlbum.textColor }}
-                    style={{ opacity: 0.6 }} // Static opacity for hierarchy
+                    style={{ opacity: 0.5 }}
                     transition={{ duration: 0.5 }}
                    >
-                      选择唱片
+                      COLLECTION
                    </motion.p>
                 </div>
               </header>
@@ -98,10 +112,18 @@ const App: React.FC = () => {
                 <motion.p 
                   className="text-[9px] font-mono uppercase tracking-widest"
                   animate={{ color: activeAlbum.textColor }}
-                  style={{ opacity: 0.6 }}
+                  style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
                 >
-                   {new Date().getFullYear()} 系统
+                   © MMXXVI
+                </motion.p>
+                <motion.p 
+                  className="text-[9px] font-mono uppercase tracking-widest"
+                  animate={{ color: activeAlbum.textColor }}
+                  style={{ opacity: 0.5 }}
+                  transition={{ duration: 0.5 }}
+                >
+                   {String(currentIndex + 1).padStart(2, '0')} / {String(ALBUMS.length).padStart(2, '0')}
                 </motion.p>
               </footer>
            </>
