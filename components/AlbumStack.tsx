@@ -58,7 +58,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         // Width Constraint
         const widthBase = mode === 'MOBILE' 
             ? Math.min(280, w * 0.55)
-            : Math.min(600, Math.max(320, w * 0.25));
+            : Math.min(480, Math.max(300, w * 0.22));
             
         // Height Constraint (Fit to Stage)
         const heightBase = availableHeight * 0.95;
@@ -343,8 +343,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     <div className={`
         pointer-events-none px-6 z-50 text-center
         ${isMobileOrTablet 
-           ? 'absolute bottom-20 left-0 right-0' // Now Absolute on Mobile too! "Stage" logic.
-           : 'absolute bottom-12 left-0 right-0'
+           ? 'absolute bottom-32 left-0 right-0' // Now Absolute on Mobile too! "Stage" logic.
+           : 'absolute bottom-24 left-0 right-0'
         }
     `}>
       <AnimatePresence mode="wait">

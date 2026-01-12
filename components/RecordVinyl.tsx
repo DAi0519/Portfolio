@@ -89,8 +89,15 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
             {/* Paper Texture on Label (Subtle matte finish) */}
             <div className="absolute inset-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] mix-blend-overlay rounded-full"></div>
 
+            {/* Signature Image - Inverted for contrast against black label */}
+            <img 
+              src="/signature.png" 
+              alt="Signature" 
+              className="absolute w-[80%] h-auto object-contain opacity-90 invert mix-blend-screen pointer-events-none select-none"
+            />
+
             {/* Spindle Hole */}
-            <div className="w-1.5 h-1.5 bg-[#e8e8e5] rounded-full shadow-[inset_1px_1px_2px_rgba(0,0,0,0.8)] border border-white/10" />
+            <div className="relative z-10 w-1.5 h-1.5 bg-[#e8e8e5] rounded-full shadow-[inset_1px_1px_2px_rgba(0,0,0,0.8)] border border-white/10" />
           </div>
         </div>
       </div>
