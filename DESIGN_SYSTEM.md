@@ -74,3 +74,16 @@ Strict adherence is required.
 2.  **No orphans:** Text max-width should be controlled (approx 65 chars).
 3.  **Vertical Rhythm:** Every element must sit on the rhythm. No arbitrary `mt-[13px]`.
 4.  **Contrast:** Body text opacity must never be below 90% (#222). Only metadata gets to be gray.
+
+---
+
+## 6. Materials & Surfaces
+
+**"Honesty of Materials"**
+
+We do not fake texture. We do not use digital noise to simulate paper, nor do we use scratches to simulate age.
+
+- **Surfaces:** Are pure, solid, and mathematically perfect.
+- **Depth:** Is achieved through **Light** (Shadows) and **Layering** (Z-Index), not texture maps.
+- **The Vinyl:** Is the _only_ skeuomorphic object allowed. It is a "Holy Object" and follows its own physical rules. Everything else is strict, flat, Swiss Design.
+- **Colors:** Are chosen for their emotional frequency. They are never "washed out". If we need a gray, we pick a _specific_ gray (e.g., Cool Gray 3), not just `#ccc`.

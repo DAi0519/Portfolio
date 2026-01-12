@@ -306,8 +306,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                       {/* Gloss / Plastic Wrap Sheen */}
                       <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10" />
                       
-                      {/* Subtle Noise Texture */}
-                      <div className="absolute inset-0 bg-noise opacity-30 mix-blend-overlay pointer-events-none z-10" />
+
                   </div>
 
                   {/* 

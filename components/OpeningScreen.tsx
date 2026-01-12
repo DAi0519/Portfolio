@@ -6,8 +6,8 @@ interface OpeningScreenProps {
 }
 
 // The intro text - split for symmetric placement
-const TEXT_LINE_1 = "我的生命是一段乐章";
-const TEXT_LINE_2 = "刻下去是旅程，放出来作回声";
+const TEXT_LINE_1 = "我将一切谱成乐章，刻下去是旅程，放出来是回声。";
+const TEXT_LINE_2 = "Without music, life would be a mistake.";
 
 const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -213,11 +213,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                       </defs>
                       
                       <text
-                        fill="rgba(20, 20, 20, 0.9)"
-                        fontSize="13"
+                        fill="rgba(20, 20, 20, 0.95)"
+                        fontSize="14.5"
                         fontFamily="'EarlySummerSerif', serif"
-                        fontWeight="500"
-                        letterSpacing="0.12em"
+                        fontWeight="600"
+                        letterSpacing="0.08em"
                         textAnchor="middle"
                       >
                         <textPath href="#textArcTop" startOffset="50%">
@@ -226,11 +226,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                       </text>
                       
                       <text
-                        fill="rgba(20, 20, 20, 0.9)"
-                        fontSize="13"
+                        fill="rgba(20, 20, 20, 0.55)"
+                        fontSize="10.5"
                         fontFamily="'EarlySummerSerif', serif"
-                        fontWeight="500"
-                        letterSpacing="0.12em"
+                        fontWeight="400"
+                        letterSpacing="0.2em"
                         textAnchor="middle"
                       >
                         <textPath href="#textArcBottom" startOffset="50%">
@@ -263,6 +263,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                     originY: 0.15, // Pivot point near the top
                     translateX: '50%', // Move out to the corner (2 o'clock)
                     translateY: '-10%',
+                    filter: 'drop-shadow(6px 10px 12px rgba(0,0,0,0.15)) drop-shadow(0 2px 4px rgba(0,0,0,0.1))', // Complex expanding shadow for depth
                   }}
                   animate={{
                     rotate: (isNeedleDown || isDragging) ? 25 : -10,
