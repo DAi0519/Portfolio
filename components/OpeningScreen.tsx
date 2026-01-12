@@ -61,7 +61,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const lastAngleRef = useRef(0);
   
   // Disc size (responsive) - Reduced for delicate Japanese feel
-  const discSize = "min(60vw, 60vh)";
+  const discSize = "min(45vw, 45vh)";
   
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     setIsDragging(true);
@@ -181,10 +181,17 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                     {/* Dead Wax Area */}
                     <div className="absolute inset-[35%] rounded-full bg-[#f2f2ef] shadow-[0_0_0_1px_rgba(0,0,0,0.02)]"></div>
 
-                    {/* Center Label - Dark/Black for contrast */}
-                    <div className="absolute inset-[38%] rounded-full flex items-center justify-center bg-[#1a1a1a] shadow-[inset_0_1px_3px_rgba(255,255,255,0.1)]">
+                    {/* Center Label - Klein Blue with Signature */}
+                    <div className="absolute inset-[38%] rounded-full flex items-center justify-center bg-[#002FA7] shadow-[inset_0_1px_3px_rgba(255,255,255,0.1)] overflow-hidden">
+                      {/* Signature Image */}
+                      <img 
+                        src="/signature.png" 
+                        alt="Signature" 
+                        className="absolute w-[85%] h-auto object-contain opacity-90 invert mix-blend-plus-lighter" // Inverted for contrast on blue
+                      />
+                      
                       {/* Spindle Hole */}
-                      <div className="w-1.5 h-1.5 bg-[#f3f3f1] rounded-full shadow-[inset_1px_1px_1px_rgba(0,0,0,0.5)]" />
+                      <div className="relative z-10 w-1.5 h-1.5 bg-[#f3f3f1] rounded-full shadow-[inset_1px_1px_1px_rgba(0,0,0,0.5)]" />
                     </div>
 
                     {/* SVG Curved Text Layer - Moves with the disc */}
