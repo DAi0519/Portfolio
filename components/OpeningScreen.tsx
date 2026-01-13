@@ -11,6 +11,7 @@ const TEXT_LINE_2 = "Without music, life would be a mistake.";
 
 const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const vinylRef = useRef<HTMLDivElement>(null);
   const [isExiting, setIsExiting] = useState(false);
   
   // Scroll-linked rotation - track the container's scroll position
@@ -66,11 +67,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     setIsDragging(true);
     
-    // Calculate initial angle relative to center of screen
-    const rect = containerRef.current?.getBoundingClientRect();
+    // Calculate initial angle relative to center of VINYL (not screen)
+    const rect = vinylRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
     const p = info.point;
     lastAngleRef.current = Math.atan2(p.y - centerY, p.x - centerX) * (180 / Math.PI);
   };
@@ -80,11 +81,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   };
 
   const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
-    if (isExiting || !containerRef.current) return;
+    if (isExiting || !vinylRef.current) return;
     
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const rect = vinylRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
     const p = info.point;
     
     // Deadzone check: If too close to center (< 40px), ignore to prevent angle jumps
@@ -113,7 +114,9 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
     const pixelsPerDegree = (maxScroll * 0.7) / 180;
     
     // Update scroll position
-    containerRef.current.scrollTop += delta * pixelsPerDegree;
+    if (containerRef.current) {
+        containerRef.current.scrollTop += delta * pixelsPerDegree;
+    }
   };
 
   return (
@@ -128,7 +131,11 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
         <div className="sticky top-0 h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden">
           
           {/* Main Turntable Wrapper - Anchors everything together */}
-          <div className="relative" style={{ width: discSize, height: discSize }}>
+          <div 
+             ref={vinylRef}
+             className="relative -translate-y-[5vh]" // Shift up slightly for balance
+             style={{ width: discSize, height: discSize }}
+          >
             
             <AnimatePresence onExitComplete={onComplete}>
               {!isExiting && (
@@ -305,16 +312,46 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
           </div>
           
           {/* Scroll Prompt - Updated color for light theme */}
+          {/* Scroll Prompt - Interaction Fader (Crossfader Style) */}
           <motion.div 
-            className="absolute bottom-12 inset-x-0 flex flex-col items-center gap-2"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 1 }}
+            className="absolute bottom-12 inset-x-0 flex flex-col items-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2, duration: 1.5 }}
             style={{ opacity }}
           >
-            <div className="w-px h-6 bg-black/10"></div>
-            <p className="text-[9px] font-mono tracking-[0.3em] uppercase text-black/30">
-              SCROLL
+            {/* Crossfader Track */}
+            <div className="relative w-24 h-6 flex items-center justify-center">
+               {/* Track Line */}
+               <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/20 to-transparent"></div>
+               
+               {/* Tick Marks */}
+               <div className="absolute left-0 right-0 flex justify-between px-2">
+                  <div className="w-px h-1.5 bg-black/10"></div>
+                  <div className="w-px h-1.5 bg-black/10"></div>
+               </div>
+
+               {/* Fader Cap Animation */}
+               <motion.div
+                  className="absolute w-8 h-4 bg-[#fcfcfc] border border-black/10 rounded-[1px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] z-10 flex items-center justify-center"
+                  animate={{ 
+                    x: [-24, 24, -24],
+                  }}
+                  transition={{ 
+                    duration: 3, 
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                    repeatDelay: 0
+                  }}
+               >
+                  {/* Grip Line */}
+                  <div className="w-px h-2 bg-black/20"></div>
+               </motion.div>
+            </div>
+
+            {/* Text */}
+            <p className="text-[10px] font-serif italic tracking-widest text-black/40 mix-blend-multiply">
+              spin it
             </p>
           </motion.div>
         </div>

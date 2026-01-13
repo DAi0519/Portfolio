@@ -28,7 +28,7 @@ export const ALBUMS: Album[] = [
     backgroundColor: "#EFF0F1", // Cool Grey Paper
     textColor: COLORS.INK_CHARCOAL,
     // Solid Pure White
-    coverImage: solidColor(COLORS.PURE_WHITE),
+    coverImage: "/covers/cover-intro.png",
     introContent: `
 ### HELLO, WORLD.
 
@@ -67,7 +67,7 @@ hello@dai.design / @daidesign
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
     textColor: "#0A1629", // Deep Blue-Black
     // Solid International Klein Blue
-    coverImage: solidColor(COLORS.KLEIN_BLUE), 
+    coverImage: "/covers/cover-coding.png", 
     tracks: [
       {
         id: "c1",
@@ -103,7 +103,7 @@ hello@dai.design / @daidesign
     backgroundColor: "#FAF2EF", // Warm Paper
     textColor: "#2B140E", // Warm Black
     // Solid Safety Orange
-    coverImage: solidColor(COLORS.FILM_ORANGE), 
+    coverImage: "/covers/cover-video.png", 
     tracks: [
       {
         id: "v1",
@@ -155,7 +155,7 @@ hello@dai.design / @daidesign
     backgroundColor: "#F0F7F7", // Pale Cyan Tint
     textColor: "#0E2424", // Deep Green-Black
     // Solid Cyan
-    coverImage: solidColor(COLORS.DEVELOPING_CYAN), 
+    coverImage: "/covers/cover-photo.png", 
     tracks: [
       {
         id: "p1",
@@ -181,7 +181,7 @@ hello@dai.design / @daidesign
         tags: ["微距", "抽象"],
         imageUrl: "https://picsum.photos/900/600" // 3:2
       },
-       {
+      {
         id: "p4",
         title: "极简构图",
         date: "2023.01",
@@ -197,7 +197,7 @@ hello@dai.design / @daidesign
         tags: ["街头"],
         imageUrl: "https://picsum.photos/1600/900" // 16:9
       },
-       {
+      {
         id: "p6",
         title: "光影游戏",
         date: "2022.11",
@@ -263,7 +263,7 @@ hello@dai.design / @daidesign
     backgroundColor: "#F2F2F2", // Neutral Grey
     textColor: "#111111", // Deep Black
     // Solid Matte Charcoal
-    coverImage: solidColor(COLORS.INK_CHARCOAL), 
+    coverImage: "/covers/cover-writing.png", 
     tracks: [
       {
         id: "w1",
