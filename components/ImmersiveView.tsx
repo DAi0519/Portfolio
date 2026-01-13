@@ -243,7 +243,7 @@ const ProjectModal: React.FC<{
 
          {/* Image Header */}
          {project.imageUrl && (
-           <div className="w-full max-h-[50vh] bg-neutral-50 relative shrink-0 grayscale hover:grayscale-0 transition-all duration-700 overflow-hidden">
+           <div className="w-full max-h-[50vh] bg-neutral-50 relative shrink-0 transition-all duration-700 overflow-hidden">
              <img src={project.imageUrl} alt={project.title} className="w-full h-full object-contain bg-neutral-100" />
            </div>
          )}

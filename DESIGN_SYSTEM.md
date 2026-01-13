@@ -63,7 +63,42 @@ Strict adherence is required.
 ### Functional Roles
 
 - **Structure:** `#000000` (10% opacity) - Shadows, texture.
-- **Focus:** Album specific brand color (Klein Blue, Rams Orange, etc).
+- **Interaction:** `#000000` (40% opacity) - Hint text, secondary icons.
+
+### Album Themes (The "Emotional Frequency")
+
+Each album has a distinct "Frequency" that dictates its visual identity.
+
+| Album       | ID            | Hex       | Name               | Rationale                                                    |
+| :---------- | :------------ | :-------- | :----------------- | :----------------------------------------------------------- |
+| **Intro**   | `WHO AM I`    | `#FFFFFF` | **Pure White**     | The canvas, the beginning, the void.                         |
+| **Coding**  | `Vibe.Code`   | `#002FA7` | **Klein Blue**     | Deep, electric, spiritual, infinite. The color of pure code. |
+| **Video**   | `Cinematics`  | `#F05A28` | **Kodak Orange**   | Warm, chemical, distinctive. The color of film packaging.    |
+| **Photo**   | `Exposures`   | `#00C2CB` | **Chemical Cyan**  | The "Stop Bath" chemical in darkrooms. Sharp, acidic.        |
+| **Writing** | `Think Piece` | `#1A1A1A` | **Matte Charcoal** | The color of ink on paper. Serious, heavy, permanent.        |
+
+---
+
+## 5. Motion & Physics (The "Turntable Logic")
+
+**"It's not animation, it's mechanism."**
+
+We do not simply "fade in". We simulate mechanical resistance and physical inertia.
+
+- **Belt Drive (Scrolling):**
+
+  - High Mass (`mass: 1`)
+  - Low Stiffness (`stiffness: 50`)
+  - _Feeling:_ Heavy, luxurious, momentum-based. Like a high-end Hi-Fi turntable.
+
+- **Direct Drive (Interaction):**
+
+  - Low Mass (`mass: 0.2`)
+  - High Stiffness (`stiffness: 800`)
+  - _Feeling:_ Instant, snappy, 1:1 response. Like a DJ scratch turntable.
+
+- **The "Needle Drop":**
+  - Interactions should feel like a needle dropping into a groove—precise, tactile, and irreversible.
 
 ---
 
