@@ -130,17 +130,11 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
             className="w-full h-full object-cover"
           />
 
-          {/* Paper Texture Overlay (Grain) */}
-          <div className="absolute inset-0 bg-noise opacity-[0.15] mix-blend-overlay pointer-events-none" />
-
           {/* Left Spine Shadow (Curve of the cardboard) */}
           <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-r from-black/10 to-transparent mix-blend-multiply"></div>
 
           {/* Right Open Edge (Shadow inside the sleeve) */}
           <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-black/10"></div>
-
-          {/* Surface Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/5 pointer-events-none mix-blend-soft-light" />
 
           {/* Interaction Hint (Only for 3D stack mode) */}
           {layout === "3D" && isActive && onDoubleClick && (
