@@ -205,6 +205,10 @@ const ProjectModal: React.FC<{
   onClose: () => void;
 }> = ({ project, color, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+  // Detect mobile for crisp exit animation
+  // If we are on mobile (<768px), we want a simple slide down (y: "100%") and no opacity/scale nonsense
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
       <motion.div 
@@ -218,12 +222,15 @@ const ProjectModal: React.FC<{
       <motion.div 
         initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
+        exit={isMobile 
+            ? { y: "100%", opacity: 1, scale: 1 } // Mobile: Crisp slide down, full opacity
+            : { y: "40%", opacity: 0, scale: 0.96 } // Desktop: Fade/shrink out
+        }
         transition={{ 
             type: "spring", 
-            damping: 32, // More dampening = heavier feel
+            damping: 32, 
             stiffness: 300, 
-            mass: 1.2 // More mass = satisfying thud
+            mass: 1.2
         }}
         className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
