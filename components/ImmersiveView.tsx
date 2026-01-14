@@ -212,39 +212,20 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-md"
+        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
       />
 
       <motion.div 
-        variants={{
-            hidden: { y: "100%", opacity: 0.5, scale: 0.96 },
-            visible: { 
-                y: 0, 
-                opacity: 1, 
-                scale: 1,
-                transition: { 
-                    type: "spring", 
-                    damping: 30, 
-                    stiffness: 300, 
-                    mass: 1 
-                }
-            },
-            exit: { 
-                y: "100%", 
-                opacity: 1, 
-                scale: 1, 
-                transition: { 
-                    type: "spring",
-                    stiffness: 280,
-                    damping: 35,
-                    mass: 0.8  
-                }
-            }
+        initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
+        transition={{ 
+            type: "spring", 
+            damping: 32, // More dampening = heavier feel
+            stiffness: 300, 
+            mass: 1.2 // More mass = satisfying thud
         }}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        className="will-change-transform relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
+        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
          
          {/* Mobile Pull Handle */}
@@ -313,20 +294,49 @@ const ProjectModal: React.FC<{
   );
 };
 
-export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) => {
+import { getAlbumWithProjects } from '../lib/api';
+import { Loader2 } from 'lucide-react';
+
+/* ... previous imports ... */
+
+export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbum, onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showVinyl, setShowVinyl] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
 
-  // No scroll-linked scaling. Purity and stillness.
+  // Dynamic Data State
+  const [albumData, setAlbumData] = useState<Album>(initialAlbum);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    // Fetch full album data (including projects) from Supabase
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await getAlbumWithProjects(initialAlbum.id);
+        if (isMounted && data) {
+          setAlbumData(data);
+        }
+      } catch (error) {
+        console.error("Failed to load album data", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+
     // Delay the slide-out of the record
     const timer = setTimeout(() => setShowVinyl(true), 600);
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      isMounted = false;
+    };
+  }, [initialAlbum.id]);
 
   return (
     <>
@@ -371,7 +381,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                  {/* Adjusted positioning */}
                  <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
                     <RecordVinyl 
-                        album={album} 
+                        album={albumData} 
                         isActive={showVinyl} 
                         isSpinning={true} 
                         showSleeve={true}
@@ -396,7 +406,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                 onMouseLeave={() => setBackHovered(false)}
                 className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
               >
-                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${album.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-neutral-900'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? album.color : 'transparent' }}>
+                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${albumData.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-neutral-900'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? albumData.color : 'transparent' }}>
                     <ArrowLeft size={14} />
                 </div>
                 <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
@@ -423,18 +433,18 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
                               Using clamp() to ensure the title scales with the viewport width.
                           */}
                           <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif break-words hyphens-auto">
-                              {album.title}
+                              {albumData.title}
                           </h1>
 
                           <div className="mb-10 flex items-center">
                             <div className="flex items-center gap-3 select-none group">
                                <div 
                                   className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
-                                  style={{ backgroundColor: album.color }}
+                                  style={{ backgroundColor: albumData.color }}
                                ></div>
                                <div className="w-px h-3 bg-neutral-300"></div>
                                <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
-                                  {album.id} COLLECTION
+                                  {albumData.id} COLLECTION
                                </span>
                             </div>
                           </div>
@@ -443,82 +453,91 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
 
                   {/* List or Intro Content */}
                   <div className="space-y-0 pb-24">
-                     {/* Conditional Header for Tracks */}
-                     {!album.introContent && (
-                        <motion.div 
-                            initial={{ opacity: 0 }} 
-                            animate={{ opacity: 1 }} 
-                            transition={{ delay: 0.4 }}
-                            className="flex w-full mb-0"
-                        >
-                            <div className="w-8 md:w-10 shrink-0"></div>
-                            <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-black">TRACKLIST</span>
-                                <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{album.tracks.length} ITEMS</span>
-                            </div>
-                        </motion.div>
-                     )}
-
-                     {album.introContent ? (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4, duration: 0.8 }}
-                        >
-                            {/* Elegant Divider Line */}
-                            <div className="pl-8 md:pl-10 w-full mb-8">
-                                <div className="w-full h-px bg-neutral-200" />
-                            </div>
-                            <SimpleMarkdown content={album.introContent} color={album.color} />
-                        </motion.div>
+                     {loading ? (
+                       <div className="pl-8 md:pl-10 flex items-center gap-3 text-neutral-400">
+                          <Loader2 className="animate-spin" size={16} />
+                          <span className="text-xs font-mono uppercase tracking-widest">Loading Content...</span>
+                       </div>
                      ) : (
-                         <div className="pl-0 md:pl-10">
-                            {album.id === AlbumType.VIDEO ? (
-                                // VIDEO GRID - MASONRY
-                                // columns-1 md:columns-2
-                                <div className="columns-1 md:columns-2 gap-6 pt-4 pl-8 md:pl-0 block">
-                                    {album.tracks.map((track, index) => (
-                                        <VideoGridItem
-                                            key={track.id}
-                                            track={track}
-                                            index={index}
-                                            color={album.color}
+                       <>
+                         {/* Conditional Header for Tracks */}
+                         {!albumData.introContent && (
+                            <motion.div 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                transition={{ delay: 0.4 }}
+                                className="flex w-full mb-0"
+                            >
+                                <div className="w-8 md:w-10 shrink-0"></div>
+                                <div className="flex-1 flex items-end justify-between border-b border-black pb-2 mb-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-black">TRACKLIST</span>
+                                    <span className="text-[10px] font-mono text-neutral-400 text-right w-[80px]">{albumData.tracks.length} ITEMS</span>
+                                </div>
+                            </motion.div>
+                         )}
+    
+                         {albumData.introContent ? (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4, duration: 0.8 }}
+                            >
+                                {/* Elegant Divider Line */}
+                                <div className="pl-8 md:pl-10 w-full mb-8">
+                                    <div className="w-full h-px bg-neutral-200" />
+                                </div>
+                                <SimpleMarkdown content={albumData.introContent} color={albumData.color} />
+                            </motion.div>
+                         ) : (
+                             <div className="pl-0 md:pl-10">
+                                {albumData.id === AlbumType.VIDEO ? (
+                                    // VIDEO GRID - MASONRY
+                                    // columns-1 md:columns-2
+                                    <div className="columns-1 md:columns-2 gap-6 pt-4 pl-8 md:pl-0 block">
+                                        {albumData.tracks.map((track, index) => (
+                                            <VideoGridItem
+                                                key={track.id}
+                                                track={track}
+                                                index={index}
+                                                color={albumData.color}
+                                                onClick={() => setSelectedProject(track)}
+                                                delay={400 + (index * 80)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : albumData.id === AlbumType.PHOTO ? (
+                                    // PHOTO GRID - MASONRY
+                                    // columns-2 md:columns-3
+                                    <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-0 block">
+                                        {albumData.tracks.map((track, index) => (
+                                            <PhotoGridItem
+                                                key={track.id}
+                                                track={track}
+                                                index={index}
+                                                color={albumData.color}
+                                                onClick={() => setSelectedProject(track)}
+                                                delay={400 + (index * 80)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    // DEFAULT LIST (WRITING, CODING)
+                                    albumData.tracks.map((track, index) => (
+                                        <TrackItem 
+                                            key={track.id} 
+                                            track={track} 
+                                            index={index} 
+                                            color={albumData.color}
+                                            isHovered={hoveredTrack === track.id}
+                                            onHover={setHoveredTrack}
                                             onClick={() => setSelectedProject(track)}
                                             delay={400 + (index * 80)}
                                         />
-                                    ))}
-                                </div>
-                            ) : album.id === AlbumType.PHOTO ? (
-                                // PHOTO GRID - MASONRY
-                                // columns-2 md:columns-3
-                                <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-0 block">
-                                    {album.tracks.map((track, index) => (
-                                        <PhotoGridItem
-                                            key={track.id}
-                                            track={track}
-                                            index={index}
-                                            color={album.color}
-                                            onClick={() => setSelectedProject(track)}
-                                            delay={400 + (index * 80)}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                // DEFAULT LIST (WRITING, CODING)
-                                album.tracks.map((track, index) => (
-                                    <TrackItem 
-                                        key={track.id} 
-                                        track={track} 
-                                        index={index} 
-                                        color={album.color}
-                                        isHovered={hoveredTrack === track.id}
-                                        onHover={setHoveredTrack}
-                                        onClick={() => setSelectedProject(track)}
-                                        delay={400 + (index * 80)}
-                                    />
-                                ))
-                            )}
-                         </div>
+                                    ))
+                                )}
+                             </div>
+                         )}
+                       </>
                      )}
                   </div>
               </div>
@@ -531,7 +550,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
         {selectedProject && (
           <ProjectModal 
             project={selectedProject} 
-            color={album.color} 
+            color={albumData.color} 
             onClose={() => setSelectedProject(null)} 
             key="modal"
           />

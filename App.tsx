@@ -8,6 +8,7 @@ import OpeningScreen from './components/OpeningScreen';
 
 import CinematicBackground from './components/CinematicBackground';
 
+
 const App: React.FC = () => {
   // Simple Router: 'STACK' (Home) or 'DETAIL' (Project List)
   const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>('STACK');
@@ -145,6 +146,7 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
 
+      
     </div>
   );
 };
