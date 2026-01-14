@@ -8,10 +8,23 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1h4aGneasGibQNtd7jXpQagsyw-WRy0Bg
 
+## 🚀 Deployment (Vercel)
+
+1.  **Framework Preset**: Vite
+2.  **Environment Variables**:
+    You MUST add the following environment variables in Vercel Project Settings for the app to work correctly:
+    - `VITE_SUPABASE_URL`: (From your Supabase Project Settings)
+    - `VITE_SUPABASE_ANON_KEY`: (From your Supabase Project Settings)
+    - `GEMINI_API_KEY`: (Optional, for future AI features)
+
+> [!IMPORTANT]
+> If these variables are missing, the app will load in **Offline Mode** (showing only static data) and warn in the console, but it will not crash.
+
+## 🛠 Tech Stack
+
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`

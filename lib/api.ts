@@ -36,6 +36,8 @@ const ALBUM_TABLE_MAP: Record<string, string> = {
  * Maps database columns to the existing frontend interfaces.
  */
 export const getAlbumWithProjects = async (albumId: string): Promise<Album | null> => {
+  if (!supabase) return null;
+
   // 1. Fetch Album Metadata
   const { data: albumData, error: albumError } = await supabase
     .from('albums')
@@ -92,6 +94,8 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
  * Fetch all albums without projects (lightweight).
  */
 export const getAllAlbums = async (): Promise<Album[]> => {
+  if (!supabase) return [];
+
   const { data, error } = await supabase
     .from('albums')
     .select('*')
