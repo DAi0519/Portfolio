@@ -36,11 +36,9 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
            className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] rounded-full blur-[100px] mix-blend-multiply opacity-15 md:opacity-10"
            animate={{ 
                backgroundColor: color,
-               scale: [1, 1.05, 1],
            }}
            transition={{ 
-               backgroundColor: { duration: 1.5 },
-               scale: { duration: 10, repeat: Infinity, ease: "easeInOut" }
+               duration: 1.5 
            }}
         />
         

@@ -314,13 +314,12 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
       <motion.div 
         ref={containerRef}
         className="fixed inset-0 z-50 text-[#111] overflow-hidden flex flex-col"
-        style={{ backgroundColor: album.backgroundColor }}
-        initial={{ opacity: 0, scale: 0.92, filter: 'blur(20px)' }}
+        initial={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, scale: 0.96, filter: 'blur(10px)' }}
+        exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
         transition={{ 
-            duration: 0.8, 
-            ease: [0.16, 1, 0.3, 1] // Apple-style ease-out
+            duration: 0.7, 
+            ease: [0.2, 0.8, 0.2, 1] 
         }}
       >
         
@@ -340,9 +339,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             {/* LEFT COLUMN: VISUALS */}
             <div 
                 className="relative w-full md:w-[42%] lg:w-[38%] h-[40vh] md:h-full flex items-center justify-start overflow-hidden shrink-0 z-0 border-r border-black/5"
-                style={{ 
-                    backgroundColor: album.backgroundColor,
-                }}
+
             >
               
               {/* Vinyl Container */}
@@ -390,7 +387,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album, onClose }) 
             {/* RIGHT COLUMN: Content */}
             <div 
                 className="relative z-10 flex-1 w-full min-h-[100dvh] md:min-h-0 md:h-full md:overflow-y-auto no-scrollbar"
-                style={{ backgroundColor: album.backgroundColor }}
+                style={{ marginBottom: 0 }}
             >
               <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
                   
