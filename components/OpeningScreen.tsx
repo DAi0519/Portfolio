@@ -121,7 +121,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] bg-[#fbfbf9] overflow-y-auto overflow-x-hidden"
+      className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#fbfbf9] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
       ref={containerRef}
     >
       {/* Scroll Track - Dramatically reduced to 150vh for "Quick Scroll" */}
