@@ -212,20 +212,39 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
+        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-md"
       />
 
       <motion.div 
-        initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
-        transition={{ 
-            type: "spring", 
-            damping: 32, // More dampening = heavier feel
-            stiffness: 300, 
-            mass: 1.2 // More mass = satisfying thud
+        variants={{
+            hidden: { y: "100%", opacity: 0.5, scale: 0.96 },
+            visible: { 
+                y: 0, 
+                opacity: 1, 
+                scale: 1,
+                transition: { 
+                    type: "spring", 
+                    damping: 30, 
+                    stiffness: 300, 
+                    mass: 1 
+                }
+            },
+            exit: { 
+                y: "100%", 
+                opacity: 1, 
+                scale: 1, 
+                transition: { 
+                    type: "spring",
+                    stiffness: 280,
+                    damping: 35,
+                    mass: 0.8  
+                }
+            }
         }}
-        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="will-change-transform relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
          
          {/* Mobile Pull Handle */}
