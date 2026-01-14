@@ -40,6 +40,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     const handleResize = () => {
         const w = window.innerWidth;
         const h = window.innerHeight;
+        const isShort = h < 600; // Early detection for landscape/short screens
+
         let mode: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
         
         if (w < 768) mode = 'MOBILE';
@@ -47,8 +49,9 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         
         // 1. Define The Stage (Safe Zones)
         // Adjust these values to match the actual height of Header and Footer+Title
-        const STAGE_TOP = mode === 'MOBILE' ? 100 : 120;
-        const STAGE_BOTTOM = mode === 'MOBILE' ? 240 : 260; // Mobile has smaller text, might need less space, but let's be safe
+        // Optimizing for Landscape/Short screens: Reduce vertical padding drastically
+        const STAGE_TOP = isShort ? 80 : (mode === 'MOBILE' ? 100 : 120);
+        const STAGE_BOTTOM = isShort ? 60 : (mode === 'MOBILE' ? 240 : 260); // Hide text -> minimal bottom spacing
         
         const availableHeight = h - (STAGE_TOP + STAGE_BOTTOM);
         
@@ -67,7 +70,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         // Mobile min: 160, Desktop min: 200
         // Relax minSize on extremely short screens to avoid overlap
         // If screen is short (<600), allow shrinking down to 120px.
-        const isShort = h < 600;
+        // Relax minSize on extremely short screens to avoid overlap
+        // If screen is short (<600), allow shrinking down to 120px.
         const minSize = isShort ? 120 : (mode === 'MOBILE' ? 160 : 200);
         
         cardSize = Math.max(minSize, Math.min(widthBase, heightBase));
@@ -187,7 +191,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         (e.target as Element).releasePointerCapture(e.pointerId);
 
         // Threshold for switching
-        const THRESHOLD = 50; 
+        // Lowered to 15 to account for the heavy damping formula and improve mobile sensitivity
+        const THRESHOLD = 15; 
 
         if (isDragging.current) {
             if (dragX > THRESHOLD && currentIndex > 0) {
@@ -339,7 +344,9 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       Hybrid Approach:
       - Mobile/Tablet: Relative 'pb-20' (Bottom of flow)
       - Desktop: Absolute 'bottom-12' (Pinned to viewport bottom)
+      - Short Screens: HIDDEN (as per user request for "Extremely Narrow/Landscape" view)
     */}
+    {!layout.isShort && (
     <div className={`
         pointer-events-none px-6 z-50 text-center
         ${isMobileOrTablet 
@@ -363,10 +370,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
           ></div>
 
           <motion.h2 
-              className={`
-                  ${layout.isShort ? 'text-3xl lg:text-5xl mb-1' : 'text-3xl md:text-5xl lg:text-7xl mb-2'}
-                  font-black tracking-[-0.03em] leading-none uppercase
-              `}
+              className="font-black tracking-[-0.03em] leading-none uppercase mb-2"
+              style={{ fontSize: 'clamp(1.8rem, 8vmin, 4.5rem)' }}
               animate={{ color: albums[currentIndex].textColor }}
               transition={{ duration: 0.5 }}
           >
@@ -384,6 +389,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         </motion.div>
       </AnimatePresence>
     </div>
+    )}
     
   </div>
   );
