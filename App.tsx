@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
@@ -54,11 +54,46 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewMode, currentIndex, showOpening]);
 
+  // Music State
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize Audio
+    audioRef.current = new Audio('/bgm.mp3');
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.4; // Subtle background level
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isMusicPlaying) {
+        audioRef.current.play().catch(e => console.log("Autoplay prevented:", e));
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isMusicPlaying]);
+
+  const handleMusicToggle = () => {
+    setIsMusicPlaying(prev => !prev);
+  };
+
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
       {showOpening && (
-        <OpeningScreen onComplete={() => setShowOpening(false)} />
+        <OpeningScreen onComplete={() => {
+            setShowOpening(false);
+            setIsMusicPlaying(true); // Start music when entering site
+        }} />
       )}
 
       {/* Background Layer */}
@@ -73,8 +108,8 @@ const App: React.FC = () => {
         {viewMode === 'STACK' ? (
            <>
               {/* Header for Stack Mode */}
-              <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-start pointer-events-none">
-                <div className="pointer-events-auto">
+              <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none">
+                <div className="pointer-events-auto relative flex flex-col items-center justify-center">
                   <motion.h1 
                     className="text-xs md:text-sm font-bold tracking-tight"
                     animate={{ color: activeAlbum.textColor }}
@@ -82,15 +117,57 @@ const App: React.FC = () => {
                   >
                     DAI<span style={{ opacity: 0.4 }}>.DESIGN</span>
                   </motion.h1>
-                  {/* Dynamic Brand Accent Bar */}
+                  {/* Dynamic Brand Accent Bar - Absolute to not affect text alignment */}
                   <div 
-                    className="w-8 h-0.5 mt-2 transition-colors duration-500"
+                    className="absolute top-full left-0 w-8 h-0.5 mt-2 transition-colors duration-500"
                     style={{ backgroundColor: activeAlbum.color }}
                   ></div>
                 </div>
+
+                {/* Music Control - Center Top */}
+                {/* Independent from Layout, centered relative to viewport within header */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-auto">
+                   <button 
+                      onClick={handleMusicToggle}
+                      className={`flex items-center gap-3 transition-all duration-500 group cursor-pointer ${isMusicPlaying ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
+                   >
+                      {/* Spectrum Visualizer */}
+                      <div className="flex items-end gap-[2px] h-3">
+                         {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
+                             <motion.div 
+                               key={i}
+                               className="w-[1.5px]"
+                               animate={{ 
+                                  height: isMusicPlaying ? ['20%', '100%', '40%', '80%', '20%'] : `${h * 100}%`, // Static distinct heights when off
+                               }}
+                               transition={isMusicPlaying ? {
+                                  duration: 1.4,
+                                  repeat: Infinity,
+                                  repeatType: "mirror",
+                                  delay: i * 0.2,
+                                  ease: "easeInOut",
+                               } : {
+                                  duration: 0.5 // Smooth return to static
+                               }}
+                               style={{ backgroundColor: activeAlbum.textColor }} 
+                             />
+                         ))}
+                      </div>
+
+                      {/* Title */}
+                      <motion.span 
+                         className="text-[9px] font-bold tracking-widest uppercase leading-none mt-[1px]" // Unified Font (Sans Bold) & Size (9px)
+                         animate={{ color: activeAlbum.textColor }}
+                         transition={{ duration: 0.5 }}
+                      >
+                         Outer Wilds
+                      </motion.span>
+                   </button>
+                </div>
+
                 <div className="text-right pointer-events-auto">
                    <motion.p 
-                    className="text-[9px] font-mono uppercase tracking-widest"
+                    className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                     animate={{ color: activeAlbum.textColor }}
                     style={{ opacity: 0.5 }}
                     transition={{ duration: 0.5 }}
@@ -118,7 +195,7 @@ const App: React.FC = () => {
                {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
                 <motion.p 
-                  className="text-[9px] font-mono uppercase tracking-widest"
+                  className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                   animate={{ color: activeAlbum.textColor }}
                   style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
@@ -126,7 +203,7 @@ const App: React.FC = () => {
                    Stay hungry,Stay foolish
                 </motion.p>
                 <motion.p 
-                  className="text-[9px] font-mono uppercase tracking-widest"
+                  className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                   animate={{ color: activeAlbum.textColor }}
                   style={{ opacity: 0.5 }}
                   transition={{ duration: 0.5 }}
