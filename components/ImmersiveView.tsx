@@ -216,14 +216,14 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
+        className={`absolute inset-0 ${isMobile ? 'bg-neutral-100' : 'bg-neutral-100/95 backdrop-blur-xl'}`}
       />
 
       <motion.div 
         initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={isMobile 
-            ? { y: "100%", opacity: 1, scale: 1 } // Mobile: Crisp slide down, full opacity
+            ? { y: "100%", opacity: 1, scale: 1, transition: { duration: 0.3, ease: [0.32, 0, 0.67, 0] } } // Mobile: Smooth Cubic Exit (Apple-style slide)
             : { y: "40%", opacity: 0, scale: 0.96 } // Desktop: Fade/shrink out
         }
         transition={{ 
@@ -232,7 +232,7 @@ const ProjectModal: React.FC<{
             stiffness: 300, 
             mass: 1.2
         }}
-        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
+        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh] will-change-transform backface-visibility-hidden"
       >
          
          {/* Mobile Pull Handle */}
