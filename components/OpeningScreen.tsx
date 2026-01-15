@@ -376,10 +376,17 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
            {/* Switch Housing */}
            <div className="relative w-16 h-8 bg-[#e8e8e6] rounded-[2px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.15),0_1px_0_#fff] border border-[#d4d4d2] flex items-center p-[2px] overflow-hidden">
               
-              {/* Embossed Text Labels on the backing */}
-              <div className="absolute inset-0 flex justify-between items-center px-2.5">
-                  <span className="text-[6px] font-bold text-neutral-400 uppercase tracking-widest">OFF</span>
-                  <span className={`text-[6px] font-bold uppercase tracking-widest transition-colors duration-300 ${isOn ? 'text-[#002FA7]' : 'text-neutral-400'}`}>ON</span>
+              {/* Internal Track Elements */}
+              <div className="absolute inset-0 flex justify-between items-center px-3">
+                  {/* Left Side: Active Status (Revealed when ON) */}
+                  <div className={`flex items-center gap-1.5 transition-opacity duration-300 ${isOn ? 'opacity-100' : 'opacity-0'}`}>
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#002FA7] shadow-[0_0_5px_#002FA7] animate-pulse"></div>
+                  </div>
+
+                  {/* Right Side: Target Label (Covered when ON) */}
+                  <span className={`text-[6px] font-bold text-neutral-400 uppercase tracking-widest transition-opacity duration-300 ${isOn ? 'opacity-0' : 'opacity-100'}`}>
+                    ON
+                  </span>
               </div>
 
               {/* The Sliding Knob */}
@@ -402,16 +409,6 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
                     <div className="w-px h-3 bg-neutral-300"></div>
                  </div>
               </motion.div>
-           </div>
-
-           {/* Indicator Light (External) */}
-           <div className="flex items-center gap-2">
-              <div 
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 border border-black/5 ${isOn ? 'bg-[#002FA7] shadow-[0_0_6px_rgba(0,47,167,0.6)] animate-pulse' : 'bg-neutral-300'}`} 
-              />
-              <span className="text-[9px] font-serif italic tracking-widest text-neutral-400">
-                Power
-              </span>
            </div>
         </button>
     </motion.div>
