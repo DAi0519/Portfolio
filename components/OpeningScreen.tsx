@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValueEvent } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValueEvent, animate } from 'framer-motion';
 
 interface OpeningScreenProps {
   onComplete: () => void;
@@ -157,7 +157,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                   exit={{ 
                     scale: 0, 
                     opacity: 0,
-                    transition: { duration: 0.6, ease: "easeIn" }
+                    transition: { duration: 1.2, ease: [0.33, 1, 0.68, 1] } // Slower, elegant exit
                   }}
                 >
                   {/* Layer 1: Static Shadow (Fixed Light Source) */}
@@ -176,8 +176,8 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
                       rotate, // Rotation applies ONLY to this layer
                     }}
                     exit={{ 
-                      rotate: 225, // Spin away during exit
-                      transition: { duration: 0.6, ease: "easeIn" }
+                      rotate: 225, 
+                      transition: { duration: 1.2, ease: [0.33, 1, 0.68, 1] } // Sync with wrapper
                     }}
                   >
                     {/* Grooves Texture - Dark subtle rings */}
@@ -313,51 +313,109 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
           
           {/* Scroll Prompt - Updated color for light theme */}
           {/* Scroll Prompt - Interaction Fader (Crossfader Style) */}
-          <motion.div 
-            className="absolute bottom-12 inset-x-0 flex flex-col items-center gap-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2, duration: 1.5 }}
-            style={{ opacity }}
-          >
-            {/* Crossfader Track */}
-            <div className="relative w-24 h-6 flex items-center justify-center">
-               {/* Track Line */}
-               <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/20 to-transparent"></div>
-               
-               {/* Tick Marks */}
-               <div className="absolute left-0 right-0 flex justify-between px-2">
-                  <div className="w-px h-1.5 bg-black/10"></div>
-                  <div className="w-px h-1.5 bg-black/10"></div>
-               </div>
 
-               {/* Fader Cap Animation */}
-               <motion.div
-                  className="absolute w-8 h-4 bg-[#fcfcfc] border border-black/10 rounded-[1px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] z-10 flex items-center justify-center"
-                  animate={{ 
-                    x: [-24, 24, -24],
-                  }}
-                  transition={{ 
-                    duration: 3, 
-                    ease: "easeInOut",
-                    repeat: Infinity,
-                    repeatDelay: 0
-                  }}
-               >
-                  {/* Grip Line */}
-                  <div className="w-px h-2 bg-black/20"></div>
-               </motion.div>
-            </div>
-
-            {/* Text */}
-            <p className="text-[10px] font-serif italic tracking-widest text-black/40 mix-blend-multiply">
-              spin it
-            </p>
-          </motion.div>
+          {/* Enter Button - Japanese Minimal Aesthetic */}
+          {/* Enter Button - Retro Horizontal Toggle Switch */}
+          
+          {/* Enter Button - Retro Horizontal Toggle Switch */}
+          {/* Wrap in AnimatePresence to handle exit animation sync */}
+          <AnimatePresence>
+            {!isExiting && (
+              <SwitchButton onToggle={() => {
+                  if (containerRef.current) {
+                      const target = window.innerHeight * 0.55;
+                      const start = containerRef.current.scrollTop;
+                      const change = target - start;
+                      
+                      animate(0, 1, {
+                          duration: 2.5, 
+                          ease: [0.33, 1, 0.68, 1],
+                          onUpdate: (v) => {
+                              if (containerRef.current) {
+                                  containerRef.current.scrollTop = start + change * v;
+                              }
+                          }
+                      });
+                  }
+              }} opacity={opacity} />
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 };
+
+// Sub-component for the Retro Switch to handle self-contained animation state
+const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onToggle, opacity }) => {
+  const [isOn, setIsOn] = useState(false);
+
+  const handleClick = () => {
+    if (isOn) return; // Prevent double-click
+    setIsOn(true);
+    
+    // Delay actual navigation slightly to let the "Click" animation feel satisfying
+    setTimeout(() => {
+        onToggle();
+    }, 150); // Reduced delay for snappier feel
+  };
+
+  return (
+    <motion.div 
+      className="absolute bottom-24 inset-x-0 flex flex-col items-center justify-center pointer-events-auto"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.5 } }} // Exit animation
+      transition={{ delay: 0.2, duration: 1 }} // Appears alongside vinyl (almost)
+      style={{ opacity }}
+    >
+        <button
+          onClick={handleClick}
+          className="relative group cursor-pointer outline-none flex flex-col items-center gap-3"
+        >
+           {/* Switch Housing */}
+           <div className="relative w-16 h-8 bg-[#e8e8e6] rounded-[2px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.15),0_1px_0_#fff] border border-[#d4d4d2] flex items-center p-[2px] overflow-hidden">
+              
+              {/* Embossed Text Labels on the backing */}
+              <div className="absolute inset-0 flex justify-between items-center px-2.5">
+                  <span className="text-[6px] font-bold text-neutral-400 uppercase tracking-widest">OFF</span>
+                  <span className={`text-[6px] font-bold uppercase tracking-widest transition-colors duration-300 ${isOn ? 'text-[#002FA7]' : 'text-neutral-400'}`}>ON</span>
+              </div>
+
+              {/* The Sliding Knob */}
+              <motion.div 
+                 className="relative w-1/2 h-full bg-[#fcfcfc] rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.1),inset_0_1px_0_#fff] border border-[#e0e0e0] z-10"
+                 layout
+                 transition={{ 
+                    type: "spring", 
+                    stiffness: 500, 
+                    damping: 30 
+                 }}
+                 animate={{ 
+                    x: isOn ? '100%' : '0%' 
+                 }}
+              >
+                 {/* Grip Lines */}
+                 <div className="absolute inset-0 flex items-center justify-center gap-[2px]">
+                    <div className="w-px h-3 bg-neutral-300"></div>
+                    <div className="w-px h-3 bg-neutral-300"></div>
+                    <div className="w-px h-3 bg-neutral-300"></div>
+                 </div>
+              </motion.div>
+           </div>
+
+           {/* Indicator Light (External) */}
+           <div className="flex items-center gap-2">
+              <div 
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 border border-black/5 ${isOn ? 'bg-[#002FA7] shadow-[0_0_6px_rgba(0,47,167,0.6)] animate-pulse' : 'bg-neutral-300'}`} 
+              />
+              <span className="text-[9px] font-serif italic tracking-widest text-neutral-400">
+                Power
+              </span>
+           </div>
+        </button>
+    </motion.div>
+  );
+}
 
 export default OpeningScreen;
