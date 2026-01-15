@@ -9,7 +9,7 @@ interface CinematicBackgroundProps {
 const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgroundColor }) => {
   return (
     <motion.div 
-      className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+      className="absolute inset-0 z-0 overflow-hidden pointer-events-none transform-gpu will-change-[background-color]"
       initial={false}
       animate={{ backgroundColor }}
       transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} // Slower, heavier ease
@@ -22,7 +22,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
             Provides the main directional light source.
         */}
         <motion.div
-           className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full blur-[120px] mix-blend-multiply opacity-20 md:opacity-15"
+           className="hidden md:block absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] rounded-full blur-[120px] mix-blend-multiply opacity-20 md:opacity-15"
            animate={{ backgroundColor: color }}
            transition={{ duration: 1.5 }}
         />
@@ -33,7 +33,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
             It breathes very slowly to keep the page 'alive'.
         */}
         <motion.div
-           className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] rounded-full blur-[100px] mix-blend-multiply opacity-15 md:opacity-10"
+           className="hidden md:block absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] rounded-full blur-[100px] mix-blend-multiply opacity-15 md:opacity-10"
            animate={{ 
                backgroundColor: color,
            }}
@@ -48,7 +48,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({ color, backgr
             Typically white/light to act as a backlight for the content.
         */}
         <div 
-            className="absolute inset-0 opacity-40 mix-blend-overlay"
+            className="hidden md:block absolute inset-0 opacity-40 mix-blend-overlay"
             style={{
                 background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 60%)'
             }}

@@ -263,11 +263,16 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                   opacity: 1, 
                   zIndex: 100 - Math.abs(distance),
                   }}
-                  transition={{
-                  type: "spring",
-                  stiffness: 150,
-                  damping: 20,
-                  mass: 0.8
+                  transition={layout.mode === 'MOBILE' ? {
+                      type: "spring",
+                      stiffness: 250, // Stiffer = Snappier, less bounce
+                      damping: 30,    // Higher damping = less oscillation
+                      mass: 0.8
+                  } : {
+                      type: "spring",
+                      stiffness: 150,
+                      damping: 20,
+                      mass: 0.8
                   }}
                   style={{ transformStyle: 'preserve-3d' }}
               >
@@ -321,14 +326,13 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                       className={`
                           absolute -bottom-8 left-6 right-6 h-16 z-10
                           rounded-[100%]
-                          blur-[45px]
                           transition-all duration-700 ease-in-out
                           pointer-events-none
-                          mix-blend-multiply
+                          ${layout.mode === 'MOBILE' ? 'mix-blend-normal blur-[20px] opacity-40' : 'mix-blend-multiply blur-[45px]'}
                       `}
                       style={{ 
                           backgroundColor: album.color,
-                          opacity: isActive ? 0.6 : 0,
+                          opacity: isActive ? (layout.mode === 'MOBILE' ? 0.4 : 0.6) : 0,
                           transform: isActive ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.8)'
                       }}
                   />
