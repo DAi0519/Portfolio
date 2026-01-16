@@ -199,6 +199,54 @@ const PhotoGridItem: React.FC<{
     );
 };
 
+const Lightbox: React.FC<{
+  url: string;
+  type: 'video' | 'image';
+  onClose: () => void;
+}> = ({ url, type, onClose }) => {
+  return (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl"
+        onClick={onClose}
+    >
+        {/* Close Button - Minimalist */}
+        <button 
+            className="absolute top-8 right-8 p-4 flex items-center justify-center text-white/50 hover:text-white transition-colors z-50 focus:outline-none"
+        >
+            <X size={32} strokeWidth={1} />
+        </button>
+
+        <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()} // Prevent close on media click
+        >
+            {type === 'video' ? (
+                <video 
+                    src={url} 
+                    controls 
+                    autoPlay 
+                    playsInline
+                    className="max-w-full max-h-full rounded-sm shadow-2xl"
+                />
+            ) : (
+                <img 
+                    src={url} 
+                    alt="Full View" 
+                    className="max-w-full max-h-full object-contain rounded-sm shadow-2xl" 
+                />
+            )}
+        </motion.div>
+    </motion.div>
+  );
+};
+
 const ProjectModal: React.FC<{
   project: ProjectItem;
   color: string;
@@ -206,6 +254,20 @@ const ProjectModal: React.FC<{
 }> = ({ project, color, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const dragControls = useDragControls();
+  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: 'video' | 'image' } | null>(null);
+
+  const handleMediaClick = (e: React.MouseEvent) => {
+      // If user is dragging (not clicking), we shouldn't trigger this (dragControls usually handles this but good to be safe)
+      // Actually PointerDown starts drag, standard Click fires if no drag.
+      
+      const mediaUrl = project.videoUrl || project.imageUrl;
+      if (mediaUrl) {
+          setLightboxMedia({
+              url: mediaUrl,
+              type: project.videoUrl ? 'video' : 'image'
+          });
+      }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
@@ -248,12 +310,12 @@ const ProjectModal: React.FC<{
              <div className="w-12 h-1.5 bg-neutral-300/50 rounded-full backdrop-blur-md"></div>
          </div>
 
-         {/* Close Button */}
+         {/* Close Button - Minimalist */}
          <button 
            onClick={onClose}
-           className="hidden md:flex absolute top-6 right-6 z-20 w-8 h-8 rounded-full bg-white/50 hover:bg-neutral-100 items-center justify-center transition-all group"
+           className="hidden md:flex absolute top-6 right-6 z-20 p-2 items-center justify-center transition-transform group focus:outline-none"
          >
-           <X size={16} className="text-neutral-400 group-hover:text-black transition-colors" />
+           <X size={24} strokeWidth={1.5} className="text-neutral-400 group-hover:text-black group-hover:rotate-90 transition-all duration-300" />
          </button>
 
          {/* UNIFIED SCROLL CONTAINER */}
@@ -263,10 +325,17 @@ const ProjectModal: React.FC<{
              {project.imageUrl && (
                <div 
                    onPointerDown={(e) => dragControls.start(e)}
-                   className="w-full bg-neutral-50 relative transition-all duration-700 overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+                   onClick={handleMediaClick}
+                   className="w-full bg-neutral-50 relative transition-all duration-700 overflow-hidden cursor-zoom-in group touch-none"
                >
-                 {/* Remove max-h restriction to let image breathe, or keep slight constraint if needed. 
-                     Let's allow it to be natural width-based flow. */}
+                 {/* Visual Hint for Video */}
+                 {project.videoUrl && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                            <Play size={24} fill="white" className="text-white ml-1" />
+                        </div>
+                    </div>
+                 )}
                  <img src={project.imageUrl} alt={project.title} className="w-full h-auto object-contain bg-neutral-100" />
                </div>
              )}
@@ -314,6 +383,17 @@ const ProjectModal: React.FC<{
              </div>
          </div>
       </motion.div>
+
+      {/* Lightbox Overlay */}
+      <AnimatePresence>
+          {lightboxMedia && (
+              <Lightbox 
+                  url={lightboxMedia.url} 
+                  type={lightboxMedia.type} 
+                  onClose={() => setLightboxMedia(null)} 
+              />
+          )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -343,7 +423,12 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
       try {
         const data = await getAlbumWithProjects(initialAlbum.id);
         if (isMounted && data) {
-          setAlbumData(data);
+          // Merge: Keep local metadata (Titles, Colors) as Source of Truth. 
+          // Only use backend for Tracks.
+          setAlbumData({
+            ...initialAlbum,
+            tracks: data.tracks
+          });
         }
       } catch (error) {
         console.error("Failed to load album data", error);
