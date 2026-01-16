@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
@@ -62,7 +62,7 @@ const App: React.FC = () => {
     // Initialize Audio
     audioRef.current = new Audio('/bgm.mp3');
     audioRef.current.loop = true;
-    audioRef.current.volume = 0.4; // Subtle background level
+    audioRef.current.volume = 0; // Initialize silent
     
     return () => {
       if (audioRef.current) {
@@ -72,9 +72,18 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Unlock AudioContext on first interaction
+  const primeAudio = useCallback(() => {
+    if (audioRef.current) {
+      // Play comfortably at volume 0 to unlock capabilities
+      audioRef.current.play().catch(e => console.log("Audio Prime Failed:", e));
+    }
+  }, []);
+
   useEffect(() => {
     if (audioRef.current) {
       if (isMusicPlaying) {
+        audioRef.current.volume = 0.4; // Fade in / Set target volume
         audioRef.current.play().catch(e => console.log("Autoplay prevented:", e));
       } else {
         audioRef.current.pause();
@@ -90,7 +99,9 @@ const App: React.FC = () => {
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
       {showOpening && (
-        <OpeningScreen onComplete={() => {
+        <OpeningScreen 
+          onStart={primeAudio}
+          onComplete={() => {
             setShowOpening(false);
             setIsMusicPlaying(true); // Start music when entering site
         }} />
@@ -138,13 +149,13 @@ const App: React.FC = () => {
                                key={i}
                                className="w-[1.5px]"
                                animate={{ 
-                                  height: isMusicPlaying ? ['20%', '100%', '40%', '80%', '20%'] : `${h * 100}%`, // Static distinct heights when off
+                                  height: isMusicPlaying ? ['20%', '70%', '30%', '60%', '20%'] : '25%', // Softer animation & Flat inactive state
                                }}
                                transition={isMusicPlaying ? {
-                                  duration: 1.4,
+                                  duration: 1.5,
                                   repeat: Infinity,
                                   repeatType: "mirror",
-                                  delay: i * 0.2,
+                                  delay: i * 0.2, // Rippling delay
                                   ease: "easeInOut",
                                } : {
                                   duration: 0.5 // Smooth return to static

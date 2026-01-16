@@ -3,14 +3,24 @@ import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionV
 
 interface OpeningScreenProps {
   onComplete: () => void;
+  onStart?: () => void;
 }
 
 // The intro text - split for symmetric placement
 const TEXT_LINE_1 = "我将一切谱成乐章，刻下去是旅程，放出来是回声。";
 const TEXT_LINE_2 = "Without music, life would be a mistake.";
 
-const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
+const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Audio priming triggered once
+  const hasPrimedRef = useRef(false);
+  const handleInteraction = () => {
+      if (!hasPrimedRef.current && onStart) {
+          hasPrimedRef.current = true;
+          onStart();
+      }
+  };
   const vinylRef = useRef<HTMLDivElement>(null);
   const [isExiting, setIsExiting] = useState(false);
   
@@ -65,6 +75,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
   const discSize = "min(54vw, 54vh)";
   
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
+    handleInteraction(); // Prime Audio
     setIsDragging(true);
     
     // Calculate initial angle relative to center of VINYL (not screen)
@@ -322,6 +333,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete }) => {
           <AnimatePresence>
             {!isExiting && (
               <SwitchButton onToggle={() => {
+                  handleInteraction(); // Prime Audio
                   if (containerRef.current) {
                       const target = window.innerHeight * 0.55;
                       const start = containerRef.current.scrollTop;
