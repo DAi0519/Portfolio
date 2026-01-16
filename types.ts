@@ -14,6 +14,7 @@ export interface ProjectItem {
   tags: string[];
   link?: string;
   imageUrl?: string;
+  videoUrl?: string;
 }
 
 export interface Album {
