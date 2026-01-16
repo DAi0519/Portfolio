@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Album, ProjectItem, AlbumType } from '../types';
 import { ArrowLeft, X, ExternalLink, Play } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion';
 
 interface ImmersiveViewProps {
   album: Album;
@@ -205,9 +205,7 @@ const ProjectModal: React.FC<{
   onClose: () => void;
 }> = ({ project, color, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
-  // Detect mobile for crisp exit animation
-  // If we are on mobile (<768px), we want a simple slide down (y: "100%") and no opacity/scale nonsense
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const dragControls = useDragControls();
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
@@ -216,28 +214,38 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className={`absolute inset-0 ${isMobile ? 'bg-neutral-100' : 'bg-neutral-100/95 backdrop-blur-xl'}`}
+        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
       />
 
       <motion.div 
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.05, bottom: 1 }}
+        onDragEnd={(e, info: PanInfo) => {
+           if (info.offset.y > 100 || info.velocity.y > 300) {
+               onClose();
+           }
+        }}
         initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={isMobile 
-            ? { y: "100%", opacity: 1, scale: 1, transition: { duration: 0.3, ease: [0.32, 0, 0.67, 0] } } // Mobile: Smooth Cubic Exit (Apple-style slide)
-            : { y: "40%", opacity: 0, scale: 0.96 } // Desktop: Fade/shrink out
-        }
+        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
         transition={{ 
             type: "spring", 
             damping: 32, 
             stiffness: 300, 
-            mass: 1.2
+            mass: 1.2 
         }}
-        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh] will-change-transform backface-visibility-hidden"
+        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
          
-         {/* Mobile Pull Handle */}
-         <div className="md:hidden w-full flex justify-center pt-4 pb-2 absolute top-0 z-20 pointer-events-none">
-             <div className="w-12 h-1 bg-black/10 rounded-full"></div>
+         {/* Mobile Pull Handle - High Hit Area */}
+         <div 
+            onPointerDown={(e) => dragControls.start(e)} 
+            className="md:hidden w-full flex justify-center py-6 absolute top-0 z-30 cursor-grab active:cursor-grabbing touch-none"
+         >
+             <div className="w-12 h-1.5 bg-neutral-300/50 rounded-full backdrop-blur-md"></div>
          </div>
 
          {/* Close Button */}
@@ -248,53 +256,62 @@ const ProjectModal: React.FC<{
            <X size={16} className="text-neutral-400 group-hover:text-black transition-colors" />
          </button>
 
-         {/* Image Header */}
-         {project.imageUrl && (
-           <div className="w-full max-h-[50vh] bg-neutral-50 relative shrink-0 transition-all duration-700 overflow-hidden">
-             <img src={project.imageUrl} alt={project.title} className="w-full h-full object-contain bg-neutral-100" />
-           </div>
-         )}
+         {/* UNIFIED SCROLL CONTAINER */}
+         <div className="flex-1 w-full overflow-y-auto overscroll-contain bg-white relative">
+             
+             {/* Image Header - Now Scrolls */}
+             {project.imageUrl && (
+               <div 
+                   onPointerDown={(e) => dragControls.start(e)}
+                   className="w-full bg-neutral-50 relative transition-all duration-700 overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+               >
+                 {/* Remove max-h restriction to let image breathe, or keep slight constraint if needed. 
+                     Let's allow it to be natural width-based flow. */}
+                 <img src={project.imageUrl} alt={project.title} className="w-full h-auto object-contain bg-neutral-100" />
+               </div>
+             )}
 
-         {/* Content Body */}
-         <div className="p-8 md:p-10 overflow-y-auto bg-white flex-1">
-            <div className="flex flex-wrap gap-2 mb-8">
-               {project.tags.map(tag => (
-                  <span key={tag} className="text-[9px] uppercase font-bold tracking-[0.15em] text-neutral-400">
-                    #{tag}
-                  </span>
-               ))}
-            </div>
+             {/* Content Body */}
+             <div className={`w-full px-8 pb-8 md:p-10 bg-white ${project.imageUrl ? 'pt-8' : 'pt-20'}`}>
+                <div className="flex flex-wrap gap-2 mb-8">
+                   {project.tags.map(tag => (
+                      <span key={tag} className="text-[9px] uppercase font-bold tracking-[0.15em] text-neutral-400">
+                        #{tag}
+                      </span>
+                   ))}
+                </div>
 
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-6 tracking-tight leading-tight">
-              {project.title}
-            </h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-6 tracking-tight leading-tight">
+                  {project.title}
+                </h2>
 
-            {/* Content Divider */}
-            <div 
-                className="w-8 h-1 mb-8"
-                style={{ backgroundColor: safeColor }}
-            ></div>
+                {/* Content Divider */}
+                <div 
+                    className="w-8 h-1 mb-8"
+                    style={{ backgroundColor: safeColor }}
+                ></div>
 
-            <div className="prose prose-neutral prose-lg max-w-none">
-                <p className="text-neutral-600 leading-relaxed font-normal text-base md:text-lg">
-                {project.description}
-                </p>
-            </div>
+                <div className="prose prose-neutral prose-lg max-w-none">
+                    <p className="text-neutral-600 leading-relaxed font-normal text-base md:text-lg">
+                    {project.description}
+                    </p>
+                </div>
 
-            {/* Actions */}
-            <div className="flex flex-col md:flex-row items-center gap-3 mt-12 pt-8 border-t border-neutral-100">
-               {project.link && (
-                 <a 
-                   href={project.link}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="w-full md:w-auto flex-1 text-white py-3 px-6 rounded-sm text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                   style={{ backgroundColor: safeColor }}
-                 >
-                   查看 <ExternalLink size={12} />
-                 </a>
-               )}
-            </div>
+                {/* Actions */}
+                <div className="flex flex-col md:flex-row items-center gap-3 mt-12 pt-8 border-t border-neutral-100">
+                   {project.link && (
+                     <a 
+                       href={project.link}
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       className="w-full md:w-auto flex-1 text-white py-3 px-6 rounded-sm text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                       style={{ backgroundColor: safeColor }}
+                     >
+                       查看 <ExternalLink size={12} />
+                     </a>
+                   )}
+                </div>
+             </div>
          </div>
       </motion.div>
     </div>
