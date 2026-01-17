@@ -16,16 +16,16 @@ We combine the physical tactility of vinyl records (object permanence, physics, 
 
 We use a "Dual Typeface" system to separate _Story_ from _System_.
 
-### Primary Typeface (Content): **EarlySummerSerif**
+### Primary Typeface (Content): **ChillDuanHeiSong**
 
-_Used for: Headings, Body Text, Quotes_
+_Used for: Headings, Body Text, Quotes. A modern hybrid typeface._
 
-| Role        | Size (Mobile/Desk) | Weight       | Leading | Tracking | Color     | Usage                             |
-| :---------- | :----------------- | :----------- | :------ | :------- | :-------- | :-------------------------------- |
-| **Display** | 48px / 80px        | Heavy (900)  | 0.9     | -0.04em  | `#111`    | Album Titles                      |
-| **H1**      | 32px / 48px        | Bold (700)   | 1.0     | -0.02em  | `#111`    | Page Titles                       |
-| **Body**    | 16px / 18px        | Medium (500) | 1.6     | 0        | `#1A1A1A` | Main reading text. **Never #666** |
-| **Quote**   | 20px / 24px        | Light (300)  | 1.4     | 0        | `#1A1A1A` | Blockquotes                       |
+| Role        | Size (Mobile/Desk) | Weight           | Leading | Tracking | Color     | Usage                             |
+| :---------- | :----------------- | :--------------- | :------ | :------- | :-------- | :-------------------------------- |
+| **Display** | 48px / 80px        | Bold (900)       | 0.9     | -0.04em  | `#111`    | Album Titles                      |
+| **H1**      | 32px / 48px        | Bold (700)       | 1.0     | -0.02em  | `#111`    | Page Titles                       |
+| **Body**    | 16px / 18px        | Regular (400)    | 1.6     | 0        | `#1A1A1A` | Main reading text. **Never #666** |
+| **Quote**   | 20px / 24px        | ExtraLight (300) | 1.4     | 0        | `#1A1A1A` | Blockquotes                       |
 
 ### Secondary Typeface (System): **Helvetica Neue**
 
@@ -86,13 +86,11 @@ Each album has a distinct "Frequency" that dictates its visual identity.
 We do not simply "fade in". We simulate mechanical resistance and physical inertia.
 
 - **Belt Drive (Scrolling):**
-
   - High Mass (`mass: 1`)
   - Low Stiffness (`stiffness: 50`)
   - _Feeling:_ Heavy, luxurious, momentum-based. Like a high-end Hi-Fi turntable.
 
 - **Direct Drive (Interaction):**
-
   - Low Mass (`mass: 0.2`)
   - High Stiffness (`stiffness: 800`)
   - _Feeling:_ Instant, snappy, 1:1 response. Like a DJ scratch turntable.

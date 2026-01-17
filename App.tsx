@@ -13,7 +13,16 @@ const App: React.FC = () => {
   // Simple Router: 'STACK' (Home) or 'DETAIL' (Project List)
   const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>('STACK');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showOpening, setShowOpening] = useState(true);
+  
+  // Check session storage for first visit
+  const [showOpening, setShowOpening] = useState(() => {
+    // Safety check for SSR or non-browser environments (though this is client-side React)
+    if (typeof window !== 'undefined') {
+        const hasVisited = sessionStorage.getItem('hasVisited');
+        return !hasVisited;
+    }
+    return true;
+  });
 
   const activeAlbum = ALBUMS[currentIndex];
 
@@ -103,7 +112,9 @@ const App: React.FC = () => {
           onStart={primeAudio}
           onComplete={() => {
             setShowOpening(false);
-            setIsMusicPlaying(true); // Start music when entering site
+            // Mark as visited in session storage
+            sessionStorage.setItem('hasVisited', 'true');
+            // Music stays OFF by default as per request
         }} />
       )}
 

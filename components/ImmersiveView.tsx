@@ -12,46 +12,160 @@ interface ImmersiveViewProps {
 const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content, color }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   
-  return (
-    <div className="prose prose-neutral max-w-none pl-8 md:pl-10">
-      {content.split('\n').map((line, i) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={i} className="h-2" />;
-        
-        if (trimmed.startsWith('### ')) {
+  // --- Tokenize content into segments (lines or tables) ---
+  const lines = content.split('\n');
+  const segments: { type: 'line' | 'table'; lines: string[] }[] = [];
+  let currentTableLines: string[] = [];
+
+  lines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          currentTableLines.push(trimmed);
+      } else {
+          if (currentTableLines.length > 0) {
+              segments.push({ type: 'table', lines: currentTableLines });
+              currentTableLines = [];
+          }
+          segments.push({ type: 'line', lines: [line] });
+      }
+  });
+  if (currentTableLines.length > 0) {
+      segments.push({ type: 'table', lines: currentTableLines });
+  }
+
+  // --- Render segment helper ---
+  const renderLine = (line: string, i: number) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <div key={i} className="h-4" />;
+
+      // Image / Video Parser: ![alt](url)
+      const mediaMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+      if (mediaMatch) {
+          const alt = mediaMatch[1];
+          const url = mediaMatch[2];
+          if (alt === 'VIDEO') {
+              return (
+                  <video 
+                      key={i}
+                      src={url} 
+                      controls 
+                      playsInline
+                      className="w-full rounded-sm my-8 shadow-sm bg-black/5"
+                  />
+              );
+          }
           return (
-            <h3 key={i} className="text-[10px] font-bold uppercase tracking-[0.2em] mt-8 mb-4 text-neutral-500 font-sans">
-              {trimmed.replace('### ', '')}
-            </h3>
+              <img 
+                  key={i}
+                  src={url} 
+                  alt={alt} 
+                  className="w-full h-auto rounded-sm my-8 shadow-sm"
+              />
           );
-        }
-        
-        if (trimmed.startsWith('---')) {
-             return <hr key={i} className="my-8 border-neutral-200" />;
-        }
+      }
 
-        if (trimmed.startsWith('- ')) {
-           const parts = trimmed.replace('- ', '').split('**');
-           return (
-             <div key={i} className="flex items-baseline gap-3 my-2 pl-0">
-                <span className="w-1 h-1 rounded-full shrink-0 translate-y-[-2px] opacity-40" style={{ backgroundColor: safeColor }} />
-                <p className="flex-1 text-[#1A1A1A] leading-[1.6] m-0 text-[16px] font-serif">
-                   {parts.map((part, idx) => 
-                      idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
-                   )}
-                </p>
-             </div>
-           );
-        }
-
-        const parts = trimmed.split('**');
+      if (trimmed.startsWith('### ')) {
         return (
-          <p key={i} className="text-[#1A1A1A] leading-[1.6] mb-4 font-serif text-[16px]">
-             {parts.map((part, idx) => 
-                idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
-             )}
-          </p>
+          <h3 key={i} className="text-sm font-bold uppercase tracking-[0.2em] mt-12 mb-6 text-neutral-900 font-sans border-b border-neutral-100 pb-2">
+            {trimmed.replace('### ', '')}
+          </h3>
         );
+      }
+
+      if (trimmed.startsWith('## ')) {
+           return (
+             <h2 key={i} className="text-xl md:text-2xl font-bold mt-16 mb-8 text-neutral-900 tracking-tight">
+               {trimmed.replace('## ', '')}
+             </h2>
+           );
+      }
+      
+      if (trimmed.startsWith('---')) {
+           return <hr key={i} className="my-12 border-neutral-200" />;
+      }
+
+      if (trimmed.startsWith('> ')) {
+           return (
+               <blockquote key={i} className="pl-6 border-l-2 border-neutral-200 my-8 italic text-neutral-500 text-lg">
+                   {trimmed.replace('> ', '')}
+               </blockquote>
+           );
+      }
+
+      if (trimmed.startsWith('```')) {
+          return null; 
+      }
+
+      if (trimmed.startsWith('- ')) {
+         const parts = trimmed.replace('- ', '').split('**');
+         return (
+           <div key={i} className="flex items-baseline gap-3 my-3 pl-2">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 translate-y-[-1px] opacity-60" style={{ backgroundColor: safeColor }} />
+              <p className="flex-1 text-neutral-800 leading-relaxed m-0 text-base font-normal">
+                 {parts.map((part, idx) => 
+                    idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
+                 )}
+              </p>
+           </div>
+         );
+      }
+
+      const parts = trimmed.split('**');
+      return (
+        <p key={i} className="text-neutral-600 leading-8 mb-6 font-normal text-lg">
+           {parts.map((part, idx) => 
+              idx % 2 === 1 ? <strong key={idx} className="font-semibold text-neutral-900">{part}</strong> : part
+           )}
+        </p>
+      );
+  };
+
+  const renderTable = (tableLines: string[], key: number) => {
+      // Filter out separator row (contains only |, -, and spaces)
+      const dataRows = tableLines.filter(line => !/^\|[\s\-|]+\|$/.test(line));
+      if (dataRows.length === 0) return null;
+
+      const parseRow = (row: string) => 
+          row.split('|').slice(1, -1).map(cell => cell.trim());
+
+      const headerCells = parseRow(dataRows[0]);
+      const bodyRows = dataRows.slice(1);
+
+      return (
+          <div key={key} className="my-8 overflow-x-auto rounded-sm border border-neutral-200">
+              <table className="w-full text-sm text-left border-collapse">
+                  <thead className="bg-neutral-50">
+                      <tr>
+                          {headerCells.map((cell, i) => (
+                              <th key={i} className="px-4 py-3 font-semibold text-neutral-800 border-b border-neutral-200">
+                                  {cell}
+                              </th>
+                          ))}
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {bodyRows.map((row, rowIdx) => (
+                          <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
+                              {parseRow(row).map((cell, cellIdx) => (
+                                  <td key={cellIdx} className="px-4 py-3 text-neutral-600 border-b border-neutral-100">
+                                      {cell}
+                                  </td>
+                              ))}
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
+      );
+  };
+
+  return (
+    <div className="prose prose-neutral max-w-none pl-0 md:pl-0">
+      {segments.map((segment, segIdx) => {
+          if (segment.type === 'table') {
+              return renderTable(segment.lines, segIdx);
+          }
+          return segment.lines.map((line, lineIdx) => renderLine(line, segIdx * 1000 + lineIdx));
       })}
     </div>
   );
@@ -122,32 +236,93 @@ const VideoGridItem: React.FC<{
     delay: number;
 }> = ({ track, color, onClick, delay }) => {
     const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+    const [isPlaying, setIsPlaying] = React.useState(false);
+    const [isLandscape, setIsLandscape] = React.useState(false);
+    
+    // Extract video URL if available in content
+    const videoMatch = track.content?.match(/!\[VIDEO\]\((.*?)\)/);
+    const videoUrl = videoMatch ? videoMatch[1] : null;
+
+    const handlePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            videoRef.current.play();
+            setIsPlaying(true);
+        }
+    };
+
+    const handleLoadedMetadata = () => {
+        if (videoRef.current) {
+            const { videoWidth, videoHeight } = videoRef.current;
+            setIsLandscape(videoWidth > videoHeight);
+        }
+    };
+
     return (
         <motion.div
             onClick={onClick}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
-            className="group cursor-pointer mb-8 break-inside-avoid"
+            className={`group cursor-pointer mb-8 ${isLandscape ? 'col-span-2' : ''}`}
         >
-            {/* 
-                MASONRY ITEM
-                No forced aspect ratio. Just w-full.
-            */}
-            <div className="relative w-full overflow-hidden rounded-sm bg-neutral-200 mb-3">
-                {track.imageUrl && (
-                    <img 
-                        src={track.imageUrl} 
-                        alt={track.title} 
-                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                )}
-                {/* Overlay Play Button */}
-                <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300">
-                    <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <Play size={20} className="ml-1" style={{ color: safeColor }} fill={safeColor} />
+            <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900 mb-3">
+                {videoUrl ? (
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full relative"
+                    >
+                        <video 
+                            ref={videoRef}
+                            src={videoUrl}
+                            controls={isPlaying}
+                            playsInline
+                            webkit-playsinline="true"
+                            preload="metadata"
+                            onLoadedMetadata={handleLoadedMetadata}
+                            onEnded={() => setIsPlaying(false)}
+                            className="w-full h-auto object-cover rounded-sm bg-black"
+                        />
+                        {/* Custom Play Overlay */}
+                        {!isPlaying && (
+                            <div 
+                                onClick={handlePlay}
+                                className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors cursor-pointer group/play"
+                            >
+                                {/* Dieter Rams Style: Minimal, Geometric, Functional */}
+                                <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/play:bg-white group-hover/play:border-white group-hover/play:scale-105">
+                                    <Play 
+                                        size={16} 
+                                        className="ml-0.5 text-white transition-colors duration-300 group-hover/play:text-black" 
+                                        fill="currentColor" 
+                                        strokeWidth={0} // Solid fill style
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
+                ) : (
+                    <>
+                        {track.imageUrl && (
+                            <img 
+                                src={track.imageUrl} 
+                                alt={track.title} 
+                                className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                        )}
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300 group/overlay">
+                             <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/overlay:bg-white group-hover/overlay:border-white group-hover/overlay:scale-105">
+                                 <Play 
+                                    size={16} 
+                                    className="ml-0.5 text-white transition-colors duration-300 group-hover/overlay:text-black" 
+                                    fill="currentColor" 
+                                    strokeWidth={0}
+                                />
+                             </div>
+                        </div>
+                    </>
+                )}
             </div>
             
             <div>
@@ -299,7 +474,7 @@ const ProjectModal: React.FC<{
             stiffness: 300, 
             mass: 1.2 
         }}
-        className="relative w-full md:max-w-xl bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
+        className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
       >
          
          {/* Mobile Pull Handle - High Hit Area */}
@@ -361,9 +536,13 @@ const ProjectModal: React.FC<{
                 ></div>
 
                 <div className="prose prose-neutral prose-lg max-w-none">
-                    <p className="text-neutral-600 leading-relaxed font-normal text-base md:text-lg">
-                    {project.description}
-                    </p>
+                    {project.content ? (
+                        <SimpleMarkdown content={project.content} color={safeColor} />
+                    ) : (
+                        <p className="text-neutral-600 leading-relaxed font-normal text-base md:text-lg">
+                            {project.description}
+                        </p>
+                    )}
                 </div>
 
                 {/* Actions */}
@@ -541,7 +720,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                               FLUID TYPOGRAPHY: 
                               Using clamp() to ensure the title scales with the viewport width.
                           */}
-                          <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-serif break-words hyphens-auto">
+                          <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans break-words hyphens-auto">
                               {albumData.title}
                           </h1>
 
@@ -602,7 +781,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                 {albumData.id === AlbumType.VIDEO ? (
                                     // VIDEO GRID - MASONRY
                                     // columns-1 md:columns-2
-                                    <div className="columns-1 md:columns-2 gap-6 pt-4 pl-8 md:pl-0 block">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-0">
                                         {albumData.tracks.map((track, index) => (
                                             <VideoGridItem
                                                 key={track.id}

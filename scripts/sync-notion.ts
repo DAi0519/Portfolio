@@ -28,6 +28,122 @@ const TYPE_TO_TABLE: Record<string, string> = {
   'WRITING': 'projects_writing'
 };
 
+// --- Helper: Convert Notion Blocks to Markdown ---
+async function fetchPageContent(pageId: string): Promise<string> {
+  try {
+    const blocks = await notion.blocks.children.list({
+      block_id: pageId,
+    });
+    
+    // Convert blocks to markdown string (with async support for tables)
+    const markdownParts: string[] = [];
+    for (const block of blocks.results) {
+        if ((block as any).type === 'table') {
+            const tableMarkdown = await tableToMarkdown(block);
+            markdownParts.push(tableMarkdown);
+        } else {
+            markdownParts.push(blockToMarkdown(block));
+        }
+    }
+    return markdownParts.join('\n\n');
+  } catch (error) {
+    console.error(`Error fetching blocks for ${pageId}`, error);
+    return "";
+  }
+}
+
+// --- Helper: Convert a single Notion block to Markdown ---
+function blockToMarkdown(block: any): string {
+  const type = block.type;
+  if (!block[type]) return "";
+
+  const textContent = block[type].rich_text ? 
+      block[type].rich_text.map((t: any) => t.plain_text + (t.href ? `(${t.href})` : '')).join("") 
+      : "";
+
+  switch (type) {
+    case 'paragraph':
+      return textContent;
+    case 'heading_1':
+      return `# ${textContent}`;
+    case 'heading_2':
+      return `## ${textContent}`;
+    case 'heading_3':
+      return `### ${textContent}`;
+    case 'bulleted_list_item':
+      return `- ${textContent}`;
+    case 'numbered_list_item':
+      return `1. ${textContent}`;
+    case 'quote':
+      return `> ${textContent}`;
+    case 'code':
+      return `\`\`\`${block.code.language}\n${textContent}\n\`\`\``;
+    case 'image':
+      const url = block.image.type === 'external' ? block.image.external.url : block.image.file?.url;
+      const caption = block.image.caption?.[0]?.plain_text || "Image";
+      return `![${caption}](${url})`;
+    case 'video':
+       // Debugging video block structure
+       // console.log('Found Video Block:', JSON.stringify(block.video, null, 2));
+       
+       const videoObj = block.video;
+       let videoUrl = "";
+       
+       if (videoObj.type === 'external') {
+           videoUrl = videoObj.external?.url || "";
+       } else if (videoObj.type === 'file') {
+           videoUrl = videoObj.file?.url || "";
+       }
+       
+       if (!videoUrl) {
+           console.warn(`⚠️ Video block ${block.id} has no URL.`);
+           return "";
+       }
+       
+       return `![VIDEO](${videoUrl})`;
+    case 'divider':
+      return `---`;
+    // Tables are handled separately in fetchPageContent
+    case 'table':
+      return `[TABLE_PLACEHOLDER:${block.id}]`; // Will be replaced
+    default:
+      return "";
+  }
+}
+
+// --- Helper: Convert Notion Table block to Markdown ---
+async function tableToMarkdown(tableBlock: any): Promise<string> {
+    try {
+        const rows = await notion.blocks.children.list({
+            block_id: tableBlock.id,
+        });
+        
+        if (!rows.results || rows.results.length === 0) return "";
+        
+        const markdownRows: string[] = [];
+        
+        rows.results.forEach((row: any, index: number) => {
+            if (row.type !== 'table_row') return;
+            
+            const cells = row.table_row.cells.map((cell: any[]) => 
+                cell.map((c: any) => c.plain_text || "").join("")
+            );
+            
+            markdownRows.push(`| ${cells.join(' | ')} |`);
+            
+            // Add separator after header row
+            if (index === 0) {
+                markdownRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
+            }
+        });
+        
+        return markdownRows.join('\n');
+    } catch (error) {
+        console.error(`Error fetching table rows for ${tableBlock.id}`, error);
+        return "";
+    }
+}
+
 async function syncNotionToSupabase() {
   console.log('🚀 Starting Notion Sync...');
   console.log('Target Data Source ID:', DATA_SOURCE_ID);
@@ -53,9 +169,11 @@ async function syncNotionToSupabase() {
 
     for (const page of response.results) {
       if (!('properties' in page)) continue;
+      // Skip archived (deleted) pages
+      if ((page as any).archived) continue;
       
       const props = page.properties as any;
-      const id = page.id; 
+      const id = page.id;  
 
       // Extract Properties
       // CAUTION: This depends heavily on the User's Notion Schema names.
@@ -95,6 +213,10 @@ async function syncNotionToSupabase() {
       // 7. Link
       const link = props.Link?.url || null;
 
+      // 8. Fetch Content (Blocks) -> Markdown
+      console.log(`   📄 Fetching content for "${title}"...`);
+      const markdownContent = await fetchPageContent(id);
+
       console.log(`✨ Syncing "${title}" to [${targetTable}]...`);
 
       // Upsert to Supabase
@@ -108,7 +230,8 @@ async function syncNotionToSupabase() {
           description,
           tags,
           image_url: imageUrl,
-          link
+          link,
+          content: markdownContent // New Field
         });
 
       if (error) {
@@ -124,7 +247,8 @@ async function syncNotionToSupabase() {
     console.log('🧹 Starting Prune (Deleting items removed from Notion)...');
     
     // 1. Get List of all Active IDs from Notion
-    const activeIds = new Set(response.results.map((page: any) => page.id));
+    // Only include non-archived pages. Archived pages will be missing from this set, triggering deletion.
+    const activeIds = new Set(response.results.filter((page: any) => !page.archived).map((page: any) => page.id));
     
     // 2. Check each table for orphans
     const tables = Object.values(TYPE_TO_TABLE);

@@ -15,6 +15,7 @@ export interface ProjectItem {
   link?: string;
   imageUrl?: string;
   videoUrl?: string;
+  content?: string;
 }
 
 export interface Album {
