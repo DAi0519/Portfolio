@@ -146,9 +146,9 @@ const App: React.FC = () => {
                   ></div>
                 </div>
 
-                {/* Music Control - Center Top */}
-                {/* Independent from Layout, centered relative to viewport within header */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-auto">
+
+                <div className="flex items-center justify-end pointer-events-auto">
+                   {/* Music Control - Top Right */}
                    <button 
                       onClick={handleMusicToggle}
                       className={`flex items-center gap-3 transition-all duration-500 group cursor-pointer ${isMusicPlaying ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
@@ -157,22 +157,22 @@ const App: React.FC = () => {
                       <div className="flex items-end gap-[2px] h-3">
                          {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
                              <motion.div 
-                               key={i}
-                               className="w-[1.5px]"
-                               animate={{ 
-                                  height: isMusicPlaying ? ['20%', '70%', '30%', '60%', '20%'] : '25%', // Softer animation & Flat inactive state
-                               }}
-                               transition={isMusicPlaying ? {
-                                  duration: 1.5,
-                                  repeat: Infinity,
-                                  repeatType: "mirror",
-                                  delay: i * 0.2, // Rippling delay
-                                  ease: "easeInOut",
-                               } : {
-                                  duration: 0.5 // Smooth return to static
-                               }}
-                               style={{ backgroundColor: activeAlbum.textColor }} 
-                             />
+                                key={i}
+                                className="w-[1.5px]"
+                                animate={{ 
+                                   height: isMusicPlaying ? ['20%', '70%', '30%', '60%', '20%'] : '25%', // Softer animation & Flat inactive state
+                                }}
+                                transition={isMusicPlaying ? {
+                                   duration: 1.5,
+                                   repeat: Infinity,
+                                   repeatType: "mirror",
+                                   delay: i * 0.2, // Rippling delay
+                                   ease: "easeInOut",
+                                } : {
+                                   duration: 0.5 // Smooth return to static
+                                }}
+                                style={{ backgroundColor: activeAlbum.textColor }} 
+                              />
                          ))}
                       </div>
 
@@ -185,17 +185,6 @@ const App: React.FC = () => {
                          Outer Wilds
                       </motion.span>
                    </button>
-                </div>
-
-                <div className="text-right pointer-events-auto">
-                   <motion.p 
-                    className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
-                    animate={{ color: activeAlbum.textColor }}
-                    style={{ opacity: 0.5 }}
-                    transition={{ duration: 0.5 }}
-                   >
-                      COLLECTION
-                   </motion.p>
                 </div>
               </header>
 

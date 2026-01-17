@@ -234,7 +234,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
                         fill="rgba(20, 20, 20, 0.95)"
                         fontSize="14.5"
                         fontFamily="'OPPOSans', 'ChillDuanHeiSong', sans-serif"
-                        fontWeight="600"
+                        fontWeight="200"
                         letterSpacing="0.08em"
                         textAnchor="middle"
                       >
