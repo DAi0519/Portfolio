@@ -22,6 +22,7 @@ interface DBProject {
   tags: string[];
   image_url: string | null;
   link: string | null;
+  content: string | null;
 }
 
 const ALBUM_TABLE_MAP: Record<string, string> = {
@@ -72,6 +73,7 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
         tags: p.tags,
         link: p.link || undefined,
         imageUrl: p.image_url || undefined,
+        content: p.content || undefined,
       }));
     }
   }

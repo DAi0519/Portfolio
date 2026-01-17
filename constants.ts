@@ -62,7 +62,7 @@ hello@dai.design / @daidesign
   {
     id: AlbumType.CODING,
     title: "SIDE PROJECTS",
-    subtitle: "不是哥们，AI直接干出来了，还有人要写PRD吗？",
+    subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
     textColor: "#0A1629", // Deep Blue-Black
@@ -83,7 +83,7 @@ hello@dai.design / @daidesign
   },
   {
     id: AlbumType.PHOTO,
-    title: "STILLS",
+    title: "VISUALS",
     subtitle: "浮光跃金，静影沉璧",
     color: COLORS.DEVELOPING_CYAN,
     backgroundColor: "#F0F7F7", // Pale Cyan Tint

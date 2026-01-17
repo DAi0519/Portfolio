@@ -11,35 +11,30 @@
     <style>
       /* Fonts */
       /* Fonts */
-      /* Fonts */
       @font-face {
-        font-family: "EarlySummerSerif";
-        src: url("/fonts/EarlySummerSerif-Regular.ttf") format("truetype");
-        font-weight: 400;
+        font-family: "OPPOSans";
+        src: url("/fonts/OPPOSans.ttf") format("truetype");
+        font-weight: 100 900;
+        font-style: normal;
+        unicode-range: U+0000-00FF; /* Basic Latin (English, Numbers, Punctuation) */
+      }
+      
+      @font-face {
+        font-family: "ChillDuanHeiSong";
+        src: url("/fonts/ChillDuanHeiSongExtraLight.otf") format("opentype");
+        font-weight: 100 300;
         font-style: normal;
       }
       @font-face {
-        font-family: "EarlySummerSerif";
-        src: url("/fonts/EarlySummerSerif-Medium.ttf") format("truetype");
-        font-weight: 500;
+        font-family: "ChillDuanHeiSong";
+        src: url("/fonts/ChillDuanHeiSongRegular.otf") format("opentype");
+        font-weight: 400 500;
         font-style: normal;
       }
       @font-face {
-        font-family: "EarlySummerSerif";
-        src: url("/fonts/EarlySummerSerif-SemiBold.ttf") format("truetype");
-        font-weight: 600;
-        font-style: normal;
-      }
-      @font-face {
-        font-family: "EarlySummerSerif";
-        src: url("/fonts/EarlySummerSerif-Bold.ttf") format("truetype");
-        font-weight: 700;
-        font-style: normal;
-      }
-      @font-face {
-        font-family: "EarlySummerSerif";
-        src: url("/fonts/EarlySummerSerif-Heavy.ttf") format("truetype");
-        font-weight: 900;
+        font-family: "ChillDuanHeiSong";
+        src: url("/fonts/ChillDuanHeiSongBold.otf") format("opentype");
+        font-weight: 600 900;
         font-style: normal;
       }
 
@@ -56,8 +51,8 @@
         background-color: var(--bg-color);
         color: var(--text-color);
         overflow: hidden; /* App handles scrolling */
-        font-family: "EarlySummerSerif", "Helvetica Neue", Helvetica, Arial,
-          sans-serif; /* Update to new font */
+        font-family: "OPPOSans", "ChillDuanHeiSong", "Helvetica Neue", Helvetica, Arial,
+          sans-serif; /* Dual Font Stack: English -> Chinese -> Fallback */
       }
 
       /* Utilities */
@@ -170,6 +165,18 @@
   <body>
     <div class="bg-noise"></div>
     <div id="root"></div>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['OPPOSans', 'ChillDuanHeiSong', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+              serif: ['ChillDuanHeiSong', 'serif'],
+            }
+          }
+        }
+      }
+    </script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
