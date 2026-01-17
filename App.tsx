@@ -65,6 +65,7 @@ const App: React.FC = () => {
 
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [wasPlayingBeforeVideo, setWasPlayingBeforeVideo] = useState(false); // Audio Ducking State
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -89,6 +90,70 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // BGM Persistence State
+  const bgmState = useRef<{ isPlaying: boolean; currentTime: number }>({ isPlaying: false, currentTime: 0 });
+
+  // Handle Track Switching & Auto-Play on View Change
+  useEffect(() => {
+      if (!audioRef.current) return;
+
+      const switchTrack = async (newSrc: string, mode: 'ENTER_ALBUM' | 'RETURN_HOME') => {
+          if (!audioRef.current) return;
+          
+          const currentSrc = audioRef.current.getAttribute('src');
+          
+          if (mode === 'ENTER_ALBUM') {
+               // LEAVING HOME: Save BGM State
+               if (currentSrc === '/bgm.mp3') {
+                   bgmState.current = {
+                       isPlaying: isMusicPlaying,
+                       currentTime: audioRef.current.currentTime
+                   };
+               }
+               
+               // Switch to Album Music
+               if (currentSrc !== newSrc) {
+                   audioRef.current.src = newSrc;
+                   audioRef.current.load();
+               }
+
+               // Always Auto-Play Album Music
+               setIsMusicPlaying(true);
+               audioRef.current.volume = 0.4;
+               audioRef.current.play().catch(e => console.log("Album play failed", e));
+          } 
+          else if (mode === 'RETURN_HOME') {
+               // RETURNING HOME: Switch back to BGM
+                if (currentSrc !== '/bgm.mp3') {
+                   audioRef.current.src = '/bgm.mp3';
+                   audioRef.current.load();
+                   // Restore Progress
+                   audioRef.current.currentTime = bgmState.current.currentTime;
+               }
+
+               // Restore Play State
+               if (bgmState.current.isPlaying) {
+                   setIsMusicPlaying(true);
+                   audioRef.current.volume = 0.4;
+                   audioRef.current.play().catch(e => console.log("BGM Resume Failed", e));
+               } else {
+                   setIsMusicPlaying(false);
+                   audioRef.current.pause();
+               }
+          }
+      };
+
+      if (viewMode === 'DETAIL') {
+          // ENTERING ALBUM
+          const albumMusic = activeAlbum.musicFile || '/bgm.mp3';
+          switchTrack(albumMusic, 'ENTER_ALBUM');
+      } else {
+          // STACK MODE
+          switchTrack('/bgm.mp3', 'RETURN_HOME');
+      }
+  }, [viewMode, activeAlbum]);
+
+  // Handle Play/Pause Toggle
   useEffect(() => {
     if (audioRef.current) {
       if (isMusicPlaying) {
@@ -102,6 +167,27 @@ const App: React.FC = () => {
 
   const handleMusicToggle = () => {
     setIsMusicPlaying(prev => !prev);
+    // If user manually toggles OFF, reset was playing memory to prevent unwanted resume
+    if (isMusicPlaying) {
+      setWasPlayingBeforeVideo(false);
+    }
+  };
+
+  // Video-Audio Ducking Handlers
+  const handleVideoPlay = () => {
+    // Remember if music was playing before video started
+    setWasPlayingBeforeVideo(isMusicPlaying);
+    // Pause album music
+    setIsMusicPlaying(false);
+  };
+
+  const handleVideoEnd = () => {
+    // Only resume if music was playing before video interrupted
+    if (wasPlayingBeforeVideo) {
+      setIsMusicPlaying(true);
+    }
+    // Clear the memory regardless
+    setWasPlayingBeforeVideo(false);
   };
 
   return (
@@ -109,12 +195,16 @@ const App: React.FC = () => {
       
       {showOpening && (
         <OpeningScreen 
-          onStart={primeAudio}
+          onStart={undefined} // Disable audio priming to ensure no auto-play
           onComplete={() => {
             setShowOpening(false);
             // Mark as visited in session storage
             sessionStorage.setItem('hasVisited', 'true');
-            // Music stays OFF by default as per request
+            // Ensure music is stopped
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            setIsMusicPlaying(false);
         }} />
       )}
 
@@ -182,7 +272,7 @@ const App: React.FC = () => {
                          animate={{ color: activeAlbum.textColor }}
                          transition={{ duration: 0.5 }}
                       >
-                         Outer Wilds
+                         {viewMode === 'DETAIL' && activeAlbum.musicFile ? 'Now Playing' : 'Outer Wilds'}
                       </motion.span>
                    </button>
                 </div>
@@ -229,6 +319,10 @@ const App: React.FC = () => {
             key="detail"
             album={activeAlbum} 
             onClose={handleBackToStack} 
+            isMusicPlaying={isMusicPlaying}
+            onMusicToggle={handleMusicToggle}
+            onVideoPlay={handleVideoPlay}
+            onVideoEnd={handleVideoEnd}
           />
         )}
         </AnimatePresence>

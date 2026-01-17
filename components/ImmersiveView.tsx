@@ -7,6 +7,10 @@ import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion
 interface ImmersiveViewProps {
   album: Album;
   onClose: () => void;
+  isMusicPlaying: boolean;
+  onMusicToggle: () => void;
+  onVideoPlay: () => void;  // Called when a project video starts
+  onVideoEnd: () => void;   // Called when a project video ends/pauses
 }
 
 const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content, color }) => {
@@ -234,7 +238,9 @@ const VideoGridItem: React.FC<{
     color: string;
     onClick: () => void;
     delay: number;
-}> = ({ track, color, onClick, delay }) => {
+    onVideoPlay?: () => void;
+    onVideoEnd?: () => void;
+}> = ({ track, color, onClick, delay, onVideoPlay, onVideoEnd }) => {
     const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
     const videoRef = React.useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = React.useState(false);
@@ -249,7 +255,13 @@ const VideoGridItem: React.FC<{
         if (videoRef.current) {
             videoRef.current.play();
             setIsPlaying(true);
+            onVideoPlay?.(); // Notify parent
         }
+    };
+
+    const handleVideoEnd = () => {
+        setIsPlaying(false);
+        onVideoEnd?.(); // Notify parent
     };
 
     const handleLoadedMetadata = () => {
@@ -281,7 +293,8 @@ const VideoGridItem: React.FC<{
                             webkit-playsinline="true"
                             preload="metadata"
                             onLoadedMetadata={handleLoadedMetadata}
-                            onEnded={() => setIsPlaying(false)}
+                            onEnded={handleVideoEnd}
+                            onPause={handleVideoEnd}
                             className="w-full h-auto object-cover rounded-sm bg-black"
                         />
                         {/* Custom Play Overlay */}
@@ -374,6 +387,126 @@ const PhotoGridItem: React.FC<{
     );
 };
 
+
+const CodingGridItem: React.FC<{
+    track: ProjectItem;
+    index: number;
+    color: string;
+    onClick: () => void; // Kept for consistency, but not used for direct links
+    delay: number;
+}> = ({ track, color, onClick, delay }) => {
+    const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+
+    // Generate screenshot URL from link if no imageUrl provided
+    // Uses microlink.io's free screenshot API
+    const getPreviewUrl = () => {
+        if (track.imageUrl) return track.imageUrl;
+        if (track.link) {
+            // Microlink screenshot API - free tier
+            return `https://api.microlink.io/?url=${encodeURIComponent(track.link)}&screenshot=true&meta=false&embed=screenshot.url`;
+        }
+        return null;
+    };
+
+    const [previewUrl, setPreviewUrl] = React.useState<string | null>(track.imageUrl || null);
+    const [loadingPreview, setLoadingPreview] = React.useState(!track.imageUrl && !!track.link);
+
+    React.useEffect(() => {
+        // If we have an imageUrl, use it directly
+        if (track.imageUrl) {
+            setPreviewUrl(track.imageUrl);
+            setLoadingPreview(false);
+            return;
+        }
+        
+        // If we have a link but no imageUrl, fetch a screenshot
+        if (track.link) {
+            setLoadingPreview(true);
+            fetch(`https://api.microlink.io/?url=${encodeURIComponent(track.link)}&screenshot=true&meta=false&viewport.width=1920&viewport.height=1080&waitForTimeout=3000`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' && data.data?.screenshot?.url) {
+                        setPreviewUrl(data.data.screenshot.url);
+                    }
+                })
+                .catch(() => {
+                    // Fail silently, show "No Preview"
+                })
+                .finally(() => setLoadingPreview(false));
+        }
+    }, [track.imageUrl, track.link]);
+
+    const handleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (track.link) {
+            window.open(track.link, '_blank', 'noopener,noreferrer');
+        } else {
+            // Fallback to modal if no link
+            onClick();
+        }
+    };
+
+    return (
+        <motion.a
+            href={track.link || '#'}
+            onClick={handleClick}
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
+            className="group cursor-pointer mb-8 w-full block"
+        >
+            {/* Card Container - Dieter Rams Style: Clean, precise, subtle shadows */}
+            <div className="relative w-full aspect-[16/9] overflow-hidden rounded-sm bg-neutral-100 mb-4 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:-translate-y-1">
+                
+                {loadingPreview ? (
+                    <div className="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-300">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-neutral-300 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="text-xs font-mono uppercase tracking-widest">Loading Preview...</span>
+                        </div>
+                    </div>
+                ) : previewUrl ? (
+                     <img 
+                        src={previewUrl} 
+                        alt={track.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                     />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-white text-neutral-300">
+                        <span className="text-xs font-mono uppercase tracking-widest">No Preview</span>
+                    </div>
+                )}
+
+                {/* Hover Overlay with Action */}
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                     <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                        <ExternalLink size={16} className="text-black" />
+                     </div>
+                </div>
+            </div>
+
+            {/* Info Section */}
+            <div className="w-full">
+                {/* Title Row with Date */}
+                <div className="flex justify-between items-baseline mb-2">
+                    <h3 className="text-base font-bold text-neutral-900 leading-tight group-hover:text-blue-600 transition-colors">
+                        {track.title}
+                    </h3>
+                    <span className="text-[10px] font-mono text-neutral-400 text-right tabular-nums shrink-0 ml-4">
+                        {track.date}
+                    </span>
+                </div>
+                {/* Description - Full Width */}
+                <p className="text-sm text-neutral-500 font-normal line-clamp-2 leading-relaxed">
+                    {track.description}
+                </p>
+            </div>
+        </motion.a>
+    )
+}
+
 const Lightbox: React.FC<{
   url: string;
   type: 'video' | 'image';
@@ -419,6 +552,53 @@ const Lightbox: React.FC<{
             )}
         </motion.div>
     </motion.div>
+  );
+};
+
+// MINI VINYL CONTROL COMPONENT
+const MiniControl: React.FC<{
+  album: Album;
+  isPlaying: boolean;
+  onClick: () => void;
+}> = ({ album, isPlaying, onClick }) => {
+  return (
+    <motion.button
+       onClick={onClick}
+       initial={{ opacity: 0, scale: 0.8, y: 20 }}
+       animate={{ opacity: 1, scale: 1, y: 0 }}
+       exit={{ opacity: 0, scale: 0.8, y: 20 }}
+       whileHover={{ scale: 1.1 }}
+       whileTap={{ scale: 0.9 }}
+       transition={{ type: "spring", stiffness: 400, damping: 25 }}
+       className="fixed bottom-6 right-6 z-[60] w-12 h-12 rounded-full cursor-pointer shadow-lg active:shadow-sm"
+       style={{ backgroundColor: album.color, WebkitTapHighlightColor: 'transparent' }}
+    >
+       {/* Vinyl Grooves - Mini */}
+       <div className={`absolute inset-[10%] rounded-full border border-black/10 opacity-50`}></div>
+       
+       {/* Spinning Container */}
+       <div 
+          className="w-full h-full rounded-full flex items-center justify-center animate-[spin_4s_linear_infinite]"
+          style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
+       >
+           {/* Center Label */}
+           <div className="w-[45%] h-[45%] rounded-full bg-[#111] flex items-center justify-center relative shadow-sm">
+               {/* Signature */}
+               <img 
+                 src="/signature.png" 
+                 alt="Signature" 
+                 className="w-[80%] opacity-80 invert"
+               />
+               {/* Tiny Spindle */}
+               <div className="absolute w-1 h-1 bg-neutral-200 rounded-full"></div>
+           </div>
+           
+           {/* Shine - Mini */}
+           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-40"></div>
+           </div>
+       </div>
+    </motion.button>
   );
 };
 
@@ -582,16 +762,35 @@ import { Loader2 } from 'lucide-react';
 
 /* ... previous imports ... */
 
-export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbum, onClose }) => {
+export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbum, onClose, isMusicPlaying, onMusicToggle, onVideoPlay, onVideoEnd }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const vinylRef = useRef<HTMLDivElement>(null); // Ref for main vinyl visibility
   const [showVinyl, setShowVinyl] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
+  const [showMiniControl, setShowMiniControl] = useState(false); // Mini Vinyl State
 
   // Dynamic Data State
   const [albumData, setAlbumData] = useState<Album>(initialAlbum);
   const [loading, setLoading] = useState(true);
+
+  // Scroll Detection for Mini Vinyl
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // If main vinyl is NOT intersection (scrolled out), show mini control
+        setShowMiniControl(!entry.isIntersecting);
+      },
+      { threshold: 0.2 } // Trigger when 20% visible or less? Or just 0
+    );
+
+    if (vinylRef.current) {
+      observer.observe(vinylRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [showVinyl]); // Re-run when vinyl appears
 
   useEffect(() => {
     let isMounted = true;
@@ -667,13 +866,14 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                  className="relative w-full h-full flex items-center overflow-hidden"
               >
                  {/* Adjusted positioning */}
-                 <div className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
+                 <div ref={vinylRef} className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
                     <RecordVinyl 
                         album={albumData} 
                         isActive={showVinyl} 
-                        isSpinning={true} 
+                        isSpinning={isMusicPlaying} 
                         showSleeve={true}
                         layout="FLAT" 
+                        onClick={onMusicToggle}
                     />
                  </div>
                  
@@ -782,7 +982,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     // VIDEO GRID - MASONRY
                                     // columns-1 md:columns-2
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-0">
-                                        {albumData.tracks.map((track, index) => (
+                                        {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
                                             <VideoGridItem
                                                 key={track.id}
                                                 track={track}
@@ -790,6 +990,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                                 color={albumData.color}
                                                 onClick={() => setSelectedProject(track)}
                                                 delay={400 + (index * 80)}
+                                                onVideoPlay={onVideoPlay}
+                                                onVideoEnd={onVideoEnd}
                                             />
                                         ))}
                                     </div>
@@ -799,6 +1001,20 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-0 block">
                                         {albumData.tracks.map((track, index) => (
                                             <PhotoGridItem
+                                                key={track.id}
+                                                track={track}
+                                                index={index}
+                                                color={albumData.color}
+                                                onClick={() => setSelectedProject(track)}
+                                                delay={400 + (index * 80)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : albumData.id === AlbumType.CODING ? (
+                                    // CODING GRID - SINGLE COLUMN
+                                    <div className="grid grid-cols-1 gap-y-12 pt-4 pl-8 md:pl-0">
+                                         {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
+                                            <CodingGridItem
                                                 key={track.id}
                                                 track={track}
                                                 index={index}
@@ -843,6 +1059,17 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
             key="modal"
           />
         )}
+      </AnimatePresence>
+      
+      {/* Mini Control Floater */}
+      <AnimatePresence>
+         {showMiniControl && (
+            <MiniControl 
+               album={albumData} 
+               isPlaying={isMusicPlaying} 
+               onClick={onMusicToggle} 
+            />
+         )}
       </AnimatePresence>
     </>
   );

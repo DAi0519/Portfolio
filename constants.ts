@@ -57,7 +57,8 @@ export const ALBUMS: Album[] = [
 如果你对我的项目感兴趣，或者想聊聊设计与技术：
 hello@dai.design / @daidesign
     `,
-    tracks: []
+    tracks: [],
+    musicFile: "/musics/1.wav"
   },
   {
     id: AlbumType.CODING,
@@ -68,7 +69,35 @@ hello@dai.design / @daidesign
     textColor: "#0A1629", // Deep Blue-Black
     // Solid International Klein Blue
     coverImage: "/covers/cover-coding.png", 
-    tracks: []
+    tracks: [
+      {
+        id: "coding-01",
+        title: "Gemini 界面重构",
+        description: "A comprehensive redesign of the Gemini chat interface, focusing on information hierarchy and fluid motion.",
+        date: "2024",
+        tags: ["React", "Motion", "UX"],
+        imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+        link: "https://gemini.google.com" // Mock link
+      },
+      {
+        id: "coding-02",
+        title: "音频可视化引擎",
+        description: "Real-time WebGL audio visualization system reacting to frequency analysis data.",
+        date: "2023",
+        tags: ["WebGL", "Three.js", "Audio API"],
+        imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2670&auto=format&fit=crop",
+        link: "https://threejs.org" // Mock link
+      },
+       {
+        id: "coding-03",
+        title: "Design System",
+        description: "A unified design token system for enterprise applications, ensuring consistency across 50+ projects.",
+        date: "2023",
+        tags: ["System", "Tokens", "Figma"],
+        imageUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?q=80&w=2564&auto=format&fit=crop"
+      }
+    ],
+    musicFile: "/musics/2.wav"
   },
   {
     id: AlbumType.VIDEO,
@@ -79,7 +108,8 @@ hello@dai.design / @daidesign
     textColor: "#2B140E", // Warm Black
     // Solid Safety Orange
     coverImage: "/covers/cover-video.png", 
-    tracks: []
+    tracks: [],
+    musicFile: "/musics/3.wav"
   },
   {
     id: AlbumType.PHOTO,
@@ -90,7 +120,8 @@ hello@dai.design / @daidesign
     textColor: "#0E2424", // Deep Green-Black
     // Solid Cyan
     coverImage: "/covers/cover-photo.png", 
-    tracks: []
+    tracks: [],
+    musicFile: "/musics/4.wav"
   },
   {
     id: AlbumType.WRITING,
@@ -101,6 +132,7 @@ hello@dai.design / @daidesign
     textColor: "#111111", // Deep Black
     // Solid Matte Charcoal
     coverImage: "/covers/cover-writing.png", 
-    tracks: []
+    tracks: [],
+    musicFile: "/musics/5.wav"
   }
 ];

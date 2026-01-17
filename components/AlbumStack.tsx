@@ -289,7 +289,6 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                           relative z-20
                           bg-[#F9F9F9] rounded-[2px] overflow-hidden group
                           transition-all duration-500 ease-out
-                          ring-1 ring-white/20 
                           ${isActive 
                               ? 'shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)]' 
                               : 'shadow-2xl'} 

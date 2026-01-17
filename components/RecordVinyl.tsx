@@ -6,6 +6,7 @@ interface RecordVinylProps {
   album: Album;
   isActive: boolean;
   onDoubleClick?: () => void;
+  onClick?: () => void;
   isSpinning?: boolean;
   className?: string;
   showSleeve?: boolean;
@@ -16,6 +17,7 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
   album,
   isActive,
   onDoubleClick,
+  onClick,
   isSpinning = false,
   className = "",
   showSleeve = true,
@@ -32,6 +34,12 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
         VINYL DISC COMPONENT
       */}
       <div
+        onClick={(e) => {
+           if (onClick && isActive) {
+             e.stopPropagation();
+             onClick();
+           }
+        }}
         className={`
           absolute inset-0 rounded-full flex items-center justify-center z-10
           transition-all duration-[1.8s] ease-[cubic-bezier(0.2,0.8,0.2,1)]
@@ -51,13 +59,13 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
               : ""
           }
           ${!showSleeve ? "scale-100" : "scale-[0.94]"}
+          ${onClick && isActive ? "cursor-pointer" : ""}
         `}
-        style={{ backgroundColor: album.color }}
+        style={{ backgroundColor: album.color, WebkitTapHighlightColor: 'transparent' }}
       >
         <div
-          className={`w-full h-full relative rounded-full ${
-            isSpinning && isActive ? "animate-[spin_8s_linear_infinite]" : ""
-          }`}
+          className="w-full h-full relative rounded-full animate-[spin_8s_linear_infinite]"
+          style={{ animationPlayState: isSpinning && isActive ? 'running' : 'paused' }}
         >
           {/* Realistic Grooves Texture (Semi-transparent black overlaying the color) */}
           <div className={`absolute inset-[2%] rounded-full vinyl-grooves opacity-60 ring-1 ${album.color.toLowerCase() === '#ffffff' ? 'ring-black/5' : 'ring-white/10'}`}></div>

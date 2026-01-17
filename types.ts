@@ -28,4 +28,5 @@ export interface Album {
   coverImage: string;
   introContent?: string; // Optional full-text content for INTRO albums
   tracks: ProjectItem[];
+  musicFile?: string; // Path to music file (e.g., /musics/1.wav)
 }
