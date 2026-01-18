@@ -208,7 +208,7 @@ const TrackItem: React.FC<{
                 <span 
                     className={`
                        text-[10px] font-mono transition-colors duration-300 tabular-nums
-                       ${!isHovered ? 'text-neutral-300' : 'font-bold'}
+                       ${!isHovered ? 'text-neutral-400' : 'font-bold'}
                     `}
                     style={{ color: isHovered ? safeColor : undefined }}
                 >
@@ -219,12 +219,12 @@ const TrackItem: React.FC<{
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 flex items-center justify-between py-5 border-b border-neutral-200 transition-colors duration-500 group-hover:border-neutral-300">
                 <h3 
-                    className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors truncate pr-4"
+                    className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors pr-8 leading-tight flex-1"
                     style={{ color: isHovered ? safeColor : undefined }}
                 >
                      {track.title}
                 </h3>
-                <span className="hidden md:block text-[10px] font-mono text-neutral-300 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px] tabular-nums">
+                <span className="hidden md:block text-[10px] font-mono text-neutral-400 group-hover:text-neutral-500 transition-colors uppercase tracking-wider text-right w-[80px] tabular-nums shrink-0">
                     {track.date}
                 </span>
             </div>
@@ -277,7 +277,7 @@ const VideoGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
-            className={`group cursor-pointer mb-8 ${isLandscape ? 'col-span-2' : ''}`}
+            className={`group cursor-pointer mb-5 w-full col-span-2 md:col-span-1 ${isLandscape ? 'md:col-span-2' : ''}`} // Mobile: Always full width (col-span-2 in a 1-col grid acts as 1, but safer). Actually, grid is cols-1.
         >
             <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900 mb-3">
                 {videoUrl ? (
@@ -287,15 +287,16 @@ const VideoGridItem: React.FC<{
                     >
                         <video 
                             ref={videoRef}
-                            src={videoUrl}
+                            src={videoUrl + "#t=0.001"} // Hack to force first frame on some browsers
                             controls={isPlaying}
                             playsInline
                             webkit-playsinline="true"
-                            preload="metadata"
+                            muted // Required for autoplay/preview on mobile
+                            preload="metadata" // Metadata is safer with muted
                             onLoadedMetadata={handleLoadedMetadata}
                             onEnded={handleVideoEnd}
                             onPause={handleVideoEnd}
-                            className="w-full h-auto object-cover rounded-sm bg-black"
+                            className="w-full h-auto object-cover rounded-sm bg-black" // Removed aspect-video to respect original ratio
                         />
                         {/* Custom Play Overlay */}
                         {!isPlaying && (
@@ -915,26 +916,32 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                     transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
                     className="flex flex-col items-start"
                   >
-                      <div className="pl-8 md:pl-10 w-full">
-                          {/* 
-                              FLUID TYPOGRAPHY: 
-                              Using clamp() to ensure the title scales with the viewport width.
-                          */}
-                          <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans break-words hyphens-auto">
-                              {albumData.title}
-                          </h1>
+                      <div className="flex w-full">
+                          {/* SPACER FOR ALIGNMENT */}
+                          <div className="w-8 md:w-10 shrink-0"></div>
+                          
+                          {/* HEADER CONTENT */}
+                          <div className="flex-1">
+                              {/* 
+                                  FLUID TYPOGRAPHY: 
+                                  Using clamp() to ensure the title scales with the viewport width.
+                              */}
+                              <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans break-words hyphens-auto">
+                                  {albumData.title}
+                              </h1>
 
-                          <div className="mb-10 flex items-center">
-                            <div className="flex items-center gap-3 select-none group">
-                               <div 
-                                  className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
-                                  style={{ backgroundColor: albumData.color }}
-                               ></div>
-                               <div className="w-px h-3 bg-neutral-300"></div>
-                               <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
-                                  {albumData.id} COLLECTION
-                               </span>
-                            </div>
+                              <div className="mb-10 flex items-center">
+                                <div className="flex items-center gap-3 select-none group">
+                                   <div 
+                                      className="w-2 h-2 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform duration-500 group-hover:scale-110" 
+                                      style={{ backgroundColor: albumData.color }}
+                                   ></div>
+                                   <div className="w-px h-3 bg-neutral-300"></div>
+                                   <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
+                                      {albumData.id} COLLECTION
+                                   </span>
+                                </div>
+                              </div>
                           </div>
                       </div>
                   </motion.div>
@@ -974,14 +981,16 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                 <div className="pl-8 md:pl-10 w-full mb-8">
                                     <div className="w-full h-px bg-neutral-200" />
                                 </div>
-                                <SimpleMarkdown content={albumData.introContent} color={albumData.color} />
+                                <div className="pl-8 md:pl-10 w-full">
+                                    <SimpleMarkdown content={albumData.introContent} color={albumData.color} />
+                                </div>
                             </motion.div>
                          ) : (
-                             <div className="pl-0 md:pl-10">
+                             <div className="pl-0">
                                 {albumData.id === AlbumType.VIDEO ? (
                                     // VIDEO GRID - MASONRY
                                     // columns-1 md:columns-2
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-0">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-10">
                                         {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
                                             <VideoGridItem
                                                 key={track.id}
@@ -998,7 +1007,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                 ) : albumData.id === AlbumType.PHOTO ? (
                                     // PHOTO GRID - MASONRY
                                     // columns-2 md:columns-3
-                                    <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-0 block">
+                                    <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-10 block">
                                         {albumData.tracks.map((track, index) => (
                                             <PhotoGridItem
                                                 key={track.id}
@@ -1012,7 +1021,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     </div>
                                 ) : albumData.id === AlbumType.CODING ? (
                                     // CODING GRID - SINGLE COLUMN
-                                    <div className="grid grid-cols-1 gap-y-12 pt-4 pl-8 md:pl-0">
+                                    <div className="grid grid-cols-1 gap-y-12 pt-4 pl-8 md:pl-10">
                                          {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
                                             <CodingGridItem
                                                 key={track.id}

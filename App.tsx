@@ -70,7 +70,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Initialize Audio
-    audioRef.current = new Audio('/bgm.mp3');
+    audioRef.current = new Audio('/musics/00bgm.wav');
     audioRef.current.loop = true;
     audioRef.current.volume = 0; // Initialize silent
     
@@ -104,7 +104,7 @@ const App: React.FC = () => {
           
           if (mode === 'ENTER_ALBUM') {
                // LEAVING HOME: Save BGM State
-               if (currentSrc === '/bgm.mp3') {
+               if (currentSrc === '/musics/00bgm.wav') {
                    bgmState.current = {
                        isPlaying: isMusicPlaying,
                        currentTime: audioRef.current.currentTime
@@ -124,8 +124,8 @@ const App: React.FC = () => {
           } 
           else if (mode === 'RETURN_HOME') {
                // RETURNING HOME: Switch back to BGM
-                if (currentSrc !== '/bgm.mp3') {
-                   audioRef.current.src = '/bgm.mp3';
+                if (currentSrc !== '/musics/00bgm.wav') {
+                   audioRef.current.src = '/musics/00bgm.wav';
                    audioRef.current.load();
                    // Restore Progress
                    audioRef.current.currentTime = bgmState.current.currentTime;
@@ -145,11 +145,11 @@ const App: React.FC = () => {
 
       if (viewMode === 'DETAIL') {
           // ENTERING ALBUM
-          const albumMusic = activeAlbum.musicFile || '/bgm.mp3';
+          const albumMusic = activeAlbum.musicFile || '/musics/00bgm.wav';
           switchTrack(albumMusic, 'ENTER_ALBUM');
       } else {
           // STACK MODE
-          switchTrack('/bgm.mp3', 'RETURN_HOME');
+          switchTrack('/musics/00bgm.wav', 'RETURN_HOME');
       }
   }, [viewMode, activeAlbum]);
 

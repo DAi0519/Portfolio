@@ -119,33 +119,33 @@
         background: conic-gradient(
           from 0deg,
           transparent 0deg,
-          rgba(255, 255, 255, 0.1) 20deg,
-          rgba(255, 255, 255, 0.35) 45deg,
-          rgba(255, 255, 255, 0.1) 70deg,
+          rgba(255, 255, 255, 0.05) 15deg, /* Softer start */
+          rgba(255, 255, 255, 0.25) 45deg, /* Reduced peak opacity (was 0.35) */
+          rgba(255, 255, 255, 0.05) 75deg, /* Wider spread (was 70) */
           transparent 90deg,
           transparent 180deg,
-          rgba(255, 255, 255, 0.1) 200deg,
-          rgba(255, 255, 255, 0.35) 225deg,
-          rgba(255, 255, 255, 0.1) 250deg,
+          rgba(255, 255, 255, 0.05) 195deg,
+          rgba(255, 255, 255, 0.25) 225deg,
+          rgba(255, 255, 255, 0.05) 255deg,
           transparent 270deg
         );
-        filter: blur(14px);
+        filter: blur(20px); /* Increased blur (was 14px) */
       }
       .vinyl-shine-dark {
         background: conic-gradient(
           from 0deg,
           transparent 0deg,
-          rgba(0, 0, 0, 0.05) 20deg,
-          rgba(0, 0, 0, 0.15) 45deg,
-          rgba(0, 0, 0, 0.05) 70deg,
+          rgba(0, 0, 0, 0.02) 15deg,
+          rgba(0, 0, 0, 0.1) 45deg, /* Reduced peak (was 0.15) */
+          rgba(0, 0, 0, 0.02) 75deg,
           transparent 90deg,
           transparent 180deg,
-          rgba(0, 0, 0, 0.05) 200deg,
-          rgba(0, 0, 0, 0.15) 225deg,
-          rgba(0, 0, 0, 0.05) 250deg,
+          rgba(0, 0, 0, 0.02) 195deg,
+          rgba(0, 0, 0, 0.1) 225deg,
+          rgba(0, 0, 0, 0.02) 255deg,
           transparent 270deg
         );
-        filter: blur(14px);
+        filter: blur(20px); /* Increased blur */
       }
     </style>
     <script type="importmap">
