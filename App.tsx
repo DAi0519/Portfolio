@@ -149,7 +149,12 @@ const App: React.FC = () => {
           switchTrack(albumMusic, 'ENTER_ALBUM');
       } else {
           // STACK MODE
-          switchTrack('/musics/00bgm.wav', 'RETURN_HOME');
+          // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
+          // This prevents stopping the music when just swiping through albums on the homepage.
+          const currentSrc = audioRef.current.getAttribute('src');
+          if (currentSrc !== '/musics/00bgm.wav') {
+              switchTrack('/musics/00bgm.wav', 'RETURN_HOME');
+          }
       }
   }, [viewMode, activeAlbum]);
 
