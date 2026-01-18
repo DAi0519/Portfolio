@@ -73,12 +73,10 @@ const RecordVinyl: React.FC<RecordVinylProps> = ({
           {/* Anisotropic Shine (The "Pizza Slice" reflection) */}
           {album.color.toLowerCase() === '#ffffff' ? (
              <>
-                <div className="absolute inset-0 rounded-full vinyl-shine-dark mix-blend-multiply opacity-60 rotate-45"></div>
                 <div className="absolute inset-0 rounded-full vinyl-shine-dark mix-blend-multiply opacity-30 -rotate-45"></div>
              </>
           ) : (
              <>
-                <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-50 rotate-45"></div>
                 <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-plus-lighter opacity-25 -rotate-45"></div>
              </>
           )}
