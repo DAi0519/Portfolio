@@ -62,7 +62,7 @@ hello@dai.design / @daidesign
   },
   {
     id: AlbumType.CODING,
-    title: "SIDE PROJECTS",
+    title: "Vibe coding",
     subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
