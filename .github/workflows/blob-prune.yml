@@ -1,12 +1,12 @@
-name: Notion Sync
+name: Blob Cleanup
 
 on:
   schedule:
-    - cron: "0 0 * * *" # Runs daily at midnight
+    - cron: "0 0 * * 0" # Runs every Sunday at midnight
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  sync:
+  prune:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -20,12 +20,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Notion Sync
+      - name: Run Blob Prune
         env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          # We also need the Anon key if the script uses it fallback, but we configured Service Key
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        run: npm run sync
+        run: tsx scripts/prune-blob.ts
