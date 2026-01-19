@@ -3,19 +3,25 @@ import { Client } from '@notionhq/client';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { put } from '@vercel/blob';
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const NOTION_KEY = process.env.NOTION_API_KEY; // User needs to add this
+const NOTION_KEY = process.env.NOTION_API_KEY; 
 const DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 if (!NOTION_KEY || !DATA_SOURCE_ID || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('Missing required environment variables.');
   console.log('Required: NOTION_API_KEY, NOTION_DATA_SOURCE_ID, VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY');
   process.exit(1);
+}
+
+if (!BLOB_READ_WRITE_TOKEN) {
+    console.warn('⚠️ BLOB_READ_WRITE_TOKEN is missing. Assets will NOT be mirrored to Vercel Blob (fallback to Notion URLs).');
 }
 
 const notion = new Client({ auth: NOTION_KEY });
@@ -27,6 +33,46 @@ const TYPE_TO_TABLE: Record<string, string> = {
   'PHOTO': 'projects_photo',
   'WRITING': 'projects_writing'
 };
+
+// --- Helper: Upload to Vercel Blob ---
+async function uploadToBlob(url: string, id: string): Promise<string> {
+    // Only upload if it's a Notion temporary URL (hosted on AWS S3)
+    const isNotionHosted = url.includes('amazonaws.com') || url.includes('notion-static.com');
+    
+    if (!isNotionHosted) return url;
+
+    if (!BLOB_READ_WRITE_TOKEN) {
+        return url;
+    }
+
+    try {
+        // console.log(`   ⬆️ Mirroring asset to Blob: ${id}...`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Use a deterministic filename to prevent storage explosion on re-runs
+        // Supabase/Notion ID is unique.
+        // We try to guess extension from content-type or url, default to .bin or .jpg if unknown matches.
+        // Actually simplest is no extension or just .file, browsers handle mimetype usually.
+        // But let's try to preserve extension from URL if possible.
+        const ext = path.extname(new URL(url).pathname) || '';
+        const filename = `notion-assets/${id}${ext}`;
+        
+        const { url: newUrl } = await put(filename, buffer, { 
+            access: 'public',
+            token: BLOB_READ_WRITE_TOKEN,
+            addRandomSuffix: false // CRITICAL: Overwrite existing file to save storage
+        });
+        
+        return newUrl;
+    } catch (e) {
+        console.error(`   ❌ Error uploading ${id} to blob:`, e);
+        return url; // Fallback to original URL
+    }
+}
 
 // --- Helper: Convert Notion Blocks to Markdown ---
 async function fetchPageContent(pageId: string): Promise<string> {
@@ -42,7 +88,9 @@ async function fetchPageContent(pageId: string): Promise<string> {
             const tableMarkdown = await tableToMarkdown(block);
             markdownParts.push(tableMarkdown);
         } else {
-            markdownParts.push(blockToMarkdown(block));
+            // Updated to be async
+            const content = await blockToMarkdown(block);
+            markdownParts.push(content);
         }
     }
     return markdownParts.join('\n\n');
@@ -53,7 +101,7 @@ async function fetchPageContent(pageId: string): Promise<string> {
 }
 
 // --- Helper: Convert a single Notion block to Markdown ---
-function blockToMarkdown(block: any): string {
+async function blockToMarkdown(block: any): Promise<string> {
   const type = block.type;
   if (!block[type]) return "";
 
@@ -79,13 +127,15 @@ function blockToMarkdown(block: any): string {
     case 'code':
       return `\`\`\`${block.code.language}\n${textContent}\n\`\`\``;
     case 'image':
-      const url = block.image.type === 'external' ? block.image.external.url : block.image.file?.url;
+      let imgUrl = block.image.type === 'external' ? block.image.external.url : block.image.file?.url;
+      // Mirror Image
+      if (imgUrl) {
+          imgUrl = await uploadToBlob(imgUrl, block.id);
+      }
+      
       const caption = block.image.caption?.[0]?.plain_text || "Image";
-      return `![${caption}](${url})`;
+      return `![${caption}](${imgUrl})`;
     case 'video':
-       // Debugging video block structure
-       // console.log('Found Video Block:', JSON.stringify(block.video, null, 2));
-       
        const videoObj = block.video;
        let videoUrl = "";
        
@@ -99,6 +149,10 @@ function blockToMarkdown(block: any): string {
            console.warn(`⚠️ Video block ${block.id} has no URL.`);
            return "";
        }
+       
+       // Mirror Video
+       // Use block ID as unique key
+       videoUrl = await uploadToBlob(videoUrl, block.id);
        
        return `![VIDEO](${videoUrl})`;
     case 'divider':
@@ -153,7 +207,7 @@ async function syncNotionToSupabase() {
   }
 
   try {
-    // Use dataSources.query with the correct Data Source ID
+    // Stick to Any for response to avoid type issues with library
     // @ts-ignore
     const response = await notion.dataSources.query({
       data_source_id: DATA_SOURCE_ID,
@@ -176,119 +230,89 @@ async function syncNotionToSupabase() {
       const id = page.id;  
 
       // Extract Properties
-      // CAUTION: This depends heavily on the User's Notion Schema names.
-      // Expected: Name (Title), Date (Date/Text), Description (Text), Tags (Multi-select), Type (Select), Image (Files/URL), Link (URL)
-
-      // 1. Type -> Table
       const typeSelect = props.Type?.select?.name?.toUpperCase();
       const targetTable = TYPE_TO_TABLE[typeSelect];
       
       if (!targetTable) {
-        console.warn(`⚠️ Item "${id}" has unknown or missing Type: ${typeSelect || 'None'}. Skipping.`);
+        console.warn(`⚠️ Item "${id}" has unknown type: ${typeSelect || 'None'}.`);
         continue;
       }
 
-      // 2. Title
+      // Title
       const title = props.Name?.title?.[0]?.plain_text || 'Untitled';
 
-      // 3. Date
-      // Date property in Notion is complex. Could be a date object or text.
-      // We start assuming it's a Date property, but fallback to text if user made it text.
+      // Date
       let date = props.Date?.date?.start || props.Date?.rich_text?.[0]?.plain_text || new Date().toISOString(); 
 
-      // 4. Description
+      // Description
       const description = props.Description?.rich_text?.[0]?.plain_text || '';
 
-      // 5. Tags
+      // Tags
       const tags = props.Tags?.multi_select?.map((t: any) => t.name) || [];
 
-      // 6. Image
-      // Could be a File (expiry link) or External URL.
+      // Image (Cover)
       let imageUrl = null;
       if (props.Image?.files?.length > 0) {
           const fileObj = props.Image.files[0];
-          imageUrl = fileObj.file?.url || fileObj.external?.url;
+          let rawUrl = fileObj.file?.url || fileObj.external?.url;
+          if (rawUrl) {
+              // Mirror Cover Image
+              imageUrl = await uploadToBlob(rawUrl, `cover-${id}`); 
+          }
       }
 
-      // 7. Link
+      // Link
       const link = props.Link?.url || null;
 
-      // 8. Fetch Content (Blocks) -> Markdown
-      console.log(`   📄 Fetching content for "${title}"...`);
+      // Fetch Content (Blocks) -> Markdown (Includes uploading inner videos/images)
+      console.log(`   📄 Processing "${title}"...`);
       const markdownContent = await fetchPageContent(id);
 
-      console.log(`✨ Syncing "${title}" to [${targetTable}]...`);
+    //   console.log(`✨ Syncing "${title}" to [${targetTable}]...`);
 
       // Upsert to Supabase
       const { error } = await supabase
         .from(targetTable)
         .upsert({
-          id: id, // Use Notion Page ID as primary key to avoid duplicates
-          album_id: typeSelect, // Ensure consistency
+          id: id, 
+          album_id: typeSelect,
           title,
           date,
           description,
           tags,
           image_url: imageUrl,
           link,
-          content: markdownContent // New Field
+          content: markdownContent
         });
 
       if (error) {
-        console.error(`❌ Failed to sync "${title}":`, error);
+        console.error(`   ❌ Failed to sync:`, error);
       } else {
-        console.log(`✅ Synced "${title}"`);
+        console.log(`   ✅ Synced: ${title}`);
       }
     }
 
-    console.log('🎉 Upsert Complete!');
+    console.log('🎉 Sync Complete!');
 
     // --- DELETION LOGIC (Pruning) ---
-    console.log('🧹 Starting Prune (Deleting items removed from Notion)...');
+    console.log('🧹 Pruning orphans...');
     
-    // 1. Get List of all Active IDs from Notion
-    // Only include non-archived pages. Archived pages will be missing from this set, triggering deletion.
     const activeIds = new Set(response.results.filter((page: any) => !page.archived).map((page: any) => page.id));
-    
-    // 2. Check each table for orphans
     const tables = Object.values(TYPE_TO_TABLE);
     
     for (const table of tables) {
-        // Fetch all IDs currently in this Supabase table
-        const { data: currentRows, error } = await supabase
-            .from(table)
-            .select('id');
-        
-        if (error) {
-            console.error(`Error fetching IDs from ${table}:`, error);
-            continue;
-        }
+        const { data: currentRows, error } = await supabase.from(table).select('id');
+        if (error) continue;
 
-        const idsToDelete: string[] = [];
-        for (const row of currentRows || []) {
-            if (!activeIds.has(row.id)) {
-                idsToDelete.push(row.id);
-            }
-        }
+        const idsToDelete = (currentRows || []).filter(row => !activeIds.has(row.id)).map(row => row.id);
 
         if (idsToDelete.length > 0) {
-            console.log(`   🗑️ Deleting ${idsToDelete.length} orphans from [${table}]...`);
-            const { error: deleteError } = await supabase
-                .from(table)
-                .delete()
-                .in('id', idsToDelete);
-            
-            if (deleteError) {
-                 console.error(`   ❌ Failed to delete from ${table}:`, deleteError);
-            } else {
-                 console.log(`   ✅ Deleted: ${idsToDelete.join(', ')}`);
-            }
-        } else {
-            // console.log(`   ✨ No orphans in ${table}.`);
+            console.log(`   🗑️ Deleting ${idsToDelete.length} from ${table}...`);
+            await supabase.from(table).delete().in('id', idsToDelete);
         }
     }
     
-    console.log('🏁 Sync & Prune Finished!');
+    console.log('🏁 Done.');
 
   } catch (error) {
     console.error('🔥 Fatal Error:', error);
