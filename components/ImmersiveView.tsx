@@ -253,6 +253,7 @@ const VideoGridItem: React.FC<{
     const handlePlay = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (videoRef.current) {
+            videoRef.current.muted = false;
             videoRef.current.play();
             setIsPlaying(true);
             onVideoPlay?.(); // Notify parent
