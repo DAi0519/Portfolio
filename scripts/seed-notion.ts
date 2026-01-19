@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { ALBUMS } from '../constants';
 import { AlbumType } from '../types';
+import { INITIAL_TRACKS_BY_ALBUM } from '../lib/initial-data';
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -33,10 +34,16 @@ async function seedNotion() {
   for (const album of ALBUMS) {
       const typeName = TYPE_MAP[album.id];
       if (!typeName) continue; // Skip INTRO or unknown types
+      
+      const tracksToSeed = INITIAL_TRACKS_BY_ALBUM[album.id] || [];
+      if (tracksToSeed.length === 0) {
+          console.log(`   (No initial tracks found for ${album.title})`);
+          continue;
+      }
 
       console.log(`\nProcessing Album: ${album.title} (${typeName})...`);
 
-      for (const track of album.tracks) {
+      for (const track of tracksToSeed) {
           try {
               console.log(`   Creating "${track.title}"...`);
 
