@@ -10,15 +10,45 @@ import CinematicBackground from './components/CinematicBackground';
 
 
 const App: React.FC = () => {
-  // Simple Router: 'STACK' (Home) or 'DETAIL' (Project List)
-  const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>('STACK');
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Helper to get slug from album (defined early for state init)
+  const getSlug = (albumId: string) => albumId.toLowerCase();
+
+  // Initialize State from URL directly
+  // This prevents 'flash of home' or state hydration mismatches
+  const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>(() => {
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const albumSlug = params.get('album');
+        if (albumSlug && ALBUMS.some(a => getSlug(a.id) === getSlug(albumSlug))) {
+            return 'DETAIL';
+        }
+    }
+    return 'STACK';
+  });
+
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const albumSlug = params.get('album');
+        if (albumSlug) {
+            const index = ALBUMS.findIndex(a => getSlug(a.id) === getSlug(albumSlug));
+            if (index !== -1) return index;
+        }
+    }
+    return 0; 
+  });
   
   // Check session storage for first visit
   const [showOpening, setShowOpening] = useState(() => {
     // Safety check for SSR or non-browser environments (though this is client-side React)
     if (typeof window !== 'undefined') {
         const hasVisited = sessionStorage.getItem('hasVisited');
+        // If deep linking (viewMode is DETAIL), we should SKIP opening screen?
+        // User didn't ask, but usually direct link implies skipping intro.
+        // Let's keep it consistent: strict deep link skips intro if desired, or check visited.
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('album')) return false; // Skip intro if linking to album
+        
         return !hasVisited;
     }
     return true;
@@ -62,6 +92,65 @@ const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewMode, currentIndex, showOpening]);
+
+
+
+  // --- DEEP LINKING & URL SYNC ---
+  
+  // 1. Handle PopState (Back/Forward) ONLY
+  useEffect(() => {
+    const handlePopState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const albumSlug = params.get('album');
+
+        if (albumSlug) {
+            const index = ALBUMS.findIndex(a => a.id.toLowerCase() === albumSlug.toLowerCase());
+            if (index !== -1) {
+                setCurrentIndex(index);
+                setViewMode('DETAIL');
+                return;
+            }
+        }
+        
+        setViewMode('STACK');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // 2. Sync State to URL
+  useEffect(() => {
+      // Don't push state on initial render if it matches URL, but pushState handles that via replace vs push logic usually.
+      // Here we just want to ensure URL reflects state.
+      // We need to avoid infinite loops with popstate. 
+      // Strategy: Only push if the current URL doesn't match the state.
+      
+      const currentParams = new URLSearchParams(window.location.search);
+      const currentSlug = currentParams.get('album');
+      
+      if (viewMode === 'DETAIL') {
+          const targetSlug = getSlug(ALBUMS[currentIndex].id);
+          if (currentSlug !== targetSlug) {
+              const newUrl = `${window.location.pathname}?album=${targetSlug}`;
+              window.history.pushState({ path: newUrl }, '', newUrl);
+          }
+      } else {
+          // STACK mode
+          if (currentSlug) {
+              const newUrl = window.location.pathname; // Remove query
+              window.history.pushState({ path: newUrl }, '', newUrl);
+          }
+      }
+  }, [viewMode, currentIndex]);
+
+  // Updated handlers to use history where appropriate or rely on state sync
+  // Actually, we can just update state, and the Effect above will update URL.
+  // But for Back button, we need to ensure we don't trap user.
+  // handleBackToStack just sets ViewMode 'STACK'. The Effect will remove the URL param.
+  // "Back" in browser (popstate) will trigger handleUrlChange -> setViewMode('STACK'). 
+  // Perfect.
+
 
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
