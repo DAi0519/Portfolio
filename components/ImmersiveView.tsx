@@ -16,7 +16,13 @@ interface ImmersiveViewProps {
   onVideoEnd: () => void;   // Called when a project video ends/pauses
 }
 
-const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content, color }) => {
+// Update Props Interface
+const SimpleMarkdown: React.FC<{ 
+    content: string; 
+    color: string; 
+    albumId: string;
+    onImageClick?: (url: string) => void;
+}> = ({ content, color, albumId, onImageClick }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   
   // --- Tokenize content into segments (lines, tables, or galleries) ---
@@ -40,18 +46,21 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
 
   lines.forEach(line => {
       const trimmed = line.trim();
-      const isImage = /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); // Exclude videos from gallery for now
+      // Logic: Only treat as "Image Gallery Candidate" if it's an image AND NOT the Writing album.
+      // Writing album (Album 5) wants standard vertical layout for everything.
+      const isWriting = albumId === AlbumType.WRITING; 
+      const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); 
 
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
           // It's a table
           if (currentGalleryLines.length > 0) flushBuffers(); // Flush gallery if any
           currentTableLines.push(trimmed);
       } else if (isImage) {
-          // It's an image
+          // It's an image AND we are allowing galleries
           if (currentTableLines.length > 0) flushBuffers(); // Flush table if any
           currentGalleryLines.push(trimmed);
       } else {
-          // Normal line
+          // Normal line (Text, Headers, or Images in WRITING mode)
           flushBuffers(); // Flush any pending block
           segments.push({ type: 'line', lines: [line] });
       }
@@ -83,11 +92,11 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
       return (
           <div key={key} className={`grid ${gridCols} gap-4 my-8`}>
               {images.map((img, idx) => (
-                  <div key={idx} className="relative group overflow-hidden rounded-sm bg-neutral-100">
-                      <img 
+                  <div key={idx} className="relative group overflow-hidden rounded-sm bg-neutral-100 cursor-zoom-in" onClick={() => onImageClick?.(img.url)}>
+                      <ImageWithLoader
                           src={img.url} 
                           alt={img.alt}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover"
                       />
                   </div>
               ))}
@@ -103,13 +112,14 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
       const videoMatch = trimmed.match(/^!\[VIDEO\]\((.*?)\)$/);
       if (videoMatch) {
            return (
-              <video 
-                  key={i}
-                  src={videoMatch[1]} 
-                  controls 
-                  playsInline
-                  className="w-full rounded-sm my-8 shadow-sm bg-black/5"
-              />
+              <div key={i} className="w-full my-8">
+                <video 
+                    src={videoMatch[1]} 
+                    controls 
+                    playsInline
+                    className="w-full rounded-sm shadow-sm bg-black/5"
+                />
+              </div>
           );
       }
 
@@ -118,18 +128,17 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
       // If a single image is passed to gallery render, it handles it.
       // But if 'renderLine' is called, it might not be an image anymore effectively.
       // However, we strictly separated them. So this part might be redundant for images but good for safety.
+      // UPDATE: In WRITING mode, images fall here.
       const imageMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imageMatch) {
-          // This case theoretically shouldn't happen for standard images if tokenizer works, 
-          // unless we have mixed content lines which we don't (split by newline).
-          // But let's leave it for safety or if we adjust tokenizer.
-             return (
-              <img 
-                  key={i}
-                  src={imageMatch[2]} 
-                  alt={imageMatch[1]} 
-                  className="w-full h-auto rounded-sm my-8 shadow-sm"
-              />
+           return (
+              <div key={i} className="w-full my-8 cursor-zoom-in" onClick={() => onImageClick?.(imageMatch[2])}>
+                <ImageWithLoader
+                    src={imageMatch[2]} 
+                    alt={imageMatch[1]} 
+                    className="w-full h-auto rounded-sm shadow-sm"
+                />
+              </div>
           );
       }
 
@@ -453,18 +462,7 @@ const PhotoGridItem: React.FC<{
     color: string;
     onClick: () => void;
     delay: number;
-    onAspectDetected?: (isLandscape: boolean) => void;
 }> = ({ track, onClick, delay }) => {
-    const [isLandscape, setIsLandscape] = React.useState(false);
-    const imgRef = React.useRef<HTMLImageElement>(null);
-
-    const handleLoad = () => {
-        if (imgRef.current) {
-            const { naturalWidth, naturalHeight } = imgRef.current;
-            setIsLandscape(naturalWidth > naturalHeight * 1.3); // 1.3 ratio threshold
-        }
-    };
-
     const fallback = track.imageUrl ? { type: 'image', value: track.imageUrl } : getFallbackCover(track);
 
     return (
@@ -473,19 +471,12 @@ const PhotoGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.15 }}
-            className={`group cursor-pointer relative overflow-hidden rounded-sm bg-neutral-100 ${
-                isLandscape ? 'col-span-2' : 'col-span-1'
-            }`}
+            className="group cursor-pointer relative overflow-hidden rounded-sm bg-neutral-100"
         >
             {fallback.type === 'image' ? (
                 <ImageWithLoader 
-                    // ref={imgRef} // Ref is tricky with wrapper, but we use onImageLoad to set state
                     src={fallback.value} 
                     alt={track.title}
-                    onImageLoad={(img) => {
-                         const { naturalWidth, naturalHeight } = img;
-                         setIsLandscape(naturalWidth > naturalHeight * 1.3);
-                    }}
                     containerClassName="w-full h-auto"
                     data-hint="true"
                     className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
@@ -496,9 +487,47 @@ const PhotoGridItem: React.FC<{
                     style={{ background: fallback.value }}
                 />
             )}
-            
-            {/* Clean - No overlay text for photo album */}
         </motion.div>
+    );
+};
+
+// MASONRY LAYOUT HELPER
+const MasonryLayout: React.FC<{
+    tracks: ProjectItem[];
+    renderItem: (track: ProjectItem, index: number) => React.ReactNode;
+}> = ({ tracks, renderItem }) => {
+    const [columns, setColumns] = React.useState(2);
+
+    React.useEffect(() => {
+        const updateColumns = () => {
+            setColumns(window.innerWidth >= 768 ? 3 : 2);
+        };
+        
+        updateColumns();
+        window.addEventListener('resize', updateColumns);
+        return () => window.removeEventListener('resize', updateColumns);
+    }, []);
+
+    const cols = React.useMemo(() => {
+        const buckets = Array.from({ length: columns }, () => [] as { track: ProjectItem, index: number }[]);
+        tracks.forEach((track, i) => {
+            buckets[i % columns].push({ track, index: i });
+        });
+        return buckets;
+    }, [tracks, columns]);
+
+    return (
+        <div className="flex gap-4 items-start pb-20">
+            {cols.map((colItems, colIndex) => (
+                <div key={colIndex} className="flex flex-col gap-4 flex-1">
+                    {colItems.map(({ track, index }) => (
+                         <div key={track.id} className="w-full">
+                             {renderItem(track, index)}
+                         </div>
+                    ))}
+                </div>
+            ))}
+        </div>
     );
 };
 
@@ -645,9 +674,9 @@ const Lightbox: React.FC<{
     >
         {/* Close Button - Minimalist */}
         <button 
-            className="absolute top-8 right-8 p-4 flex items-center justify-center text-white/50 hover:text-white transition-colors z-50 focus:outline-none"
+            className="absolute top-8 right-8 p-4 flex items-center justify-center text-white/70 hover:text-white transition-colors z-50 focus:outline-none"
         >
-            <X size={32} strokeWidth={1} />
+            <X size={32} strokeWidth={1.5} />
         </button>
 
         <motion.div
@@ -655,8 +684,7 @@ const Lightbox: React.FC<{
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full h-full flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()} // Prevent close on media click
+            className="relative w-full h-full flex items-center justify-center p-4 md:p-10 pointer-events-none"
         >
             {type === 'video' ? (
                 <video 
@@ -664,13 +692,15 @@ const Lightbox: React.FC<{
                     controls 
                     autoPlay 
                     playsInline
-                    className="max-w-full max-h-full rounded-sm shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                    className="max-w-full max-h-full rounded-sm shadow-2xl pointer-events-auto"
                 />
             ) : (
                 <img 
                     src={url} 
                     alt="Full View" 
-                    className="max-w-full max-h-full object-contain rounded-sm shadow-2xl" 
+                    onClick={(e) => e.stopPropagation()}
+                    className="max-w-full max-h-full object-contain rounded-sm shadow-2xl pointer-events-auto" 
                 />
             )}
         </motion.div>
@@ -774,17 +804,24 @@ const MiniControl: React.FC<{
 const ProjectModal: React.FC<{
   project: ProjectItem;
   color: string;
+  albumId: string;
   onClose: () => void;
-}> = ({ project, color, onClose }) => {
+}> = ({ project, color, albumId, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const dragControls = useDragControls();
+  const isWriting = albumId === AlbumType.WRITING;
+  const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
-  // Extract images for Carousel
-  const { images, cleanContent } = React.useMemo(() => 
-      extractImages(project.content || '', project.imageUrl), 
-  [project.content, project.imageUrl]);
+  // Extract images for Carousel (SKIP for Writing)
+  const { images, cleanContent } = React.useMemo(() => {
+      if (isWriting) {
+          // For Writing, we keep content intact and layout inline
+          return { images: [], cleanContent: project.content || '' };
+      }
+      return extractImages(project.content || '', project.imageUrl);
+  }, [project.content, project.imageUrl, isWriting]);
 
-  const hasDidacticContent = cleanContent.length > 50; // Check if there's actual text remaining
+  const hasDidacticContent = cleanContent.length > 5;
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
@@ -819,100 +856,176 @@ const ProjectModal: React.FC<{
         className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col h-[92dvh] md:h-[90vh]"
       >
          
-         {/* Mobile Pull Handle - High Hit Area */}
+         {/* Mobile Pull Handle */}
          <div 
             onPointerDown={(e) => dragControls.start(e)} 
             className="md:hidden w-full flex justify-center py-6 absolute top-0 z-30 cursor-grab active:cursor-grabbing touch-none"
          >
-             <div className="w-12 h-1.5 bg-white/20 rounded-full backdrop-blur-md shadow-sm"></div>
+             <div className="w-12 h-1.5 bg-neutral-300/50 rounded-full backdrop-blur-md shadow-sm"></div>
          </div>
 
-         {/* Close Button - Minimalist */}
+         {/* Close Button */}
          <button 
            onClick={onClose}
-           className="hidden md:flex absolute top-6 right-6 z-20 w-10 h-10 bg-black/5 hover:bg-black/10 rounded-full items-center justify-center transition-all group focus:outline-none backdrop-blur-sm"
+           className="hidden md:flex absolute top-6 right-6 z-20 w-10 h-10 items-center justify-center transition-all group focus:outline-none mix-blend-difference"
          >
-           <X size={20} className="text-black/60 group-hover:text-black transition-colors" />
+           <X size={24} className="text-white transition-opacity hover:opacity-70" />
          </button>
 
-         {/* MAIN LAYOUT: Carousel Top, Text Bottom */}
-         <div className="flex flex-col h-full">
-             
-             {/* 1. CAROUSEL AREA (The "Hero") */}
-             <div 
-                className="w-full flex-1 min-h-[50vh] bg-neutral-100 relative group touch-none"
-                onPointerDown={(e) => dragControls.start(e)}
-             >
-                {images.length > 0 ? (
-                    <Carousel images={images} />
-                ) : (
-                    // Fallback if truly no images found
-                   <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
-                       <span className="text-xs font-mono uppercase tracking-widest">No Visuals</span>
-                   </div>
-                )}
-             </div>
+         {/* LAYOUT SWITCHER */}
+         {isWriting ? (
+             /* WRITING LAYOUT: Single Scrollable Column */
+             <div className="w-full h-full overflow-y-auto overscroll-contain bg-white relative">
+                 <div className="max-w-3xl mx-auto px-6 py-20 md:py-24">
+                     
+                     {/* Article Title */}
+                     {project.title && (
+                         <h1 className="text-3xl md:text-5xl font-bold text-neutral-900 mb-8 tracking-tight leading-[1.1]">
+                             {project.title}
+                         </h1>
+                     )}
 
-             {/* 2. CONTENT AREA (The "Caption") */}
-             <div className="w-full max-h-[40vh] bg-white border-t border-neutral-100 overflow-y-auto overscroll-contain">
-                <div className="max-w-4xl mx-auto px-6 py-8 md:px-10 md:py-10">
-                    
-                    {/* Metadata - Tags only, no date */}
-                    <div className="flex flex-wrap gap-3 mb-6">
-                        {project.tags.map(tag => (
-                            <span key={tag} className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-400 border border-neutral-200 px-2 py-1 rounded-sm">
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
+                     {/* Metadata */}
+                     <div className="flex flex-wrap gap-4 mb-12 items-center text-sm md:text-base text-neutral-500 font-mono border-b border-neutral-100 pb-8">
+                         <span>{project.date}</span>
+                         {project.tags.length > 0 && (
+                            <>
+                                <span className="text-neutral-300">/</span>
+                                {project.tags.map(tag => (
+                                    <span key={tag} className="uppercase tracking-widest text-xs">
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </>
+                         )}
+                     </div>
 
-                    {/* Title - Only show if meaningful */}
-                    {project.title && project.title.toLowerCase() !== 'untitled' && (
-                        <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight leading-tight">
-                            {project.title}
-                        </h2>
-                    )}
+                     {/* Main Cover (From Notion Image property) */}
+                     {project.imageUrl && (
+                         <div className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50 shadow-sm">
+                             <ImageWithLoader 
+                                 src={project.imageUrl} 
+                                 alt={project.title} 
+                                 className="w-full h-auto"
+                             />
+                         </div>
+                     )}
 
-                    {/* Divider */}
-                    <div 
-                        className="w-12 h-0.5 mb-8 opacity-20"
-                        style={{ backgroundColor: safeColor }}
-                    ></div>
+                     {/* Article Body */}
+                     <div className="prose prose-neutral prose-lg max-w-none text-neutral-800 leading-relaxed mb-20">
+                         <SimpleMarkdown 
+                            content={cleanContent} 
+                            color={safeColor} 
+                            albumId={albumId}
+                            onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+                         />
+                     </div>
 
-                    {/* Description / Content */}
-                    <div className="prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600">
-                        {/* 
-                            We display either the parsed markdown (with images stripped) 
-                            or the description if markdown is empty/short 
-                        */}
-                        {hasDidacticContent ? (
-                            <SimpleMarkdown content={cleanContent} color={safeColor} />
-                        ) : (
-                             <p className="leading-relaxed font-normal">
-                                {project.description}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Actions */}
-                    {project.link && (
-                        <div className="mt-10 pt-6 border-t border-neutral-100">
+                     {/* Link */}
+                     {project.link && (
+                        <div className="pt-8 border-t border-neutral-100">
                              <a 
                                href={project.link}
                                target="_blank"
                                rel="noopener noreferrer"
-                               className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+                               className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
                                style={{ color: safeColor }}
                              >
-                               Visit Project <ExternalLink size={12} />
+                               Visit Project/Article <ExternalLink size={14} />
                              </a>
                         </div>
-                    )}
-
-                </div>
+                     )}
+                 </div>
              </div>
-         </div>
+         ) : (
+             /* STANDARD LAYOUT (Photo/Coding) */
+             <div className="flex flex-col h-full">
+                 
+                 {/* 1. CAROUSEL AREA */}
+                 <div 
+                    className="w-full flex-1 min-h-[50vh] bg-neutral-100 relative group touch-none"
+                    onPointerDown={(e) => dragControls.start(e)}
+                 >
+                    {images.length > 0 ? (
+                        <Carousel 
+                           images={images} 
+                           onImageClick={(url, type) => setVisibleImage({ url, type })}
+                        />
+                    ) : (
+                       <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
+                           <span className="text-xs font-mono uppercase tracking-widest">No Visuals</span>
+                       </div>
+                    )}
+                 </div>
+
+                 {/* 2. CONTENT AREA */}
+                 <div className="w-full max-h-[40vh] bg-white border-t border-neutral-100 overflow-y-auto overscroll-contain">
+                    <div className="max-w-4xl mx-auto px-6 py-8 md:px-10 md:py-10">
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-3 mb-6">
+                            {project.tags.map(tag => (
+                                <span key={tag} className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-400 border border-neutral-200 px-2 py-1 rounded-sm">
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Title */}
+                        {project.title && project.title.toLowerCase() !== 'untitled' && (
+                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight leading-tight">
+                                {project.title}
+                            </h2>
+                        )}
+
+                        {/* Divider */}
+                        <div className="w-12 h-0.5 mb-8 opacity-20" style={{ backgroundColor: safeColor }}></div>
+                        
+                        {/* Description */}
+                        <div className="prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600">
+                            {hasDidacticContent ? (
+                                <SimpleMarkdown 
+                                    content={cleanContent} 
+                                    color={safeColor} 
+                                    albumId={albumId} 
+                                    onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+                                />
+                            ) : (
+                                 <p className="leading-relaxed font-normal">
+                                    {project.description}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Link */}
+                        {project.link && (
+                            <div className="mt-10 pt-6 border-t border-neutral-100">
+                                 <a 
+                                   href={project.link}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+                                   style={{ color: safeColor }}
+                                 >
+                                   Visit Project <ExternalLink size={12} />
+                                 </a>
+                            </div>
+                        )}
+                    </div>
+                 </div>
+             </div>
+         )}
       </motion.div>
+      
+      {/* FULL SCREEN LIGHTBOX */}
+      <AnimatePresence>
+        {visibleImage && (
+            <Lightbox 
+                url={visibleImage.url} 
+                type={visibleImage.type} 
+                onClose={() => setVisibleImage(null)} 
+            />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1234,7 +1347,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     <div className="w-full h-px bg-neutral-200" />
                                 </div>
                                 <div className="pl-8 md:pl-10 w-full">
-                                    <SimpleMarkdown content={albumData.introContent} color={albumData.color} />
+                                    <SimpleMarkdown content={albumData.introContent} color={albumData.color} albumId={albumData.id} />
                                 </div>
                             </motion.div>
                          ) : (
@@ -1257,18 +1370,21 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                         ))}
                                     </div>
                                 ) : albumData.id === AlbumType.PHOTO ? (
-                                    // PHOTO GRID - Responsive Grid with Landscape Spanning
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pl-8 md:pl-10">
-                                        {albumData.tracks.map((track, index) => (
-                                            <PhotoGridItem
-                                                key={track.id}
-                                                track={track}
-                                                index={index}
-                                                color={albumData.color}
-                                                onClick={() => setSelectedProject(track)}
-                                                delay={400 + (index * 80)}
-                                            />
-                                        ))}
+                                    // PHOTO GRID - MASONRY LAYOUT
+                                    <div className="pt-4 pl-8 md:pl-10 pr-0 md:pr-0">
+                                        <MasonryLayout 
+                                            tracks={albumData.tracks}
+                                            renderItem={(track, index) => (
+                                                <PhotoGridItem
+                                                    key={track.id}
+                                                    track={track}
+                                                    index={index}
+                                                    color={albumData.color}
+                                                    onClick={() => setSelectedProject(track)}
+                                                    delay={400 + (index * 80)}
+                                                />
+                                            )}
+                                        />
                                     </div>
                                 ) : albumData.id === AlbumType.CODING ? (
                                     // CODING GRID - SINGLE COLUMN
@@ -1315,6 +1431,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
           <ProjectModal 
             project={selectedProject} 
             color={albumData.color} 
+            albumId={albumData.id}
             onClose={() => setSelectedProject(null)} 
             key="modal"
           />

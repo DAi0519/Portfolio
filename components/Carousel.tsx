@@ -6,9 +6,10 @@ import { ImageWithLoader } from './UI/ImageWithLoader';
 interface CarouselProps {
   images: { url: string; alt?: string; type?: 'image' | 'video' }[];
   onClose?: () => void;
+  onImageClick?: (url: string, type: 'image' | 'video') => void;
 }
 
-export const Carousel: React.FC<CarouselProps> = ({ images, onClose }) => {
+export const Carousel: React.FC<CarouselProps> = ({ images, onClose, onImageClick }) => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const x = useMotionValue(0);
@@ -119,36 +120,44 @@ export const Carousel: React.FC<CarouselProps> = ({ images, onClose }) => {
                      />
                  </div>
             ) : (
-                <ImageWithLoader
-                  src={images[index].url}
-                  alt={images[index].alt || ''}
-                  data-hint="true"
-                  containerClassName="w-full h-full flex items-center justify-center"
-                  className="shadow-2xl rounded-sm transition-opacity duration-500"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'contain'
-                  }}
-                  onImageLoad={(img) => {
-                    // Logic from before
-                    const container = img.parentElement?.parentElement; // ImageWithLoader div -> motion.div
-                    if (!container) return;
-                    
-                    const isLandscape = img.naturalWidth > img.naturalHeight;
-                    
-                    if (isLandscape) {
-                      img.style.width = '100%';
-                      img.style.height = 'auto';
-                      img.style.maxHeight = 'none';
-                    } else {
-                      img.style.width = 'auto';
-                      img.style.height = '100%';
-                      img.style.maxWidth = '100%';
-                    }
-                  }}
-                  draggable={false}
-                />
+                <div 
+                   className="w-full h-full flex items-center justify-center cursor-zoom-in"
+                   onClick={(e) => {
+                       e.stopPropagation();
+                       onImageClick?.(images[index].url, 'image');
+                   }}
+                >
+                    <ImageWithLoader
+                      src={images[index].url}
+                      alt={images[index].alt || ''}
+                      data-hint="true"
+                      containerClassName="w-full h-full flex items-center justify-center"
+                      className="shadow-2xl rounded-sm transition-opacity duration-500"
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        objectFit: 'contain'
+                      }}
+                      onImageLoad={(img) => {
+                        // Logic from before
+                        const container = img.parentElement?.parentElement; // ImageWithLoader div -> div -> motion.div
+                        if (!container) return;
+                        
+                        const isLandscape = img.naturalWidth > img.naturalHeight;
+                        
+                        if (isLandscape) {
+                          img.style.width = '100%';
+                          img.style.height = 'auto';
+                          img.style.maxHeight = 'none';
+                        } else {
+                          img.style.width = 'auto';
+                          img.style.height = '100%';
+                          img.style.maxWidth = '100%';
+                        }
+                      }}
+                      draggable={false}
+                    />
+                </div>
             )}
             
           </motion.div>
