@@ -3,6 +3,9 @@ import { Album, ProjectItem, AlbumType } from '../types';
 import { ArrowLeft, X, ExternalLink, Play } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
 import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion';
+import { getFallbackCover } from '../utils/coverGenerator';
+import { Carousel } from './Carousel';
+import { ImageWithLoader } from './UI/ImageWithLoader';
 
 interface ImmersiveViewProps {
   album: Album;
@@ -16,57 +19,120 @@ interface ImmersiveViewProps {
 const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content, color }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   
-  // --- Tokenize content into segments (lines or tables) ---
+  // --- Tokenize content into segments (lines, tables, or galleries) ---
   const lines = content.split('\n');
-  const segments: { type: 'line' | 'table'; lines: string[] }[] = [];
+  const segments: { type: 'line' | 'table' | 'gallery'; lines: string[] }[] = [];
+  
   let currentTableLines: string[] = [];
+  let currentGalleryLines: string[] = [];
+
+  // Helper to flush buffers
+  const flushBuffers = () => {
+     if (currentTableLines.length > 0) {
+         segments.push({ type: 'table', lines: [...currentTableLines] });
+         currentTableLines = [];
+     }
+     if (currentGalleryLines.length > 0) {
+         segments.push({ type: 'gallery', lines: [...currentGalleryLines] });
+         currentGalleryLines = [];
+     }
+  };
 
   lines.forEach(line => {
       const trimmed = line.trim();
+      const isImage = /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); // Exclude videos from gallery for now
+
       if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          // It's a table
+          if (currentGalleryLines.length > 0) flushBuffers(); // Flush gallery if any
           currentTableLines.push(trimmed);
+      } else if (isImage) {
+          // It's an image
+          if (currentTableLines.length > 0) flushBuffers(); // Flush table if any
+          currentGalleryLines.push(trimmed);
       } else {
-          if (currentTableLines.length > 0) {
-              segments.push({ type: 'table', lines: currentTableLines });
-              currentTableLines = [];
-          }
+          // Normal line
+          flushBuffers(); // Flush any pending block
           segments.push({ type: 'line', lines: [line] });
       }
   });
-  if (currentTableLines.length > 0) {
-      segments.push({ type: 'table', lines: currentTableLines });
-  }
+  flushBuffers(); // Final flush
 
-  // --- Render segment helper ---
+  // --- Render segment helpers ---
+
+  const renderGallery = (imageLines: string[], key: number) => {
+      const images = imageLines.map(line => {
+          const match = line.match(/^!\[(.*?)\]\((.*?)\)$/);
+          return match ? { alt: match[1], url: match[2] } : null;
+      }).filter(Boolean) as { alt: string, url: string }[];
+
+      if (images.length === 0) return null;
+
+      // Smart Grid Logic
+      // 1 image -> Full Width (Standard) - Actually should just fall through to standard render if only 1? 
+      // User asked for "Group Pictures", implying 2+.
+      // But for consistency let's handle 1 here too or return to normal flow.
+      // If we handle 1 here, we lose the specific "my-8" styling of the single image render relying on renderLine.
+      // Let's use a grid for 2+, and if 1 just render as single block (but our tokenizer grouped it).
+      
+      const gridCols = images.length === 1 ? 'grid-cols-1' : 
+                       images.length === 2 ? 'grid-cols-1 md:grid-cols-2' :
+                       images.length === 3 ? 'grid-cols-1 md:grid-cols-3' :
+                       'grid-cols-2 md:grid-cols-2 lg:grid-cols-3'; // 4+
+
+      return (
+          <div key={key} className={`grid ${gridCols} gap-4 my-8`}>
+              {images.map((img, idx) => (
+                  <div key={idx} className="relative group overflow-hidden rounded-sm bg-neutral-100">
+                      <img 
+                          src={img.url} 
+                          alt={img.alt}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                  </div>
+              ))}
+          </div>
+      );
+  };
+
   const renderLine = (line: string, i: number) => {
       const trimmed = line.trim();
       if (!trimmed) return <div key={i} className="h-4" />;
 
-      // Image / Video Parser: ![alt](url)
-      const mediaMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
-      if (mediaMatch) {
-          const alt = mediaMatch[1];
-          const url = mediaMatch[2];
-          if (alt === 'VIDEO') {
-              return (
-                  <video 
-                      key={i}
-                      src={url} 
-                      controls 
-                      playsInline
-                      className="w-full rounded-sm my-8 shadow-sm bg-black/5"
-                  />
-              );
-          }
-          return (
+      // Video Parser: ![VIDEO](url)
+      const videoMatch = trimmed.match(/^!\[VIDEO\]\((.*?)\)$/);
+      if (videoMatch) {
+           return (
+              <video 
+                  key={i}
+                  src={videoMatch[1]} 
+                  controls 
+                  playsInline
+                  className="w-full rounded-sm my-8 shadow-sm bg-black/5"
+              />
+          );
+      }
+
+      // Single Image Parser (Fallback if regex in tokenizer missed it or strict single line mode)
+      // Note: Our tokenizer catches all ![]() as gallery lines. 
+      // If a single image is passed to gallery render, it handles it.
+      // But if 'renderLine' is called, it might not be an image anymore effectively.
+      // However, we strictly separated them. So this part might be redundant for images but good for safety.
+      const imageMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+      if (imageMatch) {
+          // This case theoretically shouldn't happen for standard images if tokenizer works, 
+          // unless we have mixed content lines which we don't (split by newline).
+          // But let's leave it for safety or if we adjust tokenizer.
+             return (
               <img 
                   key={i}
-                  src={url} 
-                  alt={alt} 
+                  src={imageMatch[2]} 
+                  alt={imageMatch[1]} 
                   className="w-full h-auto rounded-sm my-8 shadow-sm"
               />
           );
       }
+
 
       if (trimmed.startsWith('### ')) {
         return (
@@ -169,6 +235,9 @@ const SimpleMarkdown: React.FC<{ content: string; color: string }> = ({ content,
           if (segment.type === 'table') {
               return renderTable(segment.lines, segIdx);
           }
+          if (segment.type === 'gallery') {
+              return renderGallery(segment.lines, segIdx);
+          }
           return segment.lines.map((line, lineIdx) => renderLine(line, segIdx * 1000 + lineIdx));
       })}
     </div>
@@ -245,6 +314,7 @@ const VideoGridItem: React.FC<{
     const videoRef = React.useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = React.useState(false);
     const [isLandscape, setIsLandscape] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true); // Default to loading
     
     // Extract video URL if available in content
     const videoMatch = track.content?.match(/!\[VIDEO\]\((.*?)\)/);
@@ -266,6 +336,7 @@ const VideoGridItem: React.FC<{
     };
 
     const handleLoadedMetadata = () => {
+        setIsLoading(false); // Video metadata loaded (size known)
         if (videoRef.current) {
             const { videoWidth, videoHeight } = videoRef.current;
             setIsLandscape(videoWidth > videoHeight);
@@ -297,10 +368,18 @@ const VideoGridItem: React.FC<{
                             onLoadedMetadata={handleLoadedMetadata}
                             onEnded={handleVideoEnd}
                             onPause={handleVideoEnd}
-                            className="w-full h-auto object-cover rounded-sm bg-black" // Removed aspect-video to respect original ratio
+                            className={`w-full h-auto object-cover rounded-sm bg-black transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                         />
+                        
+                        {/* Loading Spinner Overlay */}
+                        {isLoading && (
+                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/10 backdrop-blur-[2px] gap-3">
+                                <div className="w-6 h-6 border-2 border-neutral-400/30 border-t-neutral-400 rounded-full animate-spin"></div>
+                            </div>
+                        )}
+
                         {/* Custom Play Overlay */}
-                        {!isPlaying && (
+                        {!isPlaying && !isLoading && (
                             <div 
                                 onClick={handlePlay}
                                 className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors cursor-pointer group/play"
@@ -319,13 +398,29 @@ const VideoGridItem: React.FC<{
                     </div>
                 ) : (
                     <>
-                        {track.imageUrl && (
-                            <img 
-                                src={track.imageUrl} 
-                                alt={track.title} 
-                                className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                            />
-                        )}
+                        {(() => {
+                            const fallback = track.imageUrl ? { type: 'image', value: track.imageUrl } : getFallbackCover(track);
+                            
+                            if (fallback.type === 'image') {
+                                return (
+                                     <ImageWithLoader 
+                                        src={fallback.value} 
+                                        alt={track.title}
+                                        data-hint="true"
+                                        containerClassName="w-full h-auto"
+                                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <div 
+                                        className="w-full aspect-video transition-transform duration-700 group-hover:scale-105"
+                                        style={{ background: fallback.value }}
+                                    />
+                                );
+                            }
+                        })()}
+                        
                         <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300 group/overlay">
                              <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/overlay:bg-white group-hover/overlay:border-white group-hover/overlay:scale-105">
                                  <Play 
@@ -358,33 +453,51 @@ const PhotoGridItem: React.FC<{
     color: string;
     onClick: () => void;
     delay: number;
+    onAspectDetected?: (isLandscape: boolean) => void;
 }> = ({ track, onClick, delay }) => {
+    const [isLandscape, setIsLandscape] = React.useState(false);
+    const imgRef = React.useRef<HTMLImageElement>(null);
+
+    const handleLoad = () => {
+        if (imgRef.current) {
+            const { naturalWidth, naturalHeight } = imgRef.current;
+            setIsLandscape(naturalWidth > naturalHeight * 1.3); // 1.3 ratio threshold
+        }
+    };
+
+    const fallback = track.imageUrl ? { type: 'image', value: track.imageUrl } : getFallbackCover(track);
+
     return (
         <motion.div
             onClick={onClick}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: delay / 1000, duration: 0.6, type: "spring" }}
-            className="group cursor-pointer relative w-full mb-4 break-inside-avoid overflow-hidden rounded-sm bg-neutral-100"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.15 }}
+            className={`group cursor-pointer relative overflow-hidden rounded-sm bg-neutral-100 ${
+                isLandscape ? 'col-span-2' : 'col-span-1'
+            }`}
         >
-             {/* 
-                MASONRY ITEM
-                No forced aspect ratio. Just w-full.
-            */}
-            {track.imageUrl && (
-                <img 
-                    src={track.imageUrl} 
-                    alt={track.title} 
+            {fallback.type === 'image' ? (
+                <ImageWithLoader 
+                    // ref={imgRef} // Ref is tricky with wrapper, but we use onImageLoad to set state
+                    src={fallback.value} 
+                    alt={track.title}
+                    onImageLoad={(img) => {
+                         const { naturalWidth, naturalHeight } = img;
+                         setIsLandscape(naturalWidth > naturalHeight * 1.3);
+                    }}
+                    containerClassName="w-full h-auto"
+                    data-hint="true"
                     className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
+                />
+            ) : (
+                <div 
+                    className="w-full aspect-square transition-transform duration-1000 group-hover:scale-105"
+                    style={{ background: fallback.value }}
                 />
             )}
             
-            {/* Minimal Overlay Info */}
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <h3 className="text-white text-xs font-bold tracking-widest uppercase">
-                    {track.title}
-                </h3>
-            </div>
+            {/* Clean - No overlay text for photo album */}
         </motion.div>
     );
 };
@@ -470,15 +583,23 @@ const CodingGridItem: React.FC<{
                         </div>
                     </div>
                 ) : previewUrl ? (
-                     <img 
+                     <ImageWithLoader 
                         src={previewUrl} 
-                        alt={track.title} 
+                        alt={track.title}
+                        data-hint="true"
+                        containerClassName="w-full h-full"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                      />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-white text-neutral-300">
-                        <span className="text-xs font-mono uppercase tracking-widest">No Preview</span>
-                    </div>
+                     // Fallback for Coding Items
+                     <div 
+                        className="w-full h-full transition-transform duration-700 group-hover:scale-105"
+                        style={{ background: getFallbackCover(track).value.toString().includes('gradient') ? getFallbackCover(track).value : '#f5f5f5' }}
+                     >
+                        <div className="w-full h-full flex items-center justify-center opacity-20">
+                            <span className="text-xs font-mono uppercase tracking-widest text-black">Code</span>
+                        </div>
+                     </div>
                 )}
 
                 {/* Hover Overlay with Action */}
@@ -557,7 +678,50 @@ const Lightbox: React.FC<{
   );
 };
 
+// --- Image Extraction Helper ---
+const extractImages = (content: string, coverImage?: string | null): { images: { url: string; alt?: string; type?: 'image' | 'video' }[]; cleanContent: string } => {
+    let images: { url: string; alt?: string; type?: 'image' | 'video' }[] = [];
+    
+    // Add cover image first if it exists
+    if (coverImage) {
+        images.push({ url: coverImage, alt: 'Cover', type: 'image' });
+    }
+
+    // Regex to find ![]()
+    const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
+    let match;
+    const foundUrls = new Set<string>();
+    if (coverImage) foundUrls.add(coverImage);
+
+    while ((match = imageRegex.exec(content)) !== null) {
+        const alt = match[1];
+        const url = match[2];
+        
+        if (!foundUrls.has(url)) {
+            // Check if video
+            if (alt === 'VIDEO' || url.match(/\.(mp4|mov|webm)$/i)) {
+                images.push({ url, alt, type: 'video' });
+            } else {
+                images.push({ url, alt, type: 'image' });
+            }
+            foundUrls.add(url);
+        }
+    }
+
+    // We do NOT remove images from content for now, based on user preference to just "support group picture switching".
+    // Wait, the plan said "Hide extracted images from Markdown content".
+    // User request: "要以图片内容为主，标题与简介放下方" (Content focused on images, title/desc below).
+    // Re-reading plan: "If an image is shown in the Carousel, it will be hidden from the text body to avoid seeing it twice."
+    // OK, implementing hiding logic.
+
+    const cleanContent = content.replace(/!\[(.*?)\]\((.*?)\)/g, ''); // Naive removal. Can be smarter (remove surrounding newlines).
+
+    return { images, cleanContent: cleanContent.replace(/\n{3,}/g, '\n\n').trim() };
+};
+
+// -----------------------------------------------------------------------------
 // MINI VINYL CONTROL COMPONENT
+// -----------------------------------------------------------------------------
 const MiniControl: React.FC<{
   album: Album;
   isPlaying: boolean;
@@ -604,6 +768,9 @@ const MiniControl: React.FC<{
   );
 };
 
+// -----------------------------------------------------------------------------
+// PROJECT MODAL COMPONENT (PHOTO-FIRST)
+// -----------------------------------------------------------------------------
 const ProjectModal: React.FC<{
   project: ProjectItem;
   color: string;
@@ -611,20 +778,13 @@ const ProjectModal: React.FC<{
 }> = ({ project, color, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const dragControls = useDragControls();
-  const [lightboxMedia, setLightboxMedia] = useState<{ url: string; type: 'video' | 'image' } | null>(null);
 
-  const handleMediaClick = (e: React.MouseEvent) => {
-      // If user is dragging (not clicking), we shouldn't trigger this (dragControls usually handles this but good to be safe)
-      // Actually PointerDown starts drag, standard Click fires if no drag.
-      
-      const mediaUrl = project.videoUrl || project.imageUrl;
-      if (mediaUrl) {
-          setLightboxMedia({
-              url: mediaUrl,
-              type: project.videoUrl ? 'video' : 'image'
-          });
-      }
-  };
+  // Extract images for Carousel
+  const { images, cleanContent } = React.useMemo(() => 
+      extractImages(project.content || '', project.imageUrl), 
+  [project.content, project.imageUrl]);
+
+  const hasDidacticContent = cleanContent.length > 50; // Check if there's actual text remaining
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
@@ -656,7 +816,7 @@ const ProjectModal: React.FC<{
             stiffness: 300, 
             mass: 1.2 
         }}
-        className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-3xl md:rounded-lg overflow-hidden flex flex-col h-[92dvh] md:h-auto md:max-h-[85vh]"
+        className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col h-[92dvh] md:h-[90vh]"
       >
          
          {/* Mobile Pull Handle - High Hit Area */}
@@ -664,97 +824,95 @@ const ProjectModal: React.FC<{
             onPointerDown={(e) => dragControls.start(e)} 
             className="md:hidden w-full flex justify-center py-6 absolute top-0 z-30 cursor-grab active:cursor-grabbing touch-none"
          >
-             <div className="w-12 h-1.5 bg-neutral-300/50 rounded-full backdrop-blur-md"></div>
+             <div className="w-12 h-1.5 bg-white/20 rounded-full backdrop-blur-md shadow-sm"></div>
          </div>
 
          {/* Close Button - Minimalist */}
          <button 
            onClick={onClose}
-           className="hidden md:flex absolute top-6 right-6 z-20 p-2 items-center justify-center transition-transform group focus:outline-none"
+           className="hidden md:flex absolute top-6 right-6 z-20 w-10 h-10 bg-black/5 hover:bg-black/10 rounded-full items-center justify-center transition-all group focus:outline-none backdrop-blur-sm"
          >
-           <X size={24} strokeWidth={1.5} className="text-neutral-400 group-hover:text-black group-hover:rotate-90 transition-all duration-300" />
+           <X size={20} className="text-black/60 group-hover:text-black transition-colors" />
          </button>
 
-         {/* UNIFIED SCROLL CONTAINER */}
-         <div className="flex-1 w-full overflow-y-auto overscroll-contain bg-white relative">
+         {/* MAIN LAYOUT: Carousel Top, Text Bottom */}
+         <div className="flex flex-col h-full">
              
-             {/* Image Header - Now Scrolls */}
-             {project.imageUrl && (
-               <div 
-                   onPointerDown={(e) => dragControls.start(e)}
-                   onClick={handleMediaClick}
-                   className="w-full bg-neutral-50 relative transition-all duration-700 overflow-hidden cursor-zoom-in group touch-none"
-               >
-                 {/* Visual Hint for Video */}
-                 {project.videoUrl && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
-                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-                            <Play size={24} fill="white" className="text-white ml-1" />
-                        </div>
+             {/* 1. CAROUSEL AREA (The "Hero") */}
+             <div 
+                className="w-full flex-1 min-h-[50vh] bg-neutral-100 relative group touch-none"
+                onPointerDown={(e) => dragControls.start(e)}
+             >
+                {images.length > 0 ? (
+                    <Carousel images={images} />
+                ) : (
+                    // Fallback if truly no images found
+                   <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
+                       <span className="text-xs font-mono uppercase tracking-widest">No Visuals</span>
+                   </div>
+                )}
+             </div>
+
+             {/* 2. CONTENT AREA (The "Caption") */}
+             <div className="w-full max-h-[40vh] bg-white border-t border-neutral-100 overflow-y-auto overscroll-contain">
+                <div className="max-w-4xl mx-auto px-6 py-8 md:px-10 md:py-10">
+                    
+                    {/* Metadata - Tags only, no date */}
+                    <div className="flex flex-wrap gap-3 mb-6">
+                        {project.tags.map(tag => (
+                            <span key={tag} className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-400 border border-neutral-200 px-2 py-1 rounded-sm">
+                                {tag}
+                            </span>
+                        ))}
                     </div>
-                 )}
-                 <img src={project.imageUrl} alt={project.title} className="w-full h-auto object-contain bg-neutral-100" />
-               </div>
-             )}
 
-             {/* Content Body */}
-             <div className={`w-full px-8 pb-8 md:p-10 bg-white ${project.imageUrl ? 'pt-8' : 'pt-20'}`}>
-                <div className="flex flex-wrap gap-2 mb-8">
-                   {project.tags.map(tag => (
-                      <span key={tag} className="text-[9px] uppercase font-bold tracking-[0.15em] text-neutral-400">
-                        #{tag}
-                      </span>
-                   ))}
-                </div>
-
-                <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-6 tracking-tight leading-tight">
-                  {project.title}
-                </h2>
-
-                {/* Content Divider */}
-                <div 
-                    className="w-8 h-1 mb-8"
-                    style={{ backgroundColor: safeColor }}
-                ></div>
-
-                <div className="prose prose-neutral prose-lg max-w-none">
-                    {project.content ? (
-                        <SimpleMarkdown content={project.content} color={safeColor} />
-                    ) : (
-                        <p className="text-neutral-600 leading-relaxed font-normal text-base md:text-lg">
-                            {project.description}
-                        </p>
+                    {/* Title - Only show if meaningful */}
+                    {project.title && project.title.toLowerCase() !== 'untitled' && (
+                        <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight leading-tight">
+                            {project.title}
+                        </h2>
                     )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex flex-col md:flex-row items-center gap-3 mt-12 pt-8 border-t border-neutral-100">
-                   {project.link && (
-                     <a 
-                       href={project.link}
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       className="w-full md:w-auto flex-1 text-white py-3 px-6 rounded-sm text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                       style={{ backgroundColor: safeColor }}
-                     >
-                       查看 <ExternalLink size={12} />
-                     </a>
-                   )}
+                    {/* Divider */}
+                    <div 
+                        className="w-12 h-0.5 mb-8 opacity-20"
+                        style={{ backgroundColor: safeColor }}
+                    ></div>
+
+                    {/* Description / Content */}
+                    <div className="prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600">
+                        {/* 
+                            We display either the parsed markdown (with images stripped) 
+                            or the description if markdown is empty/short 
+                        */}
+                        {hasDidacticContent ? (
+                            <SimpleMarkdown content={cleanContent} color={safeColor} />
+                        ) : (
+                             <p className="leading-relaxed font-normal">
+                                {project.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Actions */}
+                    {project.link && (
+                        <div className="mt-10 pt-6 border-t border-neutral-100">
+                             <a 
+                               href={project.link}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+                               style={{ color: safeColor }}
+                             >
+                               Visit Project <ExternalLink size={12} />
+                             </a>
+                        </div>
+                    )}
+
                 </div>
              </div>
          </div>
       </motion.div>
-
-      {/* Lightbox Overlay */}
-      <AnimatePresence>
-          {lightboxMedia && (
-              <Lightbox 
-                  url={lightboxMedia.url} 
-                  type={lightboxMedia.type} 
-                  onClose={() => setLightboxMedia(null)} 
-              />
-          )}
-      </AnimatePresence>
     </div>
   );
 };
@@ -794,17 +952,12 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
     return () => observer.disconnect();
   }, [showVinyl]); // Re-run when vinyl appears
 
-  useEffect(() => {
-    let isMounted = true;
-
-    // Fetch full album data (including projects) from Supabase
-    const fetchData = async () => {
-      setLoading(true);
+  // Data Fetching Logic (Reusable)
+  const fetchAlbumData = async () => {
+      // Don't set global loading here to avoid full screen flickering on refresh
       try {
         const data = await getAlbumWithProjects(initialAlbum.id);
-        if (isMounted && data) {
-          // Merge: Keep local metadata (Titles, Colors) as Source of Truth. 
-          // Only use backend for Tracks.
+        if (data) {
           setAlbumData({
             ...initialAlbum,
             tracks: data.tracks
@@ -812,12 +965,16 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         }
       } catch (error) {
         console.error("Failed to load album data", error);
-      } finally {
-        if (isMounted) setLoading(false);
       }
-    };
+  };
 
-    fetchData();
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    
+    fetchAlbumData().finally(() => {
+        if (isMounted) setLoading(false);
+    });
 
     // Delay the slide-out of the record
     const timer = setTimeout(() => setShowVinyl(true), 600);
@@ -826,6 +983,72 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
       isMounted = false;
     };
   }, [initialAlbum.id]);
+
+
+  // --- PULL TO REFRESH LOGIC ---
+  const [pullY, setPullY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef(0);
+
+  const THRESHOLD = 100;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+      if (scrollContainerRef.current && scrollContainerRef.current.scrollTop <= 0) {
+          touchStartRef.current = e.touches[0].clientY;
+          setIsDragging(true);
+      }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+      // Must be dragging and at top
+      if (!isDragging || isRefreshing || !scrollContainerRef.current) return;
+      
+      const scrollTop = scrollContainerRef.current.scrollTop;
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - touchStartRef.current;
+
+      if (scrollTop <= 0 && diff > 0) {
+          // Asymptotic Damping (Rubber Band Effect)
+          // formula: limit * (1 - exp(-diff / factor))
+          const limit = 220; 
+          const factor = 250;
+          const damped = limit * (1 - Math.exp(-diff / factor));
+          
+          setPullY(damped);
+      } else {
+          // If we scroll back up or weren't at top
+          // Allow native scroll if negative diff (scrolling down), but if positive keep tracking?
+          // Simplification: just reset if not valid pull
+           if (scrollContainerRef.current.scrollTop > 0) {
+               setPullY(0);
+               setIsDragging(false);
+           }
+      }
+  };
+
+  const handleTouchEnd = async () => {
+      setIsDragging(false); // Enable spring transition
+      
+      if (isRefreshing) return;
+      
+      if (pullY > THRESHOLD) {
+          setIsRefreshing(true);
+          setPullY(THRESHOLD); // Snap to threshold
+          
+          // Perform Refresh with Minimum Duration (2s) for UX
+          // This ensures user sees the spinner actually spin and reads the text
+          const minWait = new Promise(resolve => setTimeout(resolve, 2000));
+          await Promise.all([fetchAlbumData(), minWait]);
+          
+          setIsRefreshing(false);
+          setPullY(0);
+      } else {
+          setPullY(0);
+      }
+  };
+
 
   return (
     <>
@@ -841,7 +1064,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         }}
       >
         
-        {/* Mobile Back Button - Now outside the scroll container, pinned to the Viewport/Root */}
+        {/* Mobile Back Button - Pinned */}
         <button 
           onClick={onClose}
           className="md:hidden absolute top-6 left-6 z-50 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
@@ -849,10 +1072,38 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
           <ArrowLeft size={18} />
         </button>
 
+        {/* PULL TO REFRESH INDICATOR */}
+        <div 
+            className="absolute top-6 left-0 right-0 flex flex-col items-center justify-center pointer-events-none z-50 gap-3"
+            style={{ 
+                 opacity: Math.min(pullY / 40, 1),
+            }}
+        >
+            <div 
+                className={`w-6 h-6 border-2 border-neutral-400/30 border-t-neutral-500 rounded-full ${isRefreshing ? 'animate-spin' : ''}`}
+                style={{ 
+                    transform: isRefreshing ? undefined : `rotate(${pullY * 3}deg)`
+                }}
+            ></div>
+            
+            {/* Hint Text - Only separate opacity logic if needed, but sharing parent opacity is fine for simultaneous fade in */}
+            <span 
+                className="text-[10px] text-neutral-400 font-mono tracking-wide text-center"
+                style={{ opacity: 0.8 }} // Base opacity
+            >
+                如遇加载卡顿/失败，请搭载梯子刷新～
+            </span>
+        </div>
+
         {/* SCROLL CONTAINER WRAPPER */}
-        {/* On Mobile: This handles the vertical scroll for the whole page. */}
-        {/* On Desktop: This sits still, allowing the Right Column to scroll internally. */}
-        <div className="w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative">
+        <div 
+            ref={scrollContainerRef}
+            className={`w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative transition-transform ease-[cubic-bezier(0.25,1,0.5,1)] ${isDragging ? 'duration-0' : 'duration-500'}`}
+            style={{ transform: `translateY(${pullY}px)` }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >         
             
             {/* LEFT COLUMN: VISUALS */}
             <div 
@@ -927,7 +1178,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                   FLUID TYPOGRAPHY: 
                                   Using clamp() to ensure the title scales with the viewport width.
                               */}
-                              <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans break-words hyphens-auto">
+                              <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans">
                                   {albumData.title}
                               </h1>
 
@@ -1006,9 +1257,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                         ))}
                                     </div>
                                 ) : albumData.id === AlbumType.PHOTO ? (
-                                    // PHOTO GRID - MASONRY
-                                    // columns-2 md:columns-3
-                                    <div className="columns-2 md:columns-3 gap-4 pt-4 pl-8 md:pl-10 block">
+                                    // PHOTO GRID - Responsive Grid with Landscape Spanning
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pl-8 md:pl-10">
                                         {albumData.tracks.map((track, index) => (
                                             <PhotoGridItem
                                                 key={track.id}
