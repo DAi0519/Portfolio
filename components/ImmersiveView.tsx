@@ -369,6 +369,7 @@ const VideoGridItem: React.FC<{
                         <video 
                             ref={videoRef}
                             src={videoUrl + "#t=0.001"} // Hack to force first frame on some browsers
+                            poster={track.imageUrl || undefined}
                             controls={isPlaying}
                             playsInline
                             webkit-playsinline="true"
@@ -709,42 +710,55 @@ const Lightbox: React.FC<{
 };
 
 // --- Image Extraction Helper ---
-const extractImages = (content: string, coverImage?: string | null): { images: { url: string; alt?: string; type?: 'image' | 'video' }[]; cleanContent: string } => {
-    let images: { url: string; alt?: string; type?: 'image' | 'video' }[] = [];
+const extractImages = (content: string, coverImage?: string | null): { images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[]; cleanContent: string } => {
+    let images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[] = [];
     
-    // Add cover image first if it exists
-    if (coverImage) {
-        images.push({ url: coverImage, alt: 'Cover', type: 'image' });
-    }
-
-    // Regex to find ![]()
+    // 1. Extract all media from content
     const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
     let match;
-    const foundUrls = new Set<string>();
-    if (coverImage) foundUrls.add(coverImage);
-
+    const contentMedia: { url: string; alt: string; type: 'image' | 'video' }[] = [];
+    
     while ((match = imageRegex.exec(content)) !== null) {
         const alt = match[1];
         const url = match[2];
+        const type = (alt === 'VIDEO' || url.match(/\.(mp4|mov|webm)$/i)) ? 'video' : 'image';
+        contentMedia.push({ url, alt, type });
+    }
+
+    // 2. Handle Cover Image Logic
+    let coverHandled = false;
+    
+    if (coverImage) {
+        // Check if there is a video in the content
+        const firstVideoIndex = contentMedia.findIndex(m => m.type === 'video');
         
-        if (!foundUrls.has(url)) {
-            // Check if video
-            if (alt === 'VIDEO' || url.match(/\.(mp4|mov|webm)$/i)) {
-                images.push({ url, alt, type: 'video' });
-            } else {
-                images.push({ url, alt, type: 'image' });
-            }
-            foundUrls.add(url);
+        if (firstVideoIndex !== -1) {
+            // Case A: Video exists. Use cover as POSTER for the first video.
+            // We do NOT add the cover as a standalone image.
+            // We modify the contentMedia item directly.
+            // (WE cast to any to add poster property which might not be on contentMedia type definition initially)
+            (contentMedia[firstVideoIndex] as any).poster = coverImage;
+            coverHandled = true;
+        } else {
+            // Case B: No video. Add cover as the first IMAGE.
+            images.push({ url: coverImage, alt: 'Cover', type: 'image' });
+            coverHandled = true;
         }
     }
 
-    // We do NOT remove images from content for now, based on user preference to just "support group picture switching".
-    // Wait, the plan said "Hide extracted images from Markdown content".
-    // User request: "要以图片内容为主，标题与简介放下方" (Content focused on images, title/desc below).
-    // Re-reading plan: "If an image is shown in the Carousel, it will be hidden from the text body to avoid seeing it twice."
-    // OK, implementing hiding logic.
+    // 3. Merge content media (deduplicating if parsing logic finds same URL)
+    const foundUrls = new Set<string>();
+    if (images.length > 0) foundUrls.add(images[0].url);
 
-    const cleanContent = content.replace(/!\[(.*?)\]\((.*?)\)/g, ''); // Naive removal. Can be smarter (remove surrounding newlines).
+    contentMedia.forEach(item => {
+        if (!foundUrls.has(item.url)) {
+            images.push(item);
+            foundUrls.add(item.url);
+        }
+    });
+
+    // Remove images/videos from markdown content
+    const cleanContent = content.replace(/!\[(.*?)\]\((.*?)\)/g, ''); 
 
     return { images, cleanContent: cleanContent.replace(/\n{3,}/g, '\n\n').trim() };
 };

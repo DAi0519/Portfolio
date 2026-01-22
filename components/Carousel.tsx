@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { ImageWithLoader } from './UI/ImageWithLoader';
 
 interface CarouselProps {
-  images: { url: string; alt?: string; type?: 'image' | 'video' }[];
+  images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[];
   onClose?: () => void;
   onImageClick?: (url: string, type: 'image' | 'video') => void;
 }
@@ -111,15 +111,16 @@ export const Carousel: React.FC<CarouselProps> = ({ images, onClose, onImageClic
             }}
             className="absolute w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
           >
-            {images[index].type === 'video' ? (
-                 <div className="relative w-full h-full flex items-center justify-center bg-black">
-                     <video 
-                        src={images[index].url} 
-                        controls 
-                        className="max-w-full max-h-full shadow-2xl rounded-sm object-contain"
-                     />
-                 </div>
-            ) : (
+             {images[index].type === 'video' ? (
+                  <div className="relative w-full h-full flex items-center justify-center bg-black">
+                      <video 
+                         src={images[index].url} 
+                         poster={images[index].poster}
+                         controls 
+                         className="max-w-full max-h-full shadow-2xl rounded-sm object-contain"
+                      />
+                  </div>
+             ) : (
                 <div 
                    className="w-full h-full flex items-center justify-center cursor-zoom-in"
                    onClick={(e) => {
