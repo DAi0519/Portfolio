@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.6.0",
-    "@supabase/supabase-js": "^2.90.1",
     "@vercel/blob": "^2.0.0",
     "dotenv": "^17.2.3",
     "framer-motion": "11.0.8",
