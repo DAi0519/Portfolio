@@ -1,0 +1,42 @@
+name: Sync Notion Content
+
+on:
+  workflow_dispatch: # 允许你在 GitHub 手动点击按钮触发
+  schedule:
+    # 每天北京时间 08:00 (UTC 00:00) 自动运行一次，可自行调整
+    - cron: "0 0 * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 允许 Action 提交代码
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          lfs: true # 开启 LFS 支持，因为要下载视频
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Notion Sync
+        run: npm run sync
+        env:
+          # 需要你在 GitHub 仓库 Settings > Secrets 里配置这两个变量
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(content): auto-sync from notion [skip ci]"
+          file_pattern: "data/projects.json public/media/*"

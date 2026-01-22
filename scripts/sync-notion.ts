@@ -20,54 +20,90 @@ if (!NOTION_KEY || !DATA_SOURCE_ID) {
 }
 
 const notion = new Client({ auth: NOTION_KEY });
-
-const MEDIA_DIR = path.resolve(process.cwd(), 'public/media');
+const MEDIA_ROOT = path.resolve(process.cwd(), 'public/media');
 const DATA_FILE = path.resolve(process.cwd(), 'data/projects.json');
 
-// Ensure directories exist
-if (!fs.existsSync(MEDIA_DIR)) {
-  fs.mkdirSync(MEDIA_DIR, { recursive: true });
-}
+// Ensure data directory exists
 if (!fs.existsSync(path.dirname(DATA_FILE))) {
   fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 }
 
-// --- Helper: Download a file to local media folder ---
+// Global context to track current processing item (for folder organization)
+let currentContext = {
+  albumId: 'MISC',
+  projectSlug: 'general'
+};
+
+// --- Helper: Slugify string (supports Chinese) ---
+function slugify(text: string): string {
+  if (!text) return 'untitled';
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // replace spaces with -
+    .replace(/[^\w\-\u4e00-\u9fa5]/g, '') // remove chars that are not word, hyphen, or Chinese
+    .replace(/\-\-+/g, '-') // replace multiple - with single -
+    .replace(/^-+/, '') // trim - from start
+    .replace(/-+$/, ''); // trim - from end
+}
+
+// --- Helper: Download a file to structured local folder ---
 async function downloadAsset(url: string, extension?: string): Promise<string | null> {
   if (!url) return null;
   
-  // Generate a unique filename based on URL hash
-  const hash = crypto.createHash('md5').update(url).digest('hex').slice(0, 12);
-  const ext = extension || getExtensionFromUrl(url) || 'bin';
-  const filename = `${hash}.${ext}`;
-  const filepath = path.join(MEDIA_DIR, filename);
-  const publicPath = `/media/${filename}`;
+  // Create folder structure: public/media/[Album]/[Project]/
+  const folderPath = path.join(
+    MEDIA_ROOT, 
+    currentContext.albumId.toLowerCase(), 
+    currentContext.projectSlug
+  );
   
-  // Skip if already exists (Incremental Sync)
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true });
+  }
+
+  // Generate filename
+  // Try to use original filename from URL if it looks clean, otherwise use hash
+  let filename = '';
+  const originalNameMatch = url.match(/\/([^\/?#]+)[^\/]*$/);
+  
+  if (originalNameMatch && originalNameMatch[1] && originalNameMatch[1].length < 50 && /^[a-zA-Z0-9._-]+$/.test(originalNameMatch[1])) {
+    filename = originalNameMatch[1];
+  } else {
+    // Fallback to hash
+    const hash = crypto.createHash('md5').update(url).digest('hex').slice(0, 8);
+    const ext = extension || getExtensionFromUrl(url) || 'bin';
+    filename = `${hash}.${ext}`;
+  }
+
+  // Handle Douyin/cleaner filenames if manual mapping needed (optional)
+  
+  const filepath = path.join(folderPath, filename);
+  const publicPath = `/media/${currentContext.albumId.toLowerCase()}/${currentContext.projectSlug}/${filename}`;
+  
+  // Skip if already exists
   if (fs.existsSync(filepath)) {
-    console.log(`   ⏭️ Skipping (exists): ${filename}`);
+    // console.log(`   ⏭️ Skipping: ${filename}`);
     return publicPath;
   }
   
-  console.log(`   ⬇️ Downloading: ${filename}`);
+  console.log(`   ⬇️ Downloading: ${publicPath}`);
   
   return new Promise((resolve) => {
     const protocol = url.startsWith('https') ? https : http;
     
     const request = protocol.get(url, { 
-      headers: { 
-        'User-Agent': 'Mozilla/5.0'
-      },
+      headers: { 'User-Agent': 'Mozilla/5.0' },
       timeout: 60000 
     }, (response) => {
-      // Handle redirects
       if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         downloadAsset(response.headers.location, extension).then(resolve);
         return;
       }
       
       if (response.statusCode !== 200) {
-        console.warn(`   ⚠️ Failed to download (HTTP ${response.statusCode}): ${url}`);
+        console.warn(`   ⚠️ Failed (HTTP ${response.statusCode}): ${url}`);
         resolve(null);
         return;
       }
@@ -77,12 +113,11 @@ async function downloadAsset(url: string, extension?: string): Promise<string | 
       
       file.on('finish', () => {
         file.close();
-        console.log(`   ✅ Downloaded: ${filename}`);
         resolve(publicPath);
       });
       
       file.on('error', (err) => {
-        fs.unlink(filepath, () => {}); // Clean up partial file
+        fs.unlink(filepath, () => {});
         console.error(`   ❌ Write error: ${err.message}`);
         resolve(null);
       });
@@ -90,12 +125,6 @@ async function downloadAsset(url: string, extension?: string): Promise<string | 
     
     request.on('error', (err) => {
       console.error(`   ❌ Download error: ${err.message}`);
-      resolve(null);
-    });
-    
-    request.on('timeout', () => {
-      request.destroy();
-      console.error(`   ❌ Download timeout`);
       resolve(null);
     });
   });
@@ -108,46 +137,34 @@ function getExtensionFromUrl(url: string): string | null {
     const match = pathname.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
     if (match) return match[1].toLowerCase();
     
-    // Fallback for common patterns
+    // Common mappings
     if (url.includes('.mp4')) return 'mp4';
-    if (url.includes('.mov')) return 'mov';
-    if (url.includes('.webm')) return 'webm';
     if (url.includes('.jpg') || url.includes('.jpeg')) return 'jpg';
     if (url.includes('.png')) return 'png';
-    if (url.includes('.gif')) return 'gif';
-    if (url.includes('.webp')) return 'webp';
-    
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-// --- Helper: Convert Notion Blocks to Markdown (with asset downloading) ---
+// --- Block Processing ---
 async function fetchPageContent(pageId: string): Promise<string> {
   try {
-    const blocks = await notion.blocks.children.list({
-      block_id: pageId,
-    });
+    const blocks = await notion.blocks.children.list({ block_id: pageId });
+    const parts: string[] = [];
     
-    const markdownParts: string[] = [];
     for (const block of blocks.results) {
         if ((block as any).type === 'table') {
-            const tableMarkdown = await tableToMarkdown(block);
-            markdownParts.push(tableMarkdown);
+            parts.push(await tableToMarkdown(block));
         } else {
-            const content = await blockToMarkdown(block);
-            markdownParts.push(content);
+            parts.push(await blockToMarkdown(block));
         }
     }
-    return markdownParts.join('\n\n');
+    return parts.join('\n\n');
   } catch (error) {
     console.error(`Error fetching blocks for ${pageId}`, error);
     return "";
   }
 }
 
-// --- Helper: Convert a single Notion block to Markdown ---
 async function blockToMarkdown(block: any): Promise<string> {
   const type = block.type;
   if (!block[type]) return "";
@@ -157,182 +174,111 @@ async function blockToMarkdown(block: any): Promise<string> {
       : "";
 
   switch (type) {
-    case 'paragraph':
-      return textContent;
-    case 'heading_1':
-      return `# ${textContent}`;
-    case 'heading_2':
-      return `## ${textContent}`;
-    case 'heading_3':
-      return `### ${textContent}`;
-    case 'bulleted_list_item':
-      return `- ${textContent}`;
-    case 'numbered_list_item':
-      return `1. ${textContent}`;
-    case 'quote':
-      return `> ${textContent}`;
-    case 'code':
-      return `\`\`\`${block.code.language}\n${textContent}\n\`\`\``;
+    case 'paragraph': return textContent;
+    case 'heading_1': return `# ${textContent}`;
+    case 'heading_2': return `## ${textContent}`;
+    case 'heading_3': return `### ${textContent}`;
+    case 'bulleted_list_item': return `- ${textContent}`;
+    case 'numbered_list_item': return `1. ${textContent}`;
+    case 'quote': return `> ${textContent}`;
+    case 'code': return `\`\`\`${block.code.language}\n${textContent}\n\`\`\``;
+    case 'divider': return `---`;
+    
     case 'image': {
       const imgUrl = block.image.type === 'external' ? block.image.external.url : block.image.file?.url;
       const caption = block.image.caption?.[0]?.plain_text || "Image";
-      
       if (!imgUrl) return "";
-      
-      // Download and get local path
       const localPath = await downloadAsset(imgUrl);
       return localPath ? `![${caption}](${localPath})` : `![${caption}](${imgUrl})`;
     }
     case 'video': {
        const videoObj = block.video;
-       let videoUrl = "";
-       
-       if (videoObj.type === 'external') {
-           videoUrl = videoObj.external?.url || "";
-       } else if (videoObj.type === 'file') {
-           videoUrl = videoObj.file?.url || "";
-       }
-       
-       if (!videoUrl) {
-           console.warn(`⚠️ Video block ${block.id} has no URL.`);
-           return "";
-       }
-       
-       // Download and get local path
+       let videoUrl = videoObj.type === 'external' ? videoObj.external?.url : videoObj.file?.url;
+       if (!videoUrl) return "";
        const localPath = await downloadAsset(videoUrl, 'mp4');
        return localPath ? `![VIDEO](${localPath})` : `![VIDEO](${videoUrl})`;
     }
-    case 'divider':
-      return `---`;
-    case 'table':
-      return `[TABLE_PLACEHOLDER:${block.id}]`;
-    default:
-      return "";
+    case 'table': return `[TABLE_PLACEHOLDER:${block.id}]`;
+    default: return "";
   }
 }
 
-// --- Helper: Convert Notion Table block to Markdown ---
 async function tableToMarkdown(tableBlock: any): Promise<string> {
     try {
-        const rows = await notion.blocks.children.list({
-            block_id: tableBlock.id,
-        });
-        
+        const rows = await notion.blocks.children.list({ block_id: tableBlock.id });
         if (!rows.results || rows.results.length === 0) return "";
         
         const markdownRows: string[] = [];
-        
         rows.results.forEach((row: any, index: number) => {
             if (row.type !== 'table_row') return;
-            
             const cells = row.table_row.cells.map((cell: any[]) => 
                 cell.map((c: any) => c.plain_text || "").join("")
             );
-            
             markdownRows.push(`| ${cells.join(' | ')} |`);
-            
-            if (index === 0) {
-                markdownRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
-            }
+            if (index === 0) markdownRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
         });
-        
         return markdownRows.join('\n');
-    } catch (error) {
-        console.error(`Error fetching table rows for ${tableBlock.id}`, error);
-        return "";
-    }
+    } catch { return ""; }
 }
 
-// --- Main Sync Function ---
+// --- Main Sync ---
 async function syncNotionToLocal() {
-  console.log('🚀 Starting Notion Sync (Local Mode)...');
-  console.log('Target Data Source ID:', DATA_SOURCE_ID);
+  console.log('🚀 Starting Structured Notion Sync...');
+  
+  // @ts-ignore
+  const response = await notion.dataSources.query({
+    data_source_id: DATA_SOURCE_ID,
+    sorts: [{ property: 'Date', direction: 'descending' }],
+  });
 
-  if (!DATA_SOURCE_ID) {
-      throw new Error("Missing NOTION_DATA_SOURCE_ID");
-  }
+  console.log(`📦 Found ${response.results.length} items.`);
 
-  try {
-    // @ts-ignore
-    const response = await notion.dataSources.query({
-      data_source_id: DATA_SOURCE_ID,
-      sorts: [
-        {
-          property: 'Date',
-          direction: 'descending',
-        },
-      ],
-    });
+  const projects: Record<string, any[]> = { CODING: [], VIDEO: [], PHOTO: [], WRITING: [] };
 
-    console.log(`📦 Found ${response.results.length} items in Notion.`);
+  for (const page of response.results) {
+    if (!('properties' in page)) continue;
+    if ((page as any).archived) continue;
 
-    const projects: Record<string, any[]> = {
-      CODING: [],
-      VIDEO: [],
-      PHOTO: [],
-      WRITING: []
+    const props = page.properties as any;
+    const itemTitle = props.Name?.title?.[0]?.plain_text || 'Untitled';
+    const typeSelect = props.Type?.select?.name?.toUpperCase();
+
+    if (!projects[typeSelect]) continue;
+
+    // Set Context for Download
+    currentContext = {
+      albumId: typeSelect,
+      projectSlug: slugify(itemTitle) || 'untitled-project'
     };
 
-    for (const page of response.results) {
-      if (!('properties' in page)) continue;
-      if ((page as any).archived) continue;
-      
-      const props = page.properties as any;
-      const id = page.id;  
-
-      const typeSelect = props.Type?.select?.name?.toUpperCase();
-      
-      if (!projects[typeSelect]) {
-        console.warn(`⚠️ Item "${id}" has unknown type: ${typeSelect || 'None'}.`);
-        continue;
-      }
-
-      const title = props.Name?.title?.[0]?.plain_text || 'Untitled';
-      let date = props.Date?.date?.start || props.Date?.rich_text?.[0]?.plain_text || new Date().toISOString(); 
-      const description = props.Description?.rich_text?.[0]?.plain_text || '';
-      const tags = props.Tags?.multi_select?.map((t: any) => t.name) || [];
-      const link = props.Link?.url || null;
-
-      // Cover Image
-      let imageUrl = null;
-      if (props.Image?.files?.length > 0) {
-          const fileObj = props.Image.files[0];
-          const originalUrl = fileObj.file?.url || fileObj.external?.url || null;
-          if (originalUrl) {
-            imageUrl = await downloadAsset(originalUrl);
-          }
-      }
-
-      console.log(`   📄 Processing "${title}"...`);
-      const markdownContent = await fetchPageContent(id);
-
-      projects[typeSelect].push({
-        id,
-        albumId: typeSelect,
-        title,
-        date,
-        description,
-        tags,
-        imageUrl,
-        link,
-        content: markdownContent
-      });
+    console.log(`\n📂 [${typeSelect}] ${itemTitle}`);
+    
+    // Cover Image
+    let imageUrl = null;
+    if (props.Image?.files?.length > 0) {
+        const fileObj = props.Image.files[0];
+        const originalUrl = fileObj.file?.url || fileObj.external?.url;
+        if (originalUrl) imageUrl = await downloadAsset(originalUrl);
     }
 
-    // Write to local JSON file
-    const outputData = {
-      syncedAt: new Date().toISOString(),
-      projects
-    };
-    
-    fs.writeFileSync(DATA_FILE, JSON.stringify(outputData, null, 2));
-    console.log(`\n💾 Data saved to: ${DATA_FILE}`);
-    console.log('🎉 Sync Complete!');
+    // Content
+    const markdownContent = await fetchPageContent(page.id);
 
-  } catch (error) {
-    console.error('🔥 Fatal Error:', error);
-    process.exit(1);
+    projects[typeSelect].push({
+      id: page.id,
+      albumId: typeSelect,
+      title: itemTitle,
+      date: props.Date?.date?.start || props.Date?.rich_text?.[0]?.plain_text || new Date().toISOString(),
+      description: props.Description?.rich_text?.[0]?.plain_text || '',
+      tags: props.Tags?.multi_select?.map((t: any) => t.name) || [],
+      imageUrl,
+      link: props.Link?.url || null,
+      content: markdownContent
+    });
   }
+
+  fs.writeFileSync(DATA_FILE, JSON.stringify({ syncedAt: new Date().toISOString(), projects }, null, 2));
+  console.log('\n🎉 Sync Complete!');
 }
 
 syncNotionToLocal();
