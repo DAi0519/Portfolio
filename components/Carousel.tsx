@@ -1,23 +1,109 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Play } from 'lucide-react';
 import { ImageWithLoader } from './UI/ImageWithLoader';
 
 interface CarouselProps {
   images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[];
   onClose?: () => void;
   onImageClick?: (url: string, type: 'image' | 'video') => void;
+  // Video sync props
+  projectId?: string;
+  playingVideoId?: string | null;
+  activeVideoRef?: React.MutableRefObject<HTMLVideoElement | null>;
+  onVideoPlay?: (videoId: string, videoRef: React.RefObject<HTMLVideoElement>) => void;
+  onVideoEnd?: (videoId: string) => void;
 }
 
-export const Carousel: React.FC<CarouselProps> = ({ images, onClose, onImageClick }) => {
+export const Carousel: React.FC<CarouselProps> = ({ 
+  images, 
+  onClose, 
+  onImageClick,
+  projectId,
+  playingVideoId,
+  activeVideoRef,
+  onVideoPlay,
+  onVideoEnd 
+}) => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const x = useMotionValue(0);
+  
+  // Video Playback State Management
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isInitialMount = useRef(true);
+  const didSyncFromList = useRef(false);
+  
+  // Sync video state when modal opens (continue from list page playback)
+  useEffect(() => {
+    const currentImage = images[index];
+    
+    // If this project's video was playing in the list, continue playback
+    if (currentImage?.type === 'video' && projectId && playingVideoId === projectId && activeVideoRef?.current) {
+      const sourceVideo = activeVideoRef.current;
+      const targetVideo = videoRef.current;
+      
+      if (targetVideo && sourceVideo && !sourceVideo.paused) {
+        // Mark that we're syncing from list - prevent reset effect from interfering
+        didSyncFromList.current = true;
+        
+        // Copy current time from source video
+        targetVideo.currentTime = sourceVideo.currentTime;
+        targetVideo.muted = false;
+        targetVideo.play().then(() => {
+          setIsVideoPlaying(true);
+          // Pause the source video (list page)
+          sourceVideo.pause();
+        }).catch(console.error);
+      }
+    }
+    
+    // After first mount effect runs, mark as not initial anymore
+    isInitialMount.current = false;
+  }, [projectId, playingVideoId, activeVideoRef, images, index]);
+  
+  // Reset video play state when switching slides (but NOT if we just synced from list)
+  useEffect(() => {
+    // Skip reset if we just synced from list (prevents race condition)
+    if (didSyncFromList.current) {
+      didSyncFromList.current = false;
+      return;
+    }
+    
+    setIsVideoPlaying(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [index]);
 
   // Swipe Threshold
   const swipeConfidenceThreshold = 10000;
   const swipePower = (offset: number, velocity: number) => {
     return Math.abs(offset) * velocity;
+  };
+  
+  // Video Play Handler - notify parent for global state management
+  const handleVideoPlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.play();
+      setIsVideoPlaying(true);
+      // Notify parent - this will pause any other playing video
+      if (projectId && onVideoPlay) {
+        onVideoPlay(projectId, videoRef);
+      }
+    }
+  };
+  
+  // Video end/pause handler
+  const handleVideoEnd = () => {
+    setIsVideoPlaying(false);
+    if (projectId && onVideoEnd) {
+      onVideoEnd(projectId);
+    }
   };
 
   const paginate = useCallback((newDirection: number) => {
@@ -114,11 +200,34 @@ export const Carousel: React.FC<CarouselProps> = ({ images, onClose, onImageClic
              {images[index].type === 'video' ? (
                   <div className="relative w-full h-full flex items-center justify-center bg-black">
                       <video 
-                         src={images[index].url} 
-                         poster={images[index].poster}
-                         controls 
+                         ref={videoRef}
+                         src={images[index].poster ? images[index].url : images[index].url + "#t=0.001"}
+                         poster={images[index].poster || undefined}
+                         controls={isVideoPlaying}
+                         muted
+                         playsInline
+                         preload="metadata"
+                         onEnded={handleVideoEnd}
+                         onPause={handleVideoEnd}
                          className="max-w-full max-h-full shadow-2xl rounded-sm object-contain"
                       />
+                      
+                      {/* Custom Play Overlay - Dieter Rams Style */}
+                      {!isVideoPlaying && (
+                          <div 
+                              onClick={handleVideoPlay}
+                              className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors cursor-pointer group/play"
+                          >
+                              <div className="w-16 h-16 rounded-full border-2 border-white/70 bg-black/10 backdrop-blur-sm flex items-center justify-center transition-all duration-300 group-hover/play:bg-white group-hover/play:border-white group-hover/play:scale-110">
+                                  <Play 
+                                      size={24} 
+                                      className="ml-1 text-white transition-colors duration-300 group-hover/play:text-black" 
+                                      fill="currentColor" 
+                                      strokeWidth={0}
+                                  />
+                              </div>
+                          </div>
+                      )}
                   </div>
              ) : (
                 <div 

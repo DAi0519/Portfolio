@@ -34,6 +34,11 @@ let currentContext = {
   projectSlug: 'general'
 };
 
+// Content-based deduplication: maps file content hash -> existing local path
+// This prevents the same image from being downloaded twice with different filenames
+// (Notion signed URLs change, causing URL-based hashes to differ)
+const contentHashToPath: Map<string, string> = new Map();
+
 // --- Helper: Slugify string (supports Chinese) ---
 function slugify(text: string): string {
   if (!text) return 'untitled';
@@ -108,18 +113,25 @@ async function downloadAsset(url: string, extension?: string): Promise<string | 
         return;
       }
       
-      const file = fs.createWriteStream(filepath);
-      response.pipe(file);
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
       
-      file.on('finish', () => {
-        file.close();
+      response.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        const contentHash = crypto.createHash('md5').update(buffer).digest('hex');
+        
+        // Check if we already have this exact content
+        const existingPath = contentHashToPath.get(contentHash);
+        if (existingPath) {
+          console.log(`   ♻️ Dedup: Using existing ${existingPath}`);
+          resolve(existingPath);
+          return;
+        }
+        
+        // Write new file
+        fs.writeFileSync(filepath, buffer);
+        contentHashToPath.set(contentHash, publicPath);
         resolve(publicPath);
-      });
-      
-      file.on('error', (err) => {
-        fs.unlink(filepath, () => {});
-        console.error(`   ❌ Write error: ${err.message}`);
-        resolve(null);
       });
     });
     
@@ -263,6 +275,10 @@ async function syncNotionToLocal() {
 
     // Content
     const markdownContent = await fetchPageContent(page.id);
+
+    // NOTE: Removed fallback logic that used first content image as cover.
+    // If no cover is set in Notion (Image property), imageUrl stays null.
+    // This ensures the UI only shows a cover when explicitly set.
 
     projects[typeSelect].push({
       id: page.id,
