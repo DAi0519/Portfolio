@@ -1066,6 +1066,19 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
     return () => observer.disconnect();
   }, [showVinyl]); // Re-run when vinyl appears
 
+  // Vertical Screen Check for Title Visibility
+  const [isShort, setIsShort] = useState(false);
+  useEffect(() => {
+    const checkShort = () => {
+        // In ImmersiveView, the visual takes 40vh on mobile.
+        // We hide if height is too low to comfortably show title + metadata (~480px)
+        setIsShort(window.innerHeight < 480);
+    };
+    checkShort();
+    window.addEventListener('resize', checkShort);
+    return () => window.removeEventListener('resize', checkShort);
+  }, []);
+
   // Data Fetching Logic (Reusable)
   const fetchAlbumData = async () => {
       // Don't set global loading here to avoid full screen flickering on refresh
@@ -1276,6 +1289,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
               <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 xl:pr-32 max-w-7xl mx-auto flex flex-col justify-start md:justify-center">
                   
                   {/* Header */}
+                  {!isShort && (
                   <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1306,11 +1320,12 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                    <span className="text-[10px] font-mono font-medium uppercase tracking-[0.25em] text-neutral-500">
                                       {albumData.id} COLLECTION
                                    </span>
-                                </div>
-                              </div>
-                          </div>
-                      </div>
-                  </motion.div>
+                                 </div>
+                               </div>
+                           </div>
+                       </div>
+                   </motion.div>
+                   )}
 
                   {/* List or Intro Content */}
                   <div className="space-y-0 pb-24">

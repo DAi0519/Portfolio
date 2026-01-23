@@ -40,56 +40,70 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     const handleResize = () => {
         const w = window.innerWidth;
         const h = window.innerHeight;
-        const isShort = h < 600; // Early detection for landscape/short screens
 
         let mode: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
-        
         if (w < 768) mode = 'MOBILE';
         else if (w < 1280) mode = 'TABLET'; 
+
+        // 1. SYSTEM METRICS & CONSTANTS
+        // Desired visual gap between album cover and title group
+        const MIN_VISUAL_GAP = mode === 'MOBILE' ? 40 : 60;
         
-        // 1. Define The Stage (Safe Zones)
-        // Adjust these values to match the actual height of Header and Footer+Title
-        // Optimizing for Landscape/Short screens: Reduce vertical padding drastically
-        const STAGE_TOP = isShort ? 80 : (mode === 'MOBILE' ? 100 : 120);
-        const STAGE_BOTTOM = isShort ? 60 : (mode === 'MOBILE' ? 240 : 260); // Hide text -> minimal bottom spacing
+        // Estimated height of the title group (Accent Bar + H2 + P + Margins)
+        // More precise estimates based on standard rendering:
+        const TITLE_GROUP_TOTAL_FOOTPRINT = mode === 'MOBILE' ? 140 : 160;
         
-        const availableHeight = h - (STAGE_TOP + STAGE_BOTTOM);
+        // Pinned bottom position of the title group container
+        const TITLE_BOTTOM_OFFSET = mode === 'MOBILE' ? 128 : 96; // matches bottom-32 / bottom-24
+
+        // 2. STAGE CALCULATIONS (NORMAL STATE)
+        const STAGE_TOP_NON_SHORT = mode === 'MOBILE' ? 100 : 120;
+        const STAGE_BOTTOM_NON_SHORT = mode === 'MOBILE' ? 240 : 260; // Space reserved for title
         
-        // 2. Calculate Systematic Card Size (Bi-axial for ALL modes)
-        let cardSize = 0;
+        const availableHeight = h - (STAGE_TOP_NON_SHORT + STAGE_BOTTOM_NON_SHORT);
         
-        // Width Constraint
+        // 3. CARD SIZE CALCULATION
         const widthBase = mode === 'MOBILE' 
             ? Math.min(280, w * 0.55)
             : Math.min(480, Math.max(300, w * 0.22));
             
-        // Height Constraint (Fit to Stage)
-        const heightBase = availableHeight * 0.95;
-        
-        // Final Size: Fit to Box
-        // Mobile min: 160, Desktop min: 200
         // Relax minSize on extremely short screens to avoid overlap
-        // If screen is short (<600), allow shrinking down to 120px.
-        // Relax minSize on extremely short screens to avoid overlap
-        // If screen is short (<600), allow shrinking down to 120px.
-        const minSize = isShort ? 120 : (mode === 'MOBILE' ? 160 : 200);
-        
-        cardSize = Math.max(minSize, Math.min(widthBase, heightBase));
+        const minSize = mode === 'MOBILE' ? 160 : 200;
+        const cardSize = Math.max(minSize, Math.min(widthBase, availableHeight * 0.95));
 
-        // 3. Spacing
-        let xSpacing = 0;
-        if (mode === 'MOBILE') {
-            xSpacing = 85; 
-        } else {
-            xSpacing = cardSize * 0.60;
-        }
+        // 4. DYNAMIC BREAKPOINT LOGIC
+        // Calculate the actual gap if we were in "Normal" mode
+        // Stage is centered between Top and Bottom. 
+        // Card bottom position relative to viewport top:
+        const stageCenterY = STAGE_TOP_NON_SHORT + (availableHeight / 2);
+        const cardBottomY = stageCenterY + (cardSize / 2);
+        
+        // Title top position relative to viewport top:
+        const titleTopY = h - (TITLE_BOTTOM_OFFSET + TITLE_GROUP_TOTAL_FOOTPRINT);
+        
+        const actualGap = titleTopY - cardBottomY;
+        
+        // Decision: Should we hide the title?
+        // Use a more generous gap for Desktop (80px) and 50px for Mobile
+        const thresholdGap = mode === 'MOBILE' ? 35 : 80;
+        const isShort = actualGap < thresholdGap || h < 480;
+
+        // 5. FINAL LAYOUT ASSIGNMENT
+        const STAGE_TOP = isShort ? 80 : STAGE_TOP_NON_SHORT;
+        const STAGE_BOTTOM = isShort ? 60 : STAGE_BOTTOM_NON_SHORT;
+        
+        const finalAvailableHeight = h - (STAGE_TOP + STAGE_BOTTOM);
+        const finalCardSize = Math.max(isShort ? 120 : minSize, Math.min(widthBase, finalAvailableHeight * 0.95));
+
+        // Spacing
+        const xSpacing = mode === 'MOBILE' ? 85 : finalCardSize * 0.60;
 
         setLayout({ 
             mode, 
             width: w, 
             height: h, 
             isShort,
-            cardSize, 
+            cardSize: finalCardSize, 
             xSpacing,
             stageTop: STAGE_TOP,
             stageBottom: STAGE_BOTTOM
