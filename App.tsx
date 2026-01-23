@@ -206,10 +206,16 @@ const App: React.FC = () => {
                    audioRef.current.load();
                }
 
-               // Always Auto-Play Album Music
-               setIsMusicPlaying(true);
+               // Attempt Auto-Play
                audioRef.current.volume = 0.4;
-               audioRef.current.play().catch(e => console.log("Album play failed", e));
+               audioRef.current.play()
+                .then(() => {
+                    setIsMusicPlaying(true);
+                })
+                .catch(e => {
+                    console.log("Album auto-play blocked (user interaction required):", e);
+                    setIsMusicPlaying(false);
+                });
           } 
           else if (mode === 'RETURN_HOME') {
                // RETURNING HOME: Switch back to BGM
@@ -222,9 +228,15 @@ const App: React.FC = () => {
 
                // Restore Play State
                if (bgmState.current.isPlaying) {
-                   setIsMusicPlaying(true);
                    audioRef.current.volume = 0.4;
-                   audioRef.current.play().catch(e => console.log("BGM Resume Failed", e));
+                   audioRef.current.play()
+                    .then(() => {
+                        setIsMusicPlaying(true);
+                    })
+                    .catch(e => {
+                        console.log("BGM Resume Failed:", e);
+                        setIsMusicPlaying(false);
+                    });
                } else {
                    setIsMusicPlaying(false);
                    audioRef.current.pause();

@@ -314,41 +314,20 @@ const VideoGridItem: React.FC<{
     track: ProjectItem;
     index: number;
     color: string;
-    onClick: () => void;
+    onClick?: () => void;
     delay: number;
-    // Global video state management
-    playingVideoId: string | null;
-    onVideoPlay?: (videoId: string, videoRef: React.RefObject<HTMLVideoElement>) => void;
-    onVideoEnd?: (videoId: string) => void;
-}> = ({ track, color, onClick, delay, playingVideoId, onVideoPlay, onVideoEnd }) => {
+    onVideoPlay?: () => void;
+    onVideoEnd?: () => void;
+}> = ({ track, color, onClick, delay, onVideoPlay, onVideoEnd }) => {
     const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
     const videoRef = React.useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = React.useState(false);
     const [isLandscape, setIsLandscape] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true); // Default to loading
     
-    // Auto-pause when another video starts playing
-    React.useEffect(() => {
-        if (playingVideoId !== null && playingVideoId !== track.id && isPlaying) {
-            if (videoRef.current && !videoRef.current.paused) {
-                videoRef.current.pause();
-            }
-            setIsPlaying(false);
-        }
-    }, [playingVideoId, track.id, isPlaying]);
-    
-    // Extract video URL if available in content (memoized for stability)
-    const videoUrl = React.useMemo(() => {
-        const match = track.content?.match(/!\[VIDEO\]\((.*?)\)/);
-        return match ? match[1] : null;
-    }, [track.content]);
-    
-    // Check if imageUrl is actually a poster image (not a video file)
-    const isValidPoster = React.useMemo(() => {
-        if (!track.imageUrl) return false;
-        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
-        return imageExtensions.some(ext => track.imageUrl!.toLowerCase().endsWith(ext));
-    }, [track.imageUrl]);
+    // Extract video URL if available in content
+    const videoMatch = track.content?.match(/!\[VIDEO\]\((.*?)\)/);
+    const videoUrl = videoMatch ? videoMatch[1] : null;
 
     const handlePlay = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -356,13 +335,13 @@ const VideoGridItem: React.FC<{
             videoRef.current.muted = false;
             videoRef.current.play();
             setIsPlaying(true);
-            onVideoPlay?.(track.id, videoRef); // Notify parent with video ID and ref
+            onVideoPlay?.(); // Notify parent
         }
     };
 
     const handleVideoEnd = () => {
         setIsPlaying(false);
-        onVideoEnd?.(track.id); // Notify parent with video ID
+        onVideoEnd?.(); // Notify parent
     };
 
     const handleLoadedMetadata = () => {
@@ -379,7 +358,7 @@ const VideoGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
-            className={`group cursor-pointer mb-5 w-full col-span-2 md:col-span-1 ${isLandscape ? 'md:col-span-2' : ''}`} // Mobile: Always full width (col-span-2 in a 1-col grid acts as 1, but safer). Actually, grid is cols-1.
+            className={`group mb-5 w-full col-span-2 md:col-span-1 ${isLandscape ? 'md:col-span-2' : ''} ${onClick ? 'cursor-pointer' : ''}`} // Mobile: Always full width (col-span-2 in a 1-col grid acts as 1, but safer). Actually, grid is cols-1.
         >
             <div className="relative w-full overflow-hidden rounded-sm bg-neutral-900 mb-3">
                 {videoUrl ? (
@@ -389,8 +368,8 @@ const VideoGridItem: React.FC<{
                     >
                         <video 
                             ref={videoRef}
-                            src={isValidPoster ? videoUrl : videoUrl + "#t=0.001"}
-                            poster={isValidPoster ? track.imageUrl : undefined}
+                            src={videoUrl + (track.imageUrl ? "" : "#t=0.001")} // Only use hack if no poster
+                            poster={track.imageUrl || undefined}
                             controls={isPlaying}
                             playsInline
                             webkit-playsinline="true"
@@ -399,7 +378,7 @@ const VideoGridItem: React.FC<{
                             onLoadedMetadata={handleLoadedMetadata}
                             onEnded={handleVideoEnd}
                             onPause={handleVideoEnd}
-                            className={`w-full h-auto object-contain rounded-sm bg-black transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                            className={`w-full h-auto object-cover rounded-sm bg-black transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                         />
                         
                         {/* Loading Spinner Overlay */}
@@ -513,54 +492,42 @@ const PhotoGridItem: React.FC<{
     );
 };
 
-// SMART GRID LAYOUT HELPER
-// Uses CSS Grid with intelligent spanning logic:
-// - If ≤3 items: all fit in one row (each takes 1 column)
-// - If >3 items: wide images span 2 columns for dramatic effect
+// MASONRY LAYOUT HELPER
 const MasonryLayout: React.FC<{
     tracks: ProjectItem[];
     renderItem: (track: ProjectItem, index: number) => React.ReactNode;
 }> = ({ tracks, renderItem }) => {
-    const [wideItemIds, setWideItemIds] = React.useState<Set<string>>(new Set());
+    const [columns, setColumns] = React.useState(2);
 
     React.useEffect(() => {
-        tracks.forEach(track => {
-            if (track.imageUrl && !wideItemIds.has(track.id)) {
-                const img = new Image();
-                img.src = track.imageUrl;
-                img.onload = () => {
-                    const aspect = img.width / img.height;
-                    // Threshold > 1.35 (wider than 4:3) marks as wide
-                    if (aspect > 1.35) {
-                        setWideItemIds(prev => {
-                            const next = new Set(prev);
-                            next.add(track.id);
-                            return next;
-                        });
-                    }
-                };
-            }
-        });
-    }, [tracks]);
+        const updateColumns = () => {
+            setColumns(window.innerWidth >= 768 ? 3 : 2);
+        };
+        
+        updateColumns();
+        window.addEventListener('resize', updateColumns);
+        return () => window.removeEventListener('resize', updateColumns);
+    }, []);
 
-    // Smart span logic: only span 2 when there are enough items
-    const shouldSpan = tracks.length > 3;
+    const cols = React.useMemo(() => {
+        const buckets = Array.from({ length: columns }, () => [] as { track: ProjectItem, index: number }[]);
+        tracks.forEach((track, i) => {
+            buckets[i % columns].push({ track, index: i });
+        });
+        return buckets;
+    }, [tracks, columns]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-            {tracks.map((track, index) => {
-                const isWide = wideItemIds.has(track.id);
-                // Wide items span 2 columns on lg screens, but only if we have enough items
-                const spanClass = (isWide && shouldSpan) ? 'lg:col-span-2' : '';
-                return (
-                    <div 
-                        key={track.id} 
-                        className={`w-full ${spanClass}`}
-                    >
-                        {renderItem(track, index)}
-                    </div>
-                );
-            })}
+        <div className="flex gap-3 items-start pb-20">
+            {cols.map((colItems, colIndex) => (
+                <div key={colIndex} className="flex flex-col gap-3 flex-1">
+                    {colItems.map(({ track, index }) => (
+                         <div key={track.id} className="w-full">
+                             {renderItem(track, index)}
+                         </div>
+                    ))}
+                </div>
+            ))}
         </div>
     );
 };
@@ -633,7 +600,7 @@ const CodingGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
-            className="group cursor-pointer mb-8 w-full block"
+            className="group cursor-pointer mb-6 w-full block"
         >
             {/* Card Container - Dieter Rams Style: Clean, precise, subtle shadows */}
             <div className="relative w-full aspect-[16/9] overflow-hidden rounded-sm bg-neutral-100 mb-4 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:-translate-y-1">
@@ -743,55 +710,42 @@ const Lightbox: React.FC<{
 };
 
 // --- Image Extraction Helper ---
-const extractImages = (content: string, coverImage?: string | null): { images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[]; cleanContent: string } => {
-    let images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[] = [];
+const extractImages = (content: string, coverImage?: string | null): { images: { url: string; alt?: string; type?: 'image' | 'video' }[]; cleanContent: string } => {
+    let images: { url: string; alt?: string; type?: 'image' | 'video' }[] = [];
     
-    // 1. Extract all media from content
+    // Add cover image first if it exists
+    if (coverImage) {
+        images.push({ url: coverImage, alt: 'Cover', type: 'image' });
+    }
+
+    // Regex to find ![]()
     const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
     let match;
-    const contentMedia: { url: string; alt: string; type: 'image' | 'video' }[] = [];
-    
+    const foundUrls = new Set<string>();
+    if (coverImage) foundUrls.add(coverImage);
+
     while ((match = imageRegex.exec(content)) !== null) {
         const alt = match[1];
         const url = match[2];
-        const type = (alt === 'VIDEO' || url.match(/\.(mp4|mov|webm)$/i)) ? 'video' : 'image';
-        contentMedia.push({ url, alt, type });
-    }
-
-    // 2. Handle Cover Image Logic
-    let coverHandled = false;
-    
-    if (coverImage) {
-        // Check if there is a video in the content
-        const firstVideoIndex = contentMedia.findIndex(m => m.type === 'video');
         
-        if (firstVideoIndex !== -1) {
-            // Case A: Video exists. Use cover as POSTER for the first video.
-            // We do NOT add the cover as a standalone image.
-            // We modify the contentMedia item directly.
-            // (WE cast to any to add poster property which might not be on contentMedia type definition initially)
-            (contentMedia[firstVideoIndex] as any).poster = coverImage;
-            coverHandled = true;
-        } else {
-            // Case B: No video. Add cover as the first IMAGE.
-            images.push({ url: coverImage, alt: 'Cover', type: 'image' });
-            coverHandled = true;
+        if (!foundUrls.has(url)) {
+            // Check if video
+            if (alt === 'VIDEO' || url.match(/\.(mp4|mov|webm)$/i)) {
+                images.push({ url, alt, type: 'video' });
+            } else {
+                images.push({ url, alt, type: 'image' });
+            }
+            foundUrls.add(url);
         }
     }
 
-    // 3. Merge content media (deduplicating if parsing logic finds same URL)
-    const foundUrls = new Set<string>();
-    if (images.length > 0) foundUrls.add(images[0].url);
+    // We do NOT remove images from content for now, based on user preference to just "support group picture switching".
+    // Wait, the plan said "Hide extracted images from Markdown content".
+    // User request: "要以图片内容为主，标题与简介放下方" (Content focused on images, title/desc below).
+    // Re-reading plan: "If an image is shown in the Carousel, it will be hidden from the text body to avoid seeing it twice."
+    // OK, implementing hiding logic.
 
-    contentMedia.forEach(item => {
-        if (!foundUrls.has(item.url)) {
-            images.push(item);
-            foundUrls.add(item.url);
-        }
-    });
-
-    // Remove images/videos from markdown content
-    const cleanContent = content.replace(/!\[(.*?)\]\((.*?)\)/g, ''); 
+    const cleanContent = content.replace(/!\[(.*?)\]\((.*?)\)/g, ''); // Naive removal. Can be smarter (remove surrounding newlines).
 
     return { images, cleanContent: cleanContent.replace(/\n{3,}/g, '\n\n').trim() };
 };
@@ -853,12 +807,7 @@ const ProjectModal: React.FC<{
   color: string;
   albumId: string;
   onClose: () => void;
-  // Video sync props
-  playingVideoId: string | null;
-  activeVideoRef: React.MutableRefObject<HTMLVideoElement | null>;
-  onVideoPlay: (videoId: string, videoRef: React.RefObject<HTMLVideoElement>) => void;
-  onVideoEnd: (videoId: string) => void;
-}> = ({ project, color, albumId, onClose, playingVideoId, activeVideoRef, onVideoPlay, onVideoEnd }) => {
+}> = ({ project, color, albumId, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const dragControls = useDragControls();
   const isWriting = albumId === AlbumType.WRITING;
@@ -954,7 +903,7 @@ const ProjectModal: React.FC<{
 
                      {/* Main Cover (From Notion Image property) */}
                      {project.imageUrl && (
-                         <div className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50">
+                         <div className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50 shadow-sm">
                              <ImageWithLoader 
                                  src={project.imageUrl} 
                                  alt={project.title} 
@@ -1002,11 +951,6 @@ const ProjectModal: React.FC<{
                         <Carousel 
                            images={images} 
                            onImageClick={(url, type) => setVisibleImage({ url, type })}
-                           projectId={project.id}
-                           playingVideoId={playingVideoId}
-                           activeVideoRef={activeVideoRef}
-                           onVideoPlay={onVideoPlay}
-                           onVideoEnd={onVideoEnd}
                         />
                     ) : (
                        <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
@@ -1100,33 +1044,6 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
   const [backHovered, setBackHovered] = useState(false);
   const [showMiniControl, setShowMiniControl] = useState(false); // Mini Vinyl State
-
-  // GLOBAL VIDEO STATE MANAGEMENT
-  // Tracks which video is currently playing across all components
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
-  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
-
-  // Centralized video play handler - ensures only one video plays at a time
-  const handleGlobalVideoPlay = React.useCallback((videoId: string, videoRef: React.RefObject<HTMLVideoElement>) => {
-    setPlayingVideoId(videoId);
-    activeVideoRef.current = videoRef.current;
-    onVideoPlay?.(); // Notify parent (App.tsx) for music pause etc.
-  }, [onVideoPlay]);
-
-  // Centralized video end handler
-  const handleGlobalVideoEnd = React.useCallback((videoId: string) => {
-    if (playingVideoId === videoId) {
-      setPlayingVideoId(null);
-      activeVideoRef.current = null;
-      onVideoEnd?.();
-    }
-  }, [playingVideoId, onVideoEnd]);
-
-  // When opening modal, pass current video state to Carousel
-  const handleOpenModal = React.useCallback((track: ProjectItem) => {
-    setSelectedProject(track);
-    // If this track's video is playing, Carousel will continue from current position
-  }, []);
 
   // Dynamic Data State
   const [albumData, setAlbumData] = useState<Album>(initialAlbum);
@@ -1316,7 +1233,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                  className="relative w-full h-full flex items-center overflow-hidden"
               >
                  {/* Adjusted positioning */}
-                 <div ref={vinylRef} className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[500px] max-h-[500px] relative -translate-x-[20%] md:-translate-x-[40%]">
+                 <div ref={vinylRef} className="w-[60vw] h-[60vw] md:w-[32vw] md:h-[32vw] max-w-[550px] max-h-[550px] relative -translate-x-[20%] md:-translate-x-[40%]">
                     <RecordVinyl 
                         album={albumData} 
                         isActive={showVinyl} 
@@ -1356,7 +1273,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                 className="relative z-10 flex-1 w-full min-h-[100dvh] md:min-h-0 md:h-full md:overflow-y-auto no-scrollbar"
                 style={{ marginBottom: 0 }}
             >
-              <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 flex flex-col justify-start md:justify-center">
+              <div className="min-h-full py-8 pl-8 pr-16 md:p-16 lg:p-24 xl:pr-32 max-w-7xl mx-auto flex flex-col justify-start md:justify-center">
                   
                   {/* Header */}
                   <motion.div 
@@ -1439,18 +1356,17 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                 {albumData.id === AlbumType.VIDEO ? (
                                     // VIDEO GRID - MASONRY
                                     // columns-1 md:columns-2
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pl-8 md:pl-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 pl-8 md:pl-10">
                                         {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
                                             <VideoGridItem
                                                 key={track.id}
                                                 track={track}
                                                 index={index}
                                                 color={albumData.color}
-                                                onClick={() => { /* Modal disabled for Video album */ }}
+                                                // No onClick -> No Detail Modal
                                                 delay={400 + (index * 80)}
-                                                playingVideoId={playingVideoId}
-                                                onVideoPlay={handleGlobalVideoPlay}
-                                                onVideoEnd={handleGlobalVideoEnd}
+                                                onVideoPlay={onVideoPlay}
+                                                onVideoEnd={onVideoEnd}
                                             />
                                         ))}
                                     </div>
@@ -1473,7 +1389,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     </div>
                                 ) : albumData.id === AlbumType.CODING ? (
                                     // CODING GRID - SINGLE COLUMN
-                                    <div className="grid grid-cols-1 gap-y-12 pt-4 pl-8 md:pl-10">
+                                    <div className="grid grid-cols-1 gap-y-6 pt-4 pl-8 md:pl-10">
                                          {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
                                             <CodingGridItem
                                                 key={track.id}
@@ -1518,10 +1434,6 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
             color={albumData.color} 
             albumId={albumData.id}
             onClose={() => setSelectedProject(null)} 
-            playingVideoId={playingVideoId}
-            activeVideoRef={activeVideoRef}
-            onVideoPlay={handleGlobalVideoPlay}
-            onVideoEnd={handleGlobalVideoEnd}
             key="modal"
           />
         )}
