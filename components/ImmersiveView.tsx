@@ -378,7 +378,7 @@ const VideoGridItem: React.FC<{
                             onLoadedMetadata={handleLoadedMetadata}
                             onEnded={handleVideoEnd}
                             onPause={handleVideoEnd}
-                            className={`w-full h-auto object-cover rounded-sm bg-black transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                            className={`w-full h-auto object-contain rounded-sm bg-black transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                         />
                         
                         {/* Loading Spinner Overlay */}
