@@ -42,14 +42,13 @@ const App: React.FC = () => {
   const [showOpening, setShowOpening] = useState(() => {
     // Safety check for SSR or non-browser environments (though this is client-side React)
     if (typeof window !== 'undefined') {
-        const hasVisited = sessionStorage.getItem('hasVisited');
-        // If deep linking (viewMode is DETAIL), we should SKIP opening screen?
-        // User didn't ask, but usually direct link implies skipping intro.
-        // Let's keep it consistent: strict deep link skips intro if desired, or check visited.
+        // Pure URL-based logic:
+        // 1. If 'album' param exists -> We are deep linking -> SKIP intro (return false)
+        // 2. If no 'album' param -> We are at root -> SHOW intro (return true)
         const params = new URLSearchParams(window.location.search);
-        if (params.get('album')) return false; // Skip intro if linking to album
+        if (params.get('album')) return false; 
         
-        return !hasVisited;
+        return true;
     }
     return true;
   });
@@ -304,8 +303,8 @@ const App: React.FC = () => {
           onStart={undefined} // Disable audio priming to ensure no auto-play
           onComplete={() => {
             setShowOpening(false);
-            // Mark as visited in session storage
-            sessionStorage.setItem('hasVisited', 'true');
+            // No longer using session storage to block future visits
+            // sessionStorage.setItem('hasVisited', 'true');
             // Ensure music is stopped
             if (audioRef.current) {
                 audioRef.current.pause();

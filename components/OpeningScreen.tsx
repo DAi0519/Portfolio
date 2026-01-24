@@ -69,10 +69,45 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
   });
 
   // Interaction: Drag to scroll (Scrubbing)
+  // Interaction: Drag to scroll (Scrubbing)
   const lastAngleRef = useRef(0);
   
   // Disc size (responsive) - Reduced for delicate Japanese feel
   const discSize = "min(54vw, 54vh)";
+
+  // Layout Collision Check: Hide button if vinyl overlaps with bottom area
+  const [isButtonVisible, setIsButtonVisible] = useState(true);
+  
+  useEffect(() => {
+    const checkOverlap = () => {
+        const vh = window.innerHeight;
+        // Vinyl is centered (-5vh offset). 
+        // Available space below center = 50vh + 5vh = 55vh (roughly)
+        // Vinyl Radius = 27vmin (half of 54vmin)
+        
+        // Let's do pixel math for precision
+        const vinylSizePx = Math.min(window.innerWidth * 0.54, window.innerHeight * 0.54);
+        const vinylRadius = vinylSizePx / 2;
+        
+        // Vinyl Center Y (approximate based on CSS layouts)
+        // Container is h-[100dvh], centered. Vinyl has -translate-y-[5vh]
+        const centerY = (vh / 2) - (vh * 0.05);
+        
+        const vinylBottom = centerY + vinylRadius;
+        
+        // Button Top Position
+        // Button is absolute bottom-24 (96px)
+        // Button Height ~32px + Label/Padding ~ 20px
+        const buttonTop = vh - 130; // Safety threshold (96px + buffer)
+        
+        // If vinyl bottom is below button top (with 20px buffer), hide button
+        setIsButtonVisible(vinylBottom < buttonTop - 20); 
+    };
+    
+    checkOverlap();
+    window.addEventListener('resize', checkOverlap);
+    return () => window.removeEventListener('resize', checkOverlap);
+  }, []);
   
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
     handleInteraction(); // Prime Audio
@@ -331,7 +366,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
           {/* Enter Button - Retro Horizontal Toggle Switch */}
           {/* Wrap in AnimatePresence to handle exit animation sync */}
           <AnimatePresence>
-            {!isExiting && (
+            {!isExiting && isButtonVisible && (
               <SwitchButton onToggle={() => {
                   handleInteraction(); // Prime Audio
                   if (containerRef.current) {
