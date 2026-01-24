@@ -305,11 +305,9 @@ const App: React.FC = () => {
             setShowOpening(false);
             // No longer using session storage to block future visits
             // sessionStorage.setItem('hasVisited', 'true');
-            // Ensure music is stopped
-            if (audioRef.current) {
-                audioRef.current.pause();
-            }
-            setIsMusicPlaying(false);
+            
+            // Auto-play BGM on entry (User interaction has occurred in OpeningScreen)
+            setIsMusicPlaying(true);
         }} />
       )}
 

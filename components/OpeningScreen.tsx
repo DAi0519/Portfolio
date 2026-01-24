@@ -396,9 +396,18 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 // Sub-component for the Retro Switch to handle self-contained animation state
 const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onToggle, opacity }) => {
   const [isOn, setIsOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleClick = () => {
     if (isOn) return; // Prevent double-click
+    
+    // Play Sound Effect
+    if (!audioRef.current) {
+        audioRef.current = new Audio('/musics/vinyl_start.wav');
+        audioRef.current.volume = 0.6; // Moderate volume
+    }
+    audioRef.current.play().catch(e => console.log("SFX Play failed", e));
+
     setIsOn(true);
     
     // Delay actual navigation slightly to let the "Click" animation feel satisfying
