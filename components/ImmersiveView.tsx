@@ -145,7 +145,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={i} className="text-sm font-bold uppercase tracking-[0.2em] mt-12 mb-6 text-neutral-900 font-sans border-b border-neutral-100 pb-2">
+          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-16 mb-4 text-neutral-400 pb-2">
             {trimmed.replace('### ', '')}
           </h3>
         );
@@ -153,7 +153,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('## ')) {
            return (
-             <h2 key={i} className="text-xl md:text-2xl font-bold mt-16 mb-8 text-neutral-900 tracking-tight">
+             <h2 key={i} className="text-2xl md:text-3xl font-serif font-bold mt-16 mb-6 text-neutral-900 tracking-tight leading-tight">
                {trimmed.replace('## ', '')}
              </h2>
            );
@@ -165,9 +165,9 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('> ')) {
            return (
-               <blockquote key={i} className="pl-6 border-l-2 border-neutral-200 my-8 italic text-neutral-500 text-lg">
-                   {trimmed.replace('> ', '')}
-               </blockquote>
+                <blockquote key={i} className="pl-0 border-l-0 my-8 font-serif text-2xl md:text-3xl text-neutral-800 leading-snug text-center px-8">
+                   "{trimmed.replace('> ', '')}"
+                </blockquote>
            );
       }
 
@@ -178,11 +178,11 @@ const SimpleMarkdown: React.FC<{
       if (trimmed.startsWith('- ')) {
          const parts = trimmed.replace('- ', '').split('**');
          return (
-           <div key={i} className="flex items-baseline gap-3 my-3 pl-2">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0 translate-y-[-1px] opacity-60" style={{ backgroundColor: safeColor }} />
-              <p className="flex-1 text-neutral-800 leading-relaxed m-0 text-base font-normal">
+           <div key={i} className="flex items-baseline gap-4 mt-1 mb-1.5 pl-2">
+              <span className="w-1.5 h-1.5 rounded-sm shrink-0 translate-y-[-2px] bg-neutral-800" />
+              <p className="flex-1 text-neutral-800 leading-relaxed m-0 text-base font-sans font-normal tracking-wide">
                  {parts.map((part, idx) => 
-                    idx % 2 === 1 ? <strong key={idx} className="font-semibold text-black">{part}</strong> : part
+                    idx % 2 === 1 ? <strong key={idx} className="font-semibold text-neutral-900">{part}</strong> : part
                  )}
               </p>
            </div>
@@ -191,7 +191,7 @@ const SimpleMarkdown: React.FC<{
 
       const parts = trimmed.split('**');
       return (
-        <p key={i} className="text-neutral-600 leading-8 mb-6 font-normal text-lg">
+        <p key={i} className="text-neutral-800 leading-relaxed mt-5 mb-2 font-sans font-normal text-base md:text-lg tracking-wide">
            {parts.map((part, idx) => 
               idx % 2 === 1 ? <strong key={idx} className="font-semibold text-neutral-900">{part}</strong> : part
            )}
@@ -212,11 +212,11 @@ const SimpleMarkdown: React.FC<{
 
       return (
           <div key={key} className="my-8 overflow-x-auto rounded-sm border border-neutral-200">
-              <table className="w-full text-sm text-left border-collapse">
+              <table className="w-full text-sm text-left border-collapse min-w-[600px]">
                   <thead className="bg-neutral-50">
                       <tr>
                           {headerCells.map((cell, i) => (
-                              <th key={i} className="px-4 py-3 font-semibold text-neutral-800 border-b border-neutral-200">
+                              <th key={i} className="px-4 py-3 font-sans text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap">
                                   {cell}
                               </th>
                           ))}
@@ -226,7 +226,7 @@ const SimpleMarkdown: React.FC<{
                       {bodyRows.map((row, rowIdx) => (
                           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
                               {parseRow(row).map((cell, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-3 text-neutral-600 border-b border-neutral-100">
+                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-sans leading-relaxed">
                                       {cell}
                                   </td>
                               ))}
