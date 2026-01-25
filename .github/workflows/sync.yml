@@ -1,10 +1,10 @@
 name: Sync Notion Content
 
 on:
-  workflow_dispatch: # 允许你在 GitHub 手动点击按钮触发
+  workflow_dispatch: # 允许手动触发
   schedule:
-    # 每天北京时间 08:00 (UTC 00:00) 自动运行一次，可自行调整
-    - cron: "0 0 * * *"
+    # 每30分钟自动运行一次，保持 Notion 签名 URL 有效
+    - cron: "*/30 * * * *"
 
 jobs:
   sync:
@@ -31,12 +31,9 @@ jobs:
       - name: Run Notion Sync
         run: npm run sync
         env:
-          # 需要你在 GitHub 仓库 Settings > Secrets 里配置这两个变量
+          # Notion 配置
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
-
-      - name: Commit and Push Changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(content): auto-sync from notion [skip ci]"
-          file_pattern: "data/projects.json public/media/*"
+          # Supabase 配置 (需要 Service Key 来写入数据)
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
