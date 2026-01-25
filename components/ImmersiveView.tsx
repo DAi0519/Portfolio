@@ -25,6 +25,60 @@ const SimpleMarkdown: React.FC<{
 }> = ({ content, color, albumId, onImageClick }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   
+  // --- Inline Format Parser (handles **bold**, *italic*, ~~strikethrough~~, [links](url)) ---
+  const parseInlineFormats = (text: string): React.ReactNode[] => {
+    const result: React.ReactNode[] = [];
+    // Combined regex: order matters - check longer patterns first
+    // ~~strikethrough~~, **bold**, *italic*, [text](url)
+    const regex = /(~~(.+?)~~|\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
+    
+    let lastIndex = 0;
+    let match;
+    let keyIdx = 0;
+    
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before this match
+      if (match.index > lastIndex) {
+        result.push(text.slice(lastIndex, match.index));
+      }
+      
+      const fullMatch = match[0];
+      
+      if (fullMatch.startsWith('~~')) {
+        // Strikethrough
+        result.push(<del key={keyIdx++} className="text-neutral-400 line-through">{match[2]}</del>);
+      } else if (fullMatch.startsWith('**')) {
+        // Bold
+        result.push(<strong key={keyIdx++} className="font-semibold text-neutral-900">{match[3]}</strong>);
+      } else if (fullMatch.startsWith('*')) {
+        // Italic
+        result.push(<em key={keyIdx++} className="italic">{match[4]}</em>);
+      } else if (fullMatch.startsWith('[')) {
+        // Link
+        result.push(
+          <a 
+            key={keyIdx++} 
+            href={match[6]} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-neutral-600 transition-colors"
+          >
+            {match[5]}
+          </a>
+        );
+      }
+      
+      lastIndex = match.index + fullMatch.length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+    
+    return result.length > 0 ? result : [text];
+  };
+  
   // --- Tokenize content into segments (lines, tables, or galleries) ---
   const lines = content.split('\n');
   const segments: { type: 'line' | 'table' | 'gallery'; lines: string[] }[] = [];
@@ -106,7 +160,7 @@ const SimpleMarkdown: React.FC<{
 
   const renderLine = (line: string, i: number) => {
       const trimmed = line.trim();
-      if (!trimmed) return <div key={i} className="h-4" />;
+      if (!trimmed) return <div key={i} className="h-2" />;
 
       // Video Parser: ![VIDEO](url)
       const videoMatch = trimmed.match(/^!\[VIDEO\]\((.*?)\)$/);
@@ -143,30 +197,39 @@ const SimpleMarkdown: React.FC<{
       }
 
 
+      // H1 Heading
+      if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
+        return (
+          <h1 key={i} className="text-2xl md:text-3xl font-serif font-bold mt-8 mb-4 text-neutral-900 tracking-tight leading-tight">
+            {parseInlineFormats(trimmed.replace('# ', ''))}
+          </h1>
+        );
+      }
+
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-16 mb-4 text-neutral-400 pb-2">
-            {trimmed.replace('### ', '')}
+          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-6 mb-2 text-neutral-400 pb-1">
+            {parseInlineFormats(trimmed.replace('### ', ''))}
           </h3>
         );
       }
 
       if (trimmed.startsWith('## ')) {
            return (
-             <h2 key={i} className="text-2xl md:text-3xl font-serif font-bold mt-16 mb-6 text-neutral-900 tracking-tight leading-tight">
-               {trimmed.replace('## ', '')}
+             <h2 key={i} className="text-xl md:text-2xl font-serif font-bold mt-8 mb-3 text-neutral-900 tracking-tight leading-tight">
+               {parseInlineFormats(trimmed.replace('## ', ''))}
              </h2>
            );
       }
       
       if (trimmed.startsWith('---')) {
-           return <hr key={i} className="my-12 border-neutral-200" />;
+           return <hr key={i} className="my-6 border-neutral-200" />;
       }
 
       if (trimmed.startsWith('> ')) {
            return (
-                <blockquote key={i} className="pl-0 border-l-0 my-8 font-serif text-2xl md:text-3xl text-neutral-800 leading-snug text-center px-8">
-                   "{trimmed.replace('> ', '')}"
+                <blockquote key={i} className="pl-0 border-l-0 my-4 font-serif text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
+                   "{parseInlineFormats(trimmed.replace('> ', ''))}"
                 </blockquote>
            );
       }
@@ -176,25 +239,19 @@ const SimpleMarkdown: React.FC<{
       }
 
       if (trimmed.startsWith('- ')) {
-         const parts = trimmed.replace('- ', '').split('**');
          return (
            <div key={i} className="flex items-baseline gap-4 mt-1 mb-1.5 pl-2">
               <span className="w-1.5 h-1.5 rounded-sm shrink-0 translate-y-[-2px] bg-neutral-800" />
               <p className="flex-1 text-neutral-800 leading-relaxed m-0 text-base font-sans font-normal tracking-wide">
-                 {parts.map((part, idx) => 
-                    idx % 2 === 1 ? <strong key={idx} className="font-semibold text-neutral-900">{part}</strong> : part
-                 )}
+                 {parseInlineFormats(trimmed.replace('- ', ''))}
               </p>
            </div>
          );
       }
 
-      const parts = trimmed.split('**');
       return (
-        <p key={i} className="text-neutral-800 leading-relaxed mt-5 mb-2 font-sans font-normal text-base md:text-lg tracking-wide">
-           {parts.map((part, idx) => 
-              idx % 2 === 1 ? <strong key={idx} className="font-semibold text-neutral-900">{part}</strong> : part
-           )}
+        <p key={i} className="text-neutral-800 leading-relaxed mt-3 mb-1 font-sans font-normal text-base md:text-lg tracking-wide">
+           {parseInlineFormats(trimmed)}
         </p>
       );
   };
@@ -217,7 +274,7 @@ const SimpleMarkdown: React.FC<{
                       <tr>
                           {headerCells.map((cell, i) => (
                               <th key={i} className="px-4 py-3 font-sans text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap">
-                                  {cell}
+                                  {parseInlineFormats(cell)}
                               </th>
                           ))}
                       </tr>
@@ -227,7 +284,7 @@ const SimpleMarkdown: React.FC<{
                           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
                               {parseRow(row).map((cell, cellIdx) => (
                                   <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-sans leading-relaxed">
-                                      {cell}
+                                      {parseInlineFormats(cell)}
                                   </td>
                               ))}
                           </tr>

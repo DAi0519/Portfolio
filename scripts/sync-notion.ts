@@ -1,300 +1,203 @@
 
 import { Client } from '@notionhq/client';
+import { NotionToMarkdown } from 'notion-to-md';
+import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
-import https from 'https';
-import http from 'http';
-import crypto from 'crypto';
 
-// Load environment variables from .env.local
+// Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const NOTION_KEY = process.env.NOTION_API_KEY; 
-const DATA_SOURCE_ID = process.env.NOTION_DATA_SOURCE_ID;
+const NOTION_API_KEY = process.env.NOTION_API_KEY;
+const NOTION_DB_ID = process.env.NOTION_DATA_SOURCE_ID;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY; // Must use Service Key for RLS bypass/writing
 
-if (!NOTION_KEY || !DATA_SOURCE_ID) {
-  console.error('Missing required environment variables.');
-  console.log('Required: NOTION_API_KEY, NOTION_DATA_SOURCE_ID');
+if (!NOTION_API_KEY || !NOTION_DB_ID || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Missing environment variables. Please check .env.local');
   process.exit(1);
 }
 
-const notion = new Client({ auth: NOTION_KEY });
-const MEDIA_ROOT = path.resolve(process.cwd(), 'public/media');
-const DATA_FILE = path.resolve(process.cwd(), 'data/projects.json');
+// Initialize Clients
+const notion = new Client({ auth: NOTION_API_KEY });
+const n2m = new NotionToMarkdown({ notionClient: notion });
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Ensure data directory exists
-if (!fs.existsSync(path.dirname(DATA_FILE))) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-}
-
-// Global context to track current processing item (for folder organization)
-let currentContext = {
-  albumId: 'MISC',
-  projectSlug: 'general'
+// Album/Category Mapping
+// Maps Notion "Album" select option -> Supabase Table Name
+const ALBUM_TABLE_MAP: Record<string, string> = {
+  'CODING': 'projects_coding',
+  'VIDEO': 'projects_video',
+  'PHOTO': 'projects_photo',
+  'WRITING': 'projects_writing'
 };
 
-// Content-based deduplication: maps file content hash -> existing local path
-// This prevents the same image from being downloaded twice with different filenames
-// (Notion signed URLs change, causing URL-based hashes to differ)
-const contentHashToPath: Map<string, string> = new Map();
-
-// --- Helper: Slugify string (supports Chinese) ---
-function slugify(text: string): string {
-  if (!text) return 'untitled';
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-') // replace spaces with -
-    .replace(/[^\w\-\u4e00-\u9fa5]/g, '') // remove chars that are not word, hyphen, or Chinese
-    .replace(/\-\-+/g, '-') // replace multiple - with single -
-    .replace(/^-+/, '') // trim - from start
-    .replace(/-+$/, ''); // trim - from end
-}
-
-// --- Helper: Download a file to structured local folder ---
-async function downloadAsset(url: string, extension?: string): Promise<string | null> {
-  if (!url) return null;
+async function sync() {
+  console.log('🔄 Starting Notion Sync...');
   
-  // Create folder structure: public/media/[Album]/[Project]/
-  const folderPath = path.join(
-    MEDIA_ROOT, 
-    currentContext.albumId.toLowerCase(), 
-    currentContext.projectSlug
-  );
-  
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true });
-  }
-
-  // Generate filename
-  // Try to use original filename from URL if it looks clean, otherwise use hash
-  let filename = '';
-  const originalNameMatch = url.match(/\/([^\/?#]+)[^\/]*$/);
-  
-  if (originalNameMatch && originalNameMatch[1] && originalNameMatch[1].length < 50 && /^[a-zA-Z0-9._-]+$/.test(originalNameMatch[1])) {
-    filename = originalNameMatch[1];
-  } else {
-    // Fallback to hash
-    const hash = crypto.createHash('md5').update(url).digest('hex').slice(0, 8);
-    const ext = extension || getExtensionFromUrl(url) || 'bin';
-    filename = `${hash}.${ext}`;
-  }
-
-  // Handle Douyin/cleaner filenames if manual mapping needed (optional)
-  
-  const filepath = path.join(folderPath, filename);
-  const publicPath = `/media/${currentContext.albumId.toLowerCase()}/${currentContext.projectSlug}/${filename}`;
-  
-  // Skip if already exists
-  if (fs.existsSync(filepath)) {
-    // console.log(`   ⏭️ Skipping: ${filename}`);
-    return publicPath;
-  }
-  
-  console.log(`   ⬇️ Downloading: ${publicPath}`);
-  
-  return new Promise((resolve) => {
-    const protocol = url.startsWith('https') ? https : http;
-    
-    const request = protocol.get(url, { 
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 60000 
-    }, (response) => {
-      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-        downloadAsset(response.headers.location, extension).then(resolve);
-        return;
-      }
-      
-      if (response.statusCode !== 200) {
-        console.warn(`   ⚠️ Failed (HTTP ${response.statusCode}): ${url}`);
-        resolve(null);
-        return;
-      }
-      
-      const chunks: Buffer[] = [];
-      response.on('data', (chunk: Buffer) => chunks.push(chunk));
-      
-      response.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        const contentHash = crypto.createHash('md5').update(buffer).digest('hex');
-        
-        // Check if we already have this exact content
-        const existingPath = contentHashToPath.get(contentHash);
-        if (existingPath) {
-          console.log(`   ♻️ Dedup: Using existing ${existingPath}`);
-          resolve(existingPath);
-          return;
-        }
-        
-        // Write new file
-        fs.writeFileSync(filepath, buffer);
-        contentHashToPath.set(contentHash, publicPath);
-        resolve(publicPath);
-      });
-    });
-    
-    request.on('error', (err) => {
-      console.error(`   ❌ Download error: ${err.message}`);
-      resolve(null);
-    });
-  });
-}
-
-function getExtensionFromUrl(url: string): string | null {
   try {
-    const urlObj = new URL(url);
-    const pathname = urlObj.pathname;
-    const match = pathname.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
-    if (match) return match[1].toLowerCase();
-    
-    // Common mappings
-    if (url.includes('.mp4')) return 'mp4';
-    if (url.includes('.jpg') || url.includes('.jpeg')) return 'jpg';
-    if (url.includes('.png')) return 'png';
-    return null;
-  } catch { return null; }
-}
+    // 1. Fetch all pages from Notion Database
+    console.log(`Querying Database ID: ${NOTION_DB_ID}`);
+    let r = await fetch(`https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${NOTION_API_KEY}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sorts: [{ property: 'Date', direction: 'descending' }],
+      })
+    });
 
-// --- Block Processing ---
-async function fetchPageContent(pageId: string): Promise<string> {
-  try {
-    const blocks = await notion.blocks.children.list({ block_id: pageId });
-    const parts: string[] = [];
-    
-    for (const block of blocks.results) {
-        if ((block as any).type === 'table') {
-            parts.push(await tableToMarkdown(block));
-        } else {
-            parts.push(await blockToMarkdown(block));
+    if (!r.ok) {
+        if (r.status === 404) {
+            console.warn(`⚠️  Database not found (404). Attempting to list ALL accessible databases to debug...`);
+            const searchRes = await fetch('https://api.notion.com/v1/search', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${NOTION_API_KEY}`,
+                    'Notion-Version': '2022-06-28',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filter: { value: 'database', property: 'object' }
+                })
+            });
+            const searchData = await searchRes.json() as any;
+            console.log('--- AVAILABLE DATABASES ---');
+            searchData.results?.forEach((db: any) => {
+                const title = db.title?.[0]?.plain_text || 'Untitled';
+                console.log(`ID: ${db.id} | Title: ${title}`);
+            });
+            console.log('---------------------------');
+            console.log('Please verify NOTION_DATA_SOURCE_ID in .env.local matches one of the above.');
         }
+        throw new Error(`Notion API Error: ${r.status} ${r.statusText} - ${await r.text()}`);
     }
-    return parts.join('\n\n');
+
+    const allPages = await r.json() as any;
+
+    console.log(`📦 Found ${allPages.results.length} pages in Notion.`);
+
+    // 2. Process each page
+    for (const page of allPages.results) {
+      if (!('properties' in page)) continue;
+      
+      const props = page.properties as any;
+      // DEBUG: Log property keys to find the correct "Album" field name
+      if (allPages.results.indexOf(page) === 0) {
+          console.log('🔍 First Page Keys:', Object.keys(props));
+      }
+      const pageId = page.id;
+      
+      // Extract Properties
+      const title = props.Name?.title?.[0]?.plain_text || props.Title?.title?.[0]?.plain_text || 'Untitled';
+      
+      // Album/Category (Critical for mapping)
+      // Found keys: ['Link', 'Type', 'Tags', 'Description', 'Image', 'Date', 'Name']
+      const album = props.Type?.select?.name || props.Album?.select?.name || props.Category?.select?.name;
+      
+      if (!album || !ALBUM_TABLE_MAP[album.toUpperCase()]) {
+        console.warn(`⚠️  Skipping "${title}" (${pageId}): Unknown Album/Category "${album}"`);
+        continue;
+      }
+      
+      const tableName = ALBUM_TABLE_MAP[album.toUpperCase()];
+
+      // Date
+      const date = props.Date?.date?.start || new Date().toISOString().split('T')[0];
+      
+      // Tags
+      const tags = props.Tags?.multi_select?.map((t: any) => t.name) || [];
+      
+      // Description
+      const description = props.Description?.rich_text?.[0]?.plain_text || '';
+      
+      // Link
+      const link = props.Link?.url || null;
+      
+      // Cover Image - Priority: 1) Image property (external URL), 2) Page Cover
+      // NOTE: Notion internal file URLs are SIGNED and EXPIRE after ~1 hour!
+      // External URLs (from Image property or external cover) don't expire.
+      let imageUrl = null;
+      
+      // First, try the Image property from the database (preferred for external URLs)
+      const imageProperty = props.Image?.files?.[0];
+      if (imageProperty) {
+        if (imageProperty.type === 'external') {
+          imageUrl = imageProperty.external?.url;
+        } else if (imageProperty.type === 'file') {
+          // Internal file - will expire, but use as fallback
+          imageUrl = imageProperty.file?.url;
+          console.warn(`⚠️  "${title}" uses Notion-hosted image (will expire)`);
+        }
+      }
+      
+      // Fallback to page cover if no Image property
+      if (!imageUrl && page.cover) {
+        if (page.cover.type === 'external') {
+          imageUrl = page.cover.external.url; // External = permanent
+        } else if (page.cover.type === 'file') {
+          imageUrl = page.cover.file.url; // Signed = temporary
+          console.warn(`⚠️  "${title}" uses Notion-hosted cover (will expire)`);
+        }
+      }
+
+      // Content (Markdown)
+      const mdBlocks = await n2m.pageToMarkdown(pageId);
+      const mdString = n2m.toMarkdownString(mdBlocks);
+      
+      // Transform video file links to expected format
+      // Notion exports: [filename.mp4](url) 
+      // Frontend expects: ![VIDEO](url)
+      let processedContent = mdString.parent || '';
+      processedContent = processedContent.replace(
+        /\[([^\]]+\.(mp4|mov|webm))\]\(([^)]+)\)/gi,
+        (_, filename, ext, url) => `![VIDEO](${url})`
+      );
+      
+      const record = {
+        id: pageId, 
+        title,
+        date,
+        tags,
+        description,
+        link,
+        imageUrl, 
+        content: processedContent,
+        albumId: album.toUpperCase()
+      };
+      
+      const finalPayload = {
+         id: record.id,
+         title: record.title,
+         date: record.date,
+         description: record.description,
+         tags: record.tags,
+         link: record.link,
+         image_url: record.imageUrl, // Force snake_case based on error
+         content: record.content,
+       };
+
+      // 3. Upsert to Supabase
+      const { error } = await supabase
+        .from(tableName)
+        .upsert(finalPayload, { onConflict: 'id' });
+
+      if (error) {
+          console.error(`❌ Failed to sync "${title}" to ${tableName}:`, error.message);
+      } else {
+        console.log(`✅ Synced: ${title} -> ${tableName}`);
+      }
+    }
+    
+    console.log('🎉 Sync Complete!');
+    
   } catch (error) {
-    console.error(`Error fetching blocks for ${pageId}`, error);
-    return "";
+    console.error('🔥 Sync crashed:', error);
+    process.exit(1);
   }
 }
 
-async function blockToMarkdown(block: any): Promise<string> {
-  const type = block.type;
-  if (!block[type]) return "";
-
-  const textContent = block[type].rich_text ? 
-      block[type].rich_text.map((t: any) => t.plain_text + (t.href ? `(${t.href})` : '')).join("") 
-      : "";
-
-  switch (type) {
-    case 'paragraph': return textContent;
-    case 'heading_1': return `# ${textContent}`;
-    case 'heading_2': return `## ${textContent}`;
-    case 'heading_3': return `### ${textContent}`;
-    case 'bulleted_list_item': return `- ${textContent}`;
-    case 'numbered_list_item': return `1. ${textContent}`;
-    case 'quote': return `> ${textContent}`;
-    case 'code': return `\`\`\`${block.code.language}\n${textContent}\n\`\`\``;
-    case 'divider': return `---`;
-    
-    case 'image': {
-      const imgUrl = block.image.type === 'external' ? block.image.external.url : block.image.file?.url;
-      const caption = block.image.caption?.[0]?.plain_text || "Image";
-      if (!imgUrl) return "";
-      const localPath = await downloadAsset(imgUrl);
-      return localPath ? `![${caption}](${localPath})` : `![${caption}](${imgUrl})`;
-    }
-    case 'video': {
-       const videoObj = block.video;
-       let videoUrl = videoObj.type === 'external' ? videoObj.external?.url : videoObj.file?.url;
-       if (!videoUrl) return "";
-       const localPath = await downloadAsset(videoUrl, 'mp4');
-       return localPath ? `![VIDEO](${localPath})` : `![VIDEO](${videoUrl})`;
-    }
-    case 'table': return `[TABLE_PLACEHOLDER:${block.id}]`;
-    default: return "";
-  }
-}
-
-async function tableToMarkdown(tableBlock: any): Promise<string> {
-    try {
-        const rows = await notion.blocks.children.list({ block_id: tableBlock.id });
-        if (!rows.results || rows.results.length === 0) return "";
-        
-        const markdownRows: string[] = [];
-        rows.results.forEach((row: any, index: number) => {
-            if (row.type !== 'table_row') return;
-            const cells = row.table_row.cells.map((cell: any[]) => 
-                cell.map((c: any) => c.plain_text || "").join("")
-            );
-            markdownRows.push(`| ${cells.join(' | ')} |`);
-            if (index === 0) markdownRows.push(`| ${cells.map(() => '---').join(' | ')} |`);
-        });
-        return markdownRows.join('\n');
-    } catch { return ""; }
-}
-
-// --- Main Sync ---
-async function syncNotionToLocal() {
-  console.log('🚀 Starting Structured Notion Sync...');
-  
-  // @ts-ignore
-  const response = await notion.dataSources.query({
-    data_source_id: DATA_SOURCE_ID,
-    sorts: [{ property: 'Date', direction: 'descending' }],
-  });
-
-  console.log(`📦 Found ${response.results.length} items.`);
-
-  const projects: Record<string, any[]> = { CODING: [], VIDEO: [], PHOTO: [], WRITING: [] };
-
-  for (const page of response.results) {
-    if (!('properties' in page)) continue;
-    if ((page as any).archived) continue;
-
-    const props = page.properties as any;
-    const itemTitle = props.Name?.title?.[0]?.plain_text || 'Untitled';
-    const typeSelect = props.Type?.select?.name?.toUpperCase();
-
-    if (!projects[typeSelect]) continue;
-
-    // Set Context for Download
-    currentContext = {
-      albumId: typeSelect,
-      projectSlug: slugify(itemTitle) || 'untitled-project'
-    };
-
-    console.log(`\n📂 [${typeSelect}] ${itemTitle}`);
-    
-    // Cover Image
-    let imageUrl = null;
-    if (props.Image?.files?.length > 0) {
-        const fileObj = props.Image.files[0];
-        const originalUrl = fileObj.file?.url || fileObj.external?.url;
-        if (originalUrl) imageUrl = await downloadAsset(originalUrl);
-    }
-
-    // Content
-    const markdownContent = await fetchPageContent(page.id);
-
-    // NOTE: Removed fallback logic that used first content image as cover.
-    // If no cover is set in Notion (Image property), imageUrl stays null.
-    // This ensures the UI only shows a cover when explicitly set.
-
-    projects[typeSelect].push({
-      id: page.id,
-      albumId: typeSelect,
-      title: itemTitle,
-      date: props.Date?.date?.start || props.Date?.rich_text?.[0]?.plain_text || new Date().toISOString(),
-      description: props.Description?.rich_text?.[0]?.plain_text || '',
-      tags: props.Tags?.multi_select?.map((t: any) => t.name) || [],
-      imageUrl,
-      link: props.Link?.url || null,
-      content: markdownContent
-    });
-  }
-
-  fs.writeFileSync(DATA_FILE, JSON.stringify({ syncedAt: new Date().toISOString(), projects }, null, 2));
-  console.log('\n🎉 Sync Complete!');
-}
-
-syncNotionToLocal();
+sync();

@@ -1,49 +1,55 @@
 import { Album, ProjectItem, AlbumType } from '../types';
 import { ALBUMS } from '../constants';
-import projectsData from '../data/projects.json';
+import { supabase } from './supabase';
 
-// Type for the JSON data structure
-interface ProjectsData {
-  syncedAt: string;
-  projects: Record<string, RawProjectItem[]>;
-}
-
-interface RawProjectItem {
-  id: string;
-  albumId: string;
-  title: string;
-  date: string;
-  description: string;
-  tags: string[];
-  imageUrl: string | null;
-  link: string | null;
-  content: string | null;
-}
+// Map AlbumType to Supabase Table Names
+const TABLE_MAP: Record<string, string> = {
+  [AlbumType.CODING]: 'projects_coding',
+  [AlbumType.VIDEO]: 'projects_video',
+  [AlbumType.PHOTO]: 'projects_photo',
+  [AlbumType.WRITING]: 'projects_writing',
+};
 
 /**
- * Fetch a single album by ID, including its projects (tracks).
- * Now reads from local JSON instead of Supabase.
+ * Fetch a single album by ID, including its projects (tracks) from Supabase.
  */
 export const getAlbumWithProjects = async (albumId: string): Promise<Album | null> => {
-  // Find the album from constants (contains metadata like colors, title, etc.)
+  // 1. Get Static Metadata
   const albumMeta = ALBUMS.find(a => a.id === albumId);
   if (!albumMeta) {
     console.warn(`Album with id ${albumId} not found in constants.`);
     return null;
   }
 
-  // Get projects from local JSON
-  const data = projectsData as ProjectsData;
-  const rawProjects = data.projects[albumId] || [];
+  // 2. Identify Table
+  const tableName = TABLE_MAP[albumId];
+  if (!tableName) {
+    // If no table mapped (e.g. INTRO), return static data
+    return albumMeta;
+  }
 
-  const tracks: ProjectItem[] = rawProjects.map((p: RawProjectItem) => ({
+  // 3. Fetch from Supabase
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .order('date', { ascending: false });
+
+  if (error) {
+    console.error(`Error fetching ${albumId} from ${tableName}:`, error);
+    // Fallback to empty tracks if DB fails, but return metadata
+    return albumMeta;
+  }
+
+  // 4. Transform to ProjectItem
+  // Note: Supabase columns use snake_case, frontend uses camelCase
+  const tracks: ProjectItem[] = (data || []).map((p: any) => ({
     id: p.id,
     title: p.title,
     date: p.date,
-    description: p.description,
-    tags: p.tags,
+    description: p.description || '',
+    tags: p.tags || [],
     link: p.link || undefined,
-    imageUrl: p.imageUrl || undefined,
+    imageUrl: p.image_url || undefined, // Map snake_case DB column to camelCase
     content: p.content || undefined,
   }));
 
@@ -54,20 +60,21 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
 };
 
 /**
- * Fetch all albums. 
- * Now simply returns the constants with empty tracks (for list view).
+ * Fetch all albums.
+ * Currently returns lightweight list (constants only).
+ * If we need counts or previews on home screen, we might need to fetch here too.
  */
 export const getAllAlbums = async (): Promise<Album[]> => {
-  return ALBUMS.map(album => ({
-    ...album,
-    tracks: [] // Empty tracks for list view
-  }));
+  // For now, homepage only needs metadata defined in constants
+  return ALBUMS;
 };
 
 /**
- * Get the last sync time from the local data.
+ * Get the last sync time.
+ * Logic: We might query a 'sync_logs' table or just return null as it's less relevant now.
+ * Or we can return the latest 'synced_at' from one of the tables if there's a column.
+ * For now, returning null to disable that UI or keep it static.
  */
 export const getLastSyncTime = (): string | null => {
-  const data = projectsData as ProjectsData;
-  return data.syncedAt || null;
+  return null; 
 };
