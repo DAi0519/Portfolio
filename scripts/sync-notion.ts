@@ -100,7 +100,10 @@ async function sync() {
 
     console.log(`📦 Found ${allPages.results.length} pages in Notion.`);
 
+
     // 2. Process each page
+    const activeDetails = new Set<string>(); // IDs of pages processed in this run
+
     for (const page of allPages.results) {
       if (!('properties' in page)) continue;
       
@@ -118,6 +121,7 @@ async function sync() {
       // Found keys: ['Link', 'Type', 'Tags', 'Description', 'Image', 'Date', 'Name']
       const album = props.Type?.select?.name || props.Album?.select?.name || props.Category?.select?.name;
       
+      // Skip if invalid album, BUT DO NOT add to activeDetails (so it effectively gets treated as deleted from Supabase side if it exists there)
       if (!album || !ALBUM_TABLE_MAP[album.toUpperCase()]) {
         console.warn(`⚠️  Skipping "${title}" (${pageId}): Unknown Album/Category "${album}"`);
         continue;
@@ -137,29 +141,22 @@ async function sync() {
       // Link
       const link = props.Link?.url || null;
       
-      // Cover Image - Priority: 1) Image property (external URL), 2) Page Cover
-      // NOTE: Notion internal file URLs are SIGNED and EXPIRE after ~1 hour!
-      // External URLs (from Image property or external cover) don't expire.
+      // Cover Image
       let imageUrl = null;
-      
-      // First, try the Image property from the database (preferred for external URLs)
       const imageProperty = props.Image?.files?.[0];
       if (imageProperty) {
         if (imageProperty.type === 'external') {
           imageUrl = imageProperty.external?.url;
         } else if (imageProperty.type === 'file') {
-          // Internal file - will expire, but use as fallback
           imageUrl = imageProperty.file?.url;
           console.warn(`⚠️  "${title}" uses Notion-hosted image (will expire)`);
         }
       }
-      
-      // Fallback to page cover if no Image property
       if (!imageUrl && page.cover) {
         if (page.cover.type === 'external') {
-          imageUrl = page.cover.external.url; // External = permanent
+          imageUrl = page.cover.external.url;
         } else if (page.cover.type === 'file') {
-          imageUrl = page.cover.file.url; // Signed = temporary
+          imageUrl = page.cover.file.url;
           console.warn(`⚠️  "${title}" uses Notion-hosted cover (will expire)`);
         }
       }
@@ -168,9 +165,6 @@ async function sync() {
       const mdBlocks = await n2m.pageToMarkdown(pageId);
       const mdString = n2m.toMarkdownString(mdBlocks);
       
-      // Transform video file links to expected format
-      // Notion exports: [filename.mp4](url) 
-      // Frontend expects: ![VIDEO](url)
       let processedContent = mdString.parent || '';
       processedContent = processedContent.replace(
         /\[([^\]]+\.(mp4|mov|webm))\]\(([^)]+)\)/gi,
@@ -196,11 +190,14 @@ async function sync() {
          description: record.description,
          tags: record.tags,
          link: record.link,
-         image_url: record.imageUrl, // Force snake_case based on error
+         image_url: record.imageUrl,
          content: record.content,
        };
 
       // 3. Upsert to Supabase
+      // Mark as active BEFORE upsert
+      activeDetails.add(pageId); 
+
       const { error } = await supabase
         .from(tableName)
         .upsert(finalPayload, { onConflict: 'id' });
@@ -210,6 +207,45 @@ async function sync() {
       } else {
         console.log(`✅ Synced: ${title} -> ${tableName}`);
       }
+    }
+
+    // 4. Cleanup Logic (Delete Sync)
+    // Only proceed if we actually fetched pages to prevent accidental wipe on API errors
+    if (allPages.results.length > 0) {
+        console.log('🧹 Starting Cleanup Check...');
+        const tableNames = Object.values(ALBUM_TABLE_MAP);
+        
+        for (const table of tableNames) {
+            // Get all IDs from Supabase table
+            const { data: remoteData, error: fetchError } = await supabase
+                .from(table)
+                .select('id');
+            
+            if (fetchError) {
+                console.error(`❌ Could not fetch IDs from ${table} for cleanup:`, fetchError.message);
+                continue;
+            }
+
+            if (remoteData) {
+                const idsToDelete = remoteData
+                    .map(r => r.id)
+                    .filter(id => !activeDetails.has(id));
+                
+                if (idsToDelete.length > 0) {
+                    console.log(`🗑️  Found ${idsToDelete.length} orphaned records in ${table}. Deleting...`);
+                    const { error: deleteError } = await supabase
+                        .from(table)
+                        .delete()
+                        .in('id', idsToDelete);
+                    
+                    if (deleteError) {
+                        console.error(`❌ Failed to delete records from ${table}:`, deleteError.message);
+                    } else {
+                        console.log(`✅ Deleted ${idsToDelete.length} records from ${table}`);
+                    }
+                }
+            }
+        }
     }
     
     console.log('🎉 Sync Complete!');
