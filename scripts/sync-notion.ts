@@ -13,8 +13,28 @@ const NOTION_DB_ID = process.env.NOTION_DATA_SOURCE_ID;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY; // Must use Service Key for RLS bypass/writing
 
-if (!NOTION_API_KEY || !NOTION_DB_ID || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('❌ Missing environment variables. Please check .env.local');
+console.log('🔍 Checking Environment Variables...');
+const vars = {
+  NOTION_API_KEY,
+  NOTION_DATA_SOURCE_ID: NOTION_DB_ID,
+  VITE_SUPABASE_URL: SUPABASE_URL,
+  SUPABASE_SERVICE_KEY
+};
+
+let missing = false;
+for (const [key, value] of Object.entries(vars)) {
+  if (!value) {
+    console.error(`❌ Missing Environment Variable: ${key}`);
+    missing = true;
+  } else {
+    console.log(`✅ ${key}: Present (Length: ${value.length})`);
+  }
+}
+
+if (missing) {
+  console.error('❌ One or more required environment variables are missing.');
+  console.error('   If running locally, check .env.local');
+  console.error('   If running in GitHub Actions, check Repository Secrets');
   process.exit(1);
 }
 
