@@ -26,100 +26,97 @@ const SimpleMarkdown: React.FC<{
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   
   // --- Inline Format Parser (handles **bold**, *italic*, ~~strikethrough~~, [links](url)) ---
-  const parseInlineFormats = (text: string): React.ReactNode[] => {
-    const result: React.ReactNode[] = [];
-    // Combined regex: order matters - check longer patterns first
-    // ~~strikethrough~~, **bold**, *italic*, [text](url)
-    const regex = /(~~(.+?)~~|\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
-    
-    let lastIndex = 0;
-    let match;
-    let keyIdx = 0;
-    
-    while ((match = regex.exec(text)) !== null) {
-      // Add text before this match
-      if (match.index > lastIndex) {
-        result.push(text.slice(lastIndex, match.index));
+  // Memoize the parser to avoid re-calculating on every render
+  const memoizedData = React.useMemo(() => {
+    const parseInlineFormats = (text: string): React.ReactNode[] => {
+      const result: React.ReactNode[] = [];
+      // Combined regex: order matters - check longer patterns first
+      // ~~strikethrough~~, **bold**, *italic*, [text](url)
+      const regex = /(~~(.+?)~~|\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
+      
+      let lastIndex = 0;
+      let match;
+      let keyIdx = 0;
+      
+      while ((match = regex.exec(text)) !== null) {
+        // Add text before this match
+        if (match.index > lastIndex) {
+          result.push(text.slice(lastIndex, match.index));
+        }
+        
+        const fullMatch = match[0];
+        
+        if (fullMatch.startsWith('~~')) {
+          result.push(<del key={keyIdx++} className="text-neutral-400 line-through">{match[2]}</del>);
+        } else if (fullMatch.startsWith('**')) {
+          result.push(<strong key={keyIdx++} className="font-semibold text-neutral-900">{match[3]}</strong>);
+        } else if (fullMatch.startsWith('*')) {
+          result.push(<em key={keyIdx++} className="italic">{match[4]}</em>);
+        } else if (fullMatch.startsWith('[')) {
+          result.push(
+            <a 
+              key={keyIdx++} 
+              href={match[6]} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-neutral-600 transition-colors"
+            >
+              {match[5]}
+            </a>
+          );
+        }
+        
+        lastIndex = match.index + fullMatch.length;
       }
       
-      const fullMatch = match[0];
-      
-      if (fullMatch.startsWith('~~')) {
-        // Strikethrough
-        result.push(<del key={keyIdx++} className="text-neutral-400 line-through">{match[2]}</del>);
-      } else if (fullMatch.startsWith('**')) {
-        // Bold
-        result.push(<strong key={keyIdx++} className="font-semibold text-neutral-900">{match[3]}</strong>);
-      } else if (fullMatch.startsWith('*')) {
-        // Italic
-        result.push(<em key={keyIdx++} className="italic">{match[4]}</em>);
-      } else if (fullMatch.startsWith('[')) {
-        // Link
-        result.push(
-          <a 
-            key={keyIdx++} 
-            href={match[6]} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline underline-offset-2 hover:text-neutral-600 transition-colors"
-          >
-            {match[5]}
-          </a>
-        );
+      if (lastIndex < text.length) {
+        result.push(text.slice(lastIndex));
       }
       
-      lastIndex = match.index + fullMatch.length;
-    }
-    
-    // Add remaining text
-    if (lastIndex < text.length) {
-      result.push(text.slice(lastIndex));
-    }
-    
-    return result.length > 0 ? result : [text];
-  };
+      return result.length > 0 ? result : [text];
+    };
   
-  // --- Tokenize content into segments (lines, tables, or galleries) ---
-  const lines = content.split('\n');
-  const segments: { type: 'line' | 'table' | 'gallery'; lines: string[] }[] = [];
+    // --- Tokenize content into segments (lines, tables, or galleries) ---
+    const lines = content.split('\n');
+    const segs: { type: 'line' | 'table' | 'gallery'; lines: string[] }[] = [];
+    
+    let currentTableLines: string[] = [];
+    let currentGalleryLines: string[] = [];
   
-  let currentTableLines: string[] = [];
-  let currentGalleryLines: string[] = [];
+    // Helper to flush buffers
+    const flushBuffers = () => {
+       if (currentTableLines.length > 0) {
+           segs.push({ type: 'table', lines: [...currentTableLines] });
+           currentTableLines = [];
+       }
+       if (currentGalleryLines.length > 0) {
+           segs.push({ type: 'gallery', lines: [...currentGalleryLines] });
+           currentGalleryLines = [];
+       }
+    };
+  
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        const isWriting = albumId === AlbumType.WRITING; 
+        const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); 
+  
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+            if (currentGalleryLines.length > 0) flushBuffers();
+            currentTableLines.push(trimmed);
+        } else if (isImage) {
+            if (currentTableLines.length > 0) flushBuffers();
+            currentGalleryLines.push(trimmed);
+        } else {
+            flushBuffers();
+            segs.push({ type: 'line', lines: [line] });
+        }
+    });
+    flushBuffers();
+    
+    return { segs, parseInlineFormats };
+  }, [content, albumId]);
 
-  // Helper to flush buffers
-  const flushBuffers = () => {
-     if (currentTableLines.length > 0) {
-         segments.push({ type: 'table', lines: [...currentTableLines] });
-         currentTableLines = [];
-     }
-     if (currentGalleryLines.length > 0) {
-         segments.push({ type: 'gallery', lines: [...currentGalleryLines] });
-         currentGalleryLines = [];
-     }
-  };
-
-  lines.forEach(line => {
-      const trimmed = line.trim();
-      // Logic: Only treat as "Image Gallery Candidate" if it's an image AND NOT the Writing album.
-      // Writing album (Album 5) wants standard vertical layout for everything.
-      const isWriting = albumId === AlbumType.WRITING; 
-      const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); 
-
-      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-          // It's a table
-          if (currentGalleryLines.length > 0) flushBuffers(); // Flush gallery if any
-          currentTableLines.push(trimmed);
-      } else if (isImage) {
-          // It's an image AND we are allowing galleries
-          if (currentTableLines.length > 0) flushBuffers(); // Flush table if any
-          currentGalleryLines.push(trimmed);
-      } else {
-          // Normal line (Text, Headers, or Images in WRITING mode)
-          flushBuffers(); // Flush any pending block
-          segments.push({ type: 'line', lines: [line] });
-      }
-  });
-  flushBuffers(); // Final flush
+  const { segs: segments, parseInlineFormats } = memoizedData;
 
   // --- Render segment helpers ---
 
@@ -200,7 +197,7 @@ const SimpleMarkdown: React.FC<{
       // H1 Heading
       if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
         return (
-          <h1 key={i} className="text-2xl md:text-3xl font-serif font-bold mt-8 mb-4 text-neutral-900 tracking-tight leading-tight">
+          <h1 key={i} className="text-2xl md:text-3xl font-sans font-bold mt-10 mb-6 text-neutral-900 tracking-tight leading-tight">
             {parseInlineFormats(trimmed.replace('# ', ''))}
           </h1>
         );
@@ -208,7 +205,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-6 mb-2 text-neutral-400 pb-1">
+          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1">
             {parseInlineFormats(trimmed.replace('### ', ''))}
           </h3>
         );
@@ -216,7 +213,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('## ')) {
            return (
-             <h2 key={i} className="text-xl md:text-2xl font-serif font-bold mt-8 mb-3 text-neutral-900 tracking-tight leading-tight">
+             <h2 key={i} className="text-xl md:text-2xl font-sans font-bold mt-10 mb-4 text-neutral-900 tracking-tight leading-tight">
                {parseInlineFormats(trimmed.replace('## ', ''))}
              </h2>
            );
@@ -228,7 +225,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('> ')) {
            return (
-                <blockquote key={i} className="pl-0 border-l-0 my-4 font-serif text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
+                <blockquote key={i} className="pl-0 border-l-0 my-4 font-sans text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
                    "{parseInlineFormats(trimmed.replace('> ', ''))}"
                 </blockquote>
            );
@@ -240,9 +237,9 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('- ')) {
          return (
-           <div key={i} className="flex items-baseline gap-4 mt-1 mb-1.5 pl-2">
+           <div key={i} className="flex items-baseline gap-4 mt-2 mb-2 pl-2">
               <span className="w-1.5 h-1.5 rounded-sm shrink-0 translate-y-[-2px] bg-neutral-800" />
-              <p className="flex-1 text-neutral-800 leading-relaxed m-0 text-base font-sans font-normal tracking-wide">
+              <p className="flex-1 text-neutral-800 leading-[1.8] m-0 text-base font-sans font-normal tracking-wide">
                  {parseInlineFormats(trimmed.replace('- ', ''))}
               </p>
            </div>
@@ -250,7 +247,7 @@ const SimpleMarkdown: React.FC<{
       }
 
       return (
-        <p key={i} className="text-neutral-800 leading-relaxed mt-3 mb-1 font-sans font-normal text-base md:text-lg tracking-wide">
+        <p key={i} className="text-neutral-800 leading-[1.8] mt-5 mb-2 font-sans font-normal text-base md:text-lg tracking-wide">
            {parseInlineFormats(trimmed)}
         </p>
       );
@@ -283,7 +280,7 @@ const SimpleMarkdown: React.FC<{
                       {bodyRows.map((row, rowIdx) => (
                           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
                               {parseRow(row).map((cell, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-sans leading-relaxed">
+                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-sans leading-[1.8]">
                                       {parseInlineFormats(cell)}
                                   </td>
                               ))}
@@ -869,6 +866,15 @@ const ProjectModal: React.FC<{
   const dragControls = useDragControls();
   const isWriting = albumId === AlbumType.WRITING;
   const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  
+  // Optimization: Defer heaviest content rendering slightly to allow animation start
+  const [isContentReady, setIsContentReady] = React.useState(false);
+  
+  React.useEffect(() => {
+      // Just a tick to let the main thread clear the click event and start the modal animation
+      const timer = setTimeout(() => setIsContentReady(true), 10);
+      return () => clearTimeout(timer);
+  }, []);
 
   // Extract images for Carousel (SKIP for Writing)
   const { images, cleanContent } = React.useMemo(() => {
@@ -888,7 +894,7 @@ const ProjectModal: React.FC<{
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/95 backdrop-blur-xl"
+        className="absolute inset-0 bg-neutral-100/95" // Removed backdrop-blur-xl for performance
       />
 
       <motion.div 
@@ -896,21 +902,26 @@ const ProjectModal: React.FC<{
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0.05, bottom: 1 }}
+        dragElastic={{ top: 0, bottom: 1 }}
         onDragEnd={(e, info: PanInfo) => {
            if (info.offset.y > 100 || info.velocity.y > 300) {
                onClose();
            }
         }}
-        initial={{ y: "100%", opacity: 0.5, scale: 0.96 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: "40%", opacity: 0, scale: 0.96 }}
-        transition={{ 
-            type: "spring", 
-            damping: 32, 
-            stiffness: 300, 
-            mass: 1.2 
+        variants={{
+            hidden: { y: "100%", opacity: 0.5, scale: 0.96 },
+            visible: { 
+                y: 0, opacity: 1, scale: 1,
+                transition: { type: "spring", damping: 42, stiffness: 300, mass: 1 } 
+            },
+            exit: { 
+                y: "20%", opacity: 0, scale: 0.98,
+                transition: { duration: 0.15, ease: "easeOut" } 
+            }
         }}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
         className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col h-[92dvh] md:h-[90vh]"
       >
          
@@ -960,7 +971,7 @@ const ProjectModal: React.FC<{
 
                      {/* Main Cover (From Notion Image property) */}
                      {project.imageUrl && (
-                         <div className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50 shadow-sm">
+                         <div className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50">
                              <ImageWithLoader 
                                  src={project.imageUrl} 
                                  alt={project.title} 
@@ -971,12 +982,14 @@ const ProjectModal: React.FC<{
 
                      {/* Article Body */}
                      <div className="prose prose-neutral prose-lg max-w-none text-neutral-800 leading-relaxed mb-20">
-                         <SimpleMarkdown 
-                            content={cleanContent} 
-                            color={safeColor} 
-                            albumId={albumId}
-                            onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
-                         />
+                         {isContentReady && (
+                             <SimpleMarkdown 
+                                content={cleanContent} 
+                                color={safeColor} 
+                                albumId={albumId}
+                                onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+                             />
+                         )}
                      </div>
 
                      {/* Link */}
@@ -1005,10 +1018,14 @@ const ProjectModal: React.FC<{
                     onPointerDown={(e) => dragControls.start(e)}
                  >
                     {images.length > 0 ? (
-                        <Carousel 
-                           images={images} 
-                           onImageClick={(url, type) => setVisibleImage({ url, type })}
-                        />
+                        <div className="w-full h-full">
+                             {isContentReady && (
+                                <Carousel 
+                                   images={images} 
+                                   onImageClick={(url, type) => setVisibleImage({ url, type })}
+                                />
+                             )}
+                        </div>
                     ) : (
                        <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
                            <span className="text-xs font-mono uppercase tracking-widest">No Visuals</span>
@@ -1041,12 +1058,23 @@ const ProjectModal: React.FC<{
                         {/* Description */}
                         <div className="prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600">
                             {hasDidacticContent ? (
-                                <SimpleMarkdown 
-                                    content={cleanContent} 
-                                    color={safeColor} 
-                                    albumId={albumId} 
-                                    onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
-                                />
+                                <div>
+                                    {isContentReady ? (
+                                        <SimpleMarkdown 
+                                            content={cleanContent} 
+                                            color={safeColor} 
+                                            albumId={albumId} 
+                                            onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+                                        />
+                                    ) : (
+                                        // Placeholder skeleton to prevent layout shift if needed
+                                        <div className="space-y-4">
+                                            <div className="h-4 bg-neutral-100 rounded w-3/4"></div>
+                                            <div className="h-4 bg-neutral-100 rounded w-full"></div>
+                                            <div className="h-4 bg-neutral-100 rounded w-5/6"></div>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
                                  <p className="leading-relaxed font-normal">
                                     {project.description}
