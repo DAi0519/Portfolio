@@ -173,7 +173,9 @@ const App: React.FC = () => {
   // Unlock AudioContext on first interaction
   const primeAudio = useCallback(() => {
     if (audioRef.current) {
-      // Play comfortably at volume 0 to unlock capabilities
+      // Play comfortably silence (muted) to unlock capabilities
+      // Volume 0 is not enough on iOS (hardware volume control)
+      audioRef.current.muted = true;
       audioRef.current.play().catch(e => console.log("Audio Prime Failed:", e));
     }
   }, []);
@@ -206,6 +208,7 @@ const App: React.FC = () => {
                }
 
                // Attempt Auto-Play
+               audioRef.current.muted = false; // Ensure unmuted
                audioRef.current.volume = 0.4;
                audioRef.current.play()
                 .then(() => {
@@ -227,6 +230,7 @@ const App: React.FC = () => {
 
                // Restore Play State
                if (bgmState.current.isPlaying) {
+                   audioRef.current.muted = false; // Ensure unmuted
                    audioRef.current.volume = 0.4;
                    audioRef.current.play()
                     .then(() => {
@@ -262,6 +266,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (audioRef.current) {
       if (isMusicPlaying) {
+        audioRef.current.muted = false; // Ensure unmuted
         audioRef.current.volume = 0.4; // Fade in / Set target volume
         audioRef.current.play().catch(e => console.log("Autoplay prevented:", e));
       } else {
@@ -300,7 +305,7 @@ const App: React.FC = () => {
       
       {showOpening && (
         <OpeningScreen 
-          onStart={undefined} // Disable audio priming to ensure no auto-play
+          onStart={primeAudio}
           onComplete={() => {
             setShowOpening(false);
             // No longer using session storage to block future visits

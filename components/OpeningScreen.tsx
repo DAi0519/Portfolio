@@ -105,8 +105,37 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
     };
     
     checkOverlap();
+    checkOverlap();
     window.addEventListener('resize', checkOverlap);
-    return () => window.removeEventListener('resize', checkOverlap);
+
+    // Initial Scroll Reset & Priming Logic
+    if (containerRef.current) {
+        // Force scroll to top prevents browser restoration jumping to the end
+        containerRef.current.scrollTop = 0;
+    }
+    // Prevent browser scroll restoration
+    if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    // Capture SCROLL interactions for Audio Priming
+    // (Existing handlers only covered Drag and Click)
+    const handleScrollInteraction = () => {
+        handleInteraction();
+        // Remove listener after first trigger to save perf
+        containerRef.current?.removeEventListener('scroll', handleScrollInteraction);
+    };
+    containerRef.current?.addEventListener('scroll', handleScrollInteraction, { passive: true });
+
+    return () => {
+        window.removeEventListener('resize', checkOverlap);
+        // Restore default behavior? Usually fine to leave manual for SPA, 
+        // but let's be clean if we unmount completely (though this is main entry)
+        if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+            history.scrollRestoration = 'auto'; 
+        }
+        containerRef.current?.removeEventListener('scroll', handleScrollInteraction);
+    };
   }, []);
   
   const handleDragStart = (event: MouseEvent | TouchEvent | PointerEvent, info: any) => {
