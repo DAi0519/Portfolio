@@ -5,6 +5,7 @@ import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
 import { motion, AnimatePresence, animate } from 'framer-motion';
 import OpeningScreen from './components/OpeningScreen';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import CinematicBackground from './components/CinematicBackground';
 
@@ -461,7 +462,7 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      
+      <SpeedInsights />
     </div>
   );
 };
