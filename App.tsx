@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ALBUMS } from './constants';
 import AlbumStack from './components/AlbumStack';
 import { ImmersiveView } from './components/ImmersiveView';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, animate } from 'framer-motion';
 import OpeningScreen from './components/OpeningScreen';
 
 import CinematicBackground from './components/CinematicBackground';
@@ -264,15 +264,40 @@ const App: React.FC = () => {
 
   // Handle Play/Pause Toggle
   useEffect(() => {
-    if (audioRef.current) {
-      if (isMusicPlaying) {
-        audioRef.current.muted = false; // Ensure unmuted
-        audioRef.current.volume = 0.4; // Fade in / Set target volume
-        audioRef.current.play().catch(e => console.log("Autoplay prevented:", e));
-      } else {
-        audioRef.current.pause();
+    if (!audioRef.current) return;
+
+    let controls: any;
+
+    if (isMusicPlaying) {
+      audioRef.current.muted = false; // Ensure unmuted
+      
+      const startVolume = audioRef.current.volume;
+      const targetVolume = 0.4;
+
+      // Play audio
+      const playPromise = audioRef.current.play();
+      if (playPromise) {
+        playPromise.catch(e => console.log("Autoplay prevented:", e));
       }
+
+      // Fade in logic for smooth transition (e.g. from Opening Screen)
+      if (Math.abs(startVolume - targetVolume) > 0.01) {
+        controls = animate(startVolume, targetVolume, {
+          duration: 0.3,
+          onUpdate: (v) => {
+            if (audioRef.current) audioRef.current.volume = v;
+          }
+        });
+      } else {
+        audioRef.current.volume = targetVolume;
+      }
+    } else {
+      audioRef.current.pause();
     }
+
+    return () => {
+      if (controls) controls.stop();
+    };
   }, [isMusicPlaying]);
 
   const handleMusicToggle = () => {
