@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -18,8 +18,6 @@
         font-style: normal;
         font-style: normal;
       }
-      
-
 
       :root {
         --bg-color: #f3f3f1; /* Rams/Gallery "Warm White" */
@@ -34,8 +32,9 @@
         background-color: var(--bg-color);
         color: var(--text-color);
         overflow: hidden; /* App handles scrolling */
-        font-family: "OPPOSans", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
-          sans-serif; /* Dual Font Stack: English -> Chinese -> Fallback */
+        font-family:
+          "OPPOSans", "PingFang SC", "Microsoft YaHei", "Helvetica Neue",
+          Helvetica, Arial, sans-serif; /* Dual Font Stack: English -> Chinese -> Fallback */
       }
 
       /* Utilities */
@@ -102,10 +101,10 @@
         background: conic-gradient(
           from 0deg,
           transparent 0deg,
-          rgba(255, 255, 255, 0.05) 15deg, /* Softer start */
-          rgba(255, 255, 255, 0.25) 45deg, /* Reduced peak opacity (was 0.35) */
-          rgba(255, 255, 255, 0.05) 75deg, /* Wider spread (was 70) */
-          transparent 90deg,
+          rgba(255, 255, 255, 0.05) 15deg,
+          /* Softer start */ rgba(255, 255, 255, 0.25) 45deg,
+          /* Reduced peak opacity (was 0.35) */ rgba(255, 255, 255, 0.05) 75deg,
+          /* Wider spread (was 70) */ transparent 90deg,
           transparent 180deg,
           rgba(255, 255, 255, 0.05) 195deg,
           rgba(255, 255, 255, 0.25) 225deg,
@@ -119,8 +118,8 @@
           from 0deg,
           transparent 0deg,
           rgba(0, 0, 0, 0.02) 15deg,
-          rgba(0, 0, 0, 0.1) 45deg, /* Reduced peak (was 0.15) */
-          rgba(0, 0, 0, 0.02) 75deg,
+          rgba(0, 0, 0, 0.1) 45deg,
+          /* Reduced peak (was 0.15) */ rgba(0, 0, 0, 0.02) 75deg,
           transparent 90deg,
           transparent 180deg,
           rgba(0, 0, 0, 0.02) 195deg,
@@ -129,6 +128,15 @@
           transparent 270deg
         );
         filter: blur(20px); /* Increased blur */
+      }
+      /* Prevent Image/Video Saving */
+      img,
+      video {
+        -webkit-user-drag: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none; /* Prevent iOS long-press menu */
+        pointer-events: auto; /* Ensure play controls still work, but block drag */
       }
     </style>
     <script type="importmap">
@@ -153,12 +161,20 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['OPPOSans', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
-              serif: ['OPPOSans', 'serif'],
-            }
-          }
-        }
-      }
+              sans: [
+                "OPPOSans",
+                "PingFang SC",
+                "Microsoft YaHei",
+                "Helvetica Neue",
+                "Helvetica",
+                "Arial",
+                "sans-serif",
+              ],
+              serif: ["OPPOSans", "serif"],
+            },
+          },
+        },
+      };
     </script>
     <script type="module" src="/index.tsx"></script>
   </body>
