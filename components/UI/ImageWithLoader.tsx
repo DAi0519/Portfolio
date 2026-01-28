@@ -57,6 +57,16 @@ export const ImageWithLoader: React.FC<ImageWithLoaderProps> = ({
         onError={handleError}
         {...props}
       />
+      
+      {/* Protection Overlay: Intercepts long-press (WeChat) to prevent saving */}
+      {/* It has no content, so browser sees nothing to save. Events bubble up for Clicks. */}
+      <div 
+        className="absolute inset-0 z-20 bg-transparent w-full h-full"
+        aria-hidden="true"
+        // Prevent default drag/context behaviors on the overlay itself just in case
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+      />
     </div>
   );
 };

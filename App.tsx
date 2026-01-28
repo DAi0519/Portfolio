@@ -1,13 +1,11 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ALBUMS } from "./constants";
+import AlbumStack from "./components/AlbumStack";
+import { ImmersiveView } from "./components/ImmersiveView";
+import { motion, AnimatePresence, animate } from "framer-motion";
+import OpeningScreen from "./components/OpeningScreen";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ALBUMS } from './constants';
-import AlbumStack from './components/AlbumStack';
-import { ImmersiveView } from './components/ImmersiveView';
-import { motion, AnimatePresence, animate } from 'framer-motion';
-import OpeningScreen from './components/OpeningScreen';
-
-import CinematicBackground from './components/CinematicBackground';
-
+import CinematicBackground from "./components/CinematicBackground";
 
 const App: React.FC = () => {
   // Helper to get slug from album (defined early for state init)
@@ -15,40 +13,45 @@ const App: React.FC = () => {
 
   // Initialize State from URL directly
   // This prevents 'flash of home' or state hydration mismatches
-  const [viewMode, setViewMode] = useState<'STACK' | 'DETAIL'>(() => {
-    if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const albumSlug = params.get('album');
-        if (albumSlug && ALBUMS.some(a => getSlug(a.id) === getSlug(albumSlug))) {
-            return 'DETAIL';
-        }
+  const [viewMode, setViewMode] = useState<"STACK" | "DETAIL">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const albumSlug = params.get("album");
+      if (
+        albumSlug &&
+        ALBUMS.some((a) => getSlug(a.id) === getSlug(albumSlug))
+      ) {
+        return "DETAIL";
+      }
     }
-    return 'STACK';
+    return "STACK";
   });
 
   const [currentIndex, setCurrentIndex] = useState(() => {
-    if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const albumSlug = params.get('album');
-        if (albumSlug) {
-            const index = ALBUMS.findIndex(a => getSlug(a.id) === getSlug(albumSlug));
-            if (index !== -1) return index;
-        }
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const albumSlug = params.get("album");
+      if (albumSlug) {
+        const index = ALBUMS.findIndex(
+          (a) => getSlug(a.id) === getSlug(albumSlug),
+        );
+        if (index !== -1) return index;
+      }
     }
-    return 0; 
+    return 0;
   });
-  
+
   // Check session storage for first visit
   const [showOpening, setShowOpening] = useState(() => {
     // Safety check for SSR or non-browser environments (though this is client-side React)
-    if (typeof window !== 'undefined') {
-        // Pure URL-based logic:
-        // 1. If 'album' param exists -> We are deep linking -> SKIP intro (return false)
-        // 2. If no 'album' param -> We are at root -> SHOW intro (return true)
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('album')) return false; 
-        
-        return true;
+    if (typeof window !== "undefined") {
+      // Pure URL-based logic:
+      // 1. If 'album' param exists -> We are deep linking -> SKIP intro (return false)
+      // 2. If no 'album' param -> We are at root -> SHOW intro (return true)
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("album")) return false;
+
+      return true;
     }
     return true;
   });
@@ -57,99 +60,107 @@ const App: React.FC = () => {
 
   const handleSelectAlbum = (index: number) => {
     setCurrentIndex(index);
-    setViewMode('DETAIL');
+    setViewMode("DETAIL");
   };
 
   const handleBackToStack = () => {
-    setViewMode('STACK');
+    setViewMode("STACK");
   };
 
   const handleIndexChange = (index: number) => {
     setCurrentIndex(index);
-  }
+  };
 
   // Keyboard navigation for global shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // If opening screen is visible, any key dismisses it (optional, but good UX)
       if (showOpening) {
-         // Let the component handle its own internal transition logic if we wanted, 
-         // but here we just ignore or could force close. 
-         // For now, let's rely on the scroll/click listeners in OpeningScreen
-         return;
+        // Let the component handle its own internal transition logic if we wanted,
+        // but here we just ignore or could force close.
+        // For now, let's rely on the scroll/click listeners in OpeningScreen
+        return;
       }
 
-      if (viewMode === 'DETAIL') {
-        if (e.key === 'Escape') handleBackToStack();
+      if (viewMode === "DETAIL") {
+        if (e.key === "Escape") handleBackToStack();
       } else {
-        // Collection Mode Navigation logic is handled inside AlbumStack for scroll/swipe, 
+        // Collection Mode Navigation logic is handled inside AlbumStack for scroll/swipe,
         // but we keep basic arrow keys here for safety if focus is lost
-        if (e.key === 'Enter') handleSelectAlbum(currentIndex);
+        if (e.key === "Enter") handleSelectAlbum(currentIndex);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [viewMode, currentIndex, showOpening]);
 
-
-
   // --- DEEP LINKING & URL SYNC ---
-  
+
   // 1. Handle PopState (Back/Forward) ONLY
   useEffect(() => {
-    const handlePopState = () => {
-        const params = new URLSearchParams(window.location.search);
-        const albumSlug = params.get('album');
+    // Media Protection: Disable Right-Click Context Menu globally
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("contextmenu", handleContextMenu);
 
-        if (albumSlug) {
-            const index = ALBUMS.findIndex(a => a.id.toLowerCase() === albumSlug.toLowerCase());
-            if (index !== -1) {
-                setCurrentIndex(index);
-                setViewMode('DETAIL');
-                return;
-            }
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const albumSlug = params.get("album");
+
+      if (albumSlug) {
+        const index = ALBUMS.findIndex(
+          (a) => a.id.toLowerCase() === albumSlug.toLowerCase(),
+        );
+        if (index !== -1) {
+          setCurrentIndex(index);
+          setViewMode("DETAIL");
+          return;
         }
-        
-        setViewMode('STACK');
+      }
+
+      setViewMode("STACK");
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("contextmenu", handleContextMenu);
+    };
   }, []);
 
   // 2. Sync State to URL
   useEffect(() => {
-      // Don't push state on initial render if it matches URL, but pushState handles that via replace vs push logic usually.
-      // Here we just want to ensure URL reflects state.
-      // We need to avoid infinite loops with popstate. 
-      // Strategy: Only push if the current URL doesn't match the state.
-      
-      const currentParams = new URLSearchParams(window.location.search);
-      const currentSlug = currentParams.get('album');
-      
-      if (viewMode === 'DETAIL') {
-          const targetSlug = getSlug(ALBUMS[currentIndex].id);
-          if (currentSlug !== targetSlug) {
-              const newUrl = `${window.location.pathname}?album=${targetSlug}`;
-              window.history.pushState({ path: newUrl }, '', newUrl);
-          }
-      } else {
-          // STACK mode
-          if (currentSlug) {
-              const newUrl = window.location.pathname; // Remove query
-              window.history.pushState({ path: newUrl }, '', newUrl);
-          }
+    // Don't push state on initial render if it matches URL, but pushState handles that via replace vs push logic usually.
+    // Here we just want to ensure URL reflects state.
+    // We need to avoid infinite loops with popstate.
+    // Strategy: Only push if the current URL doesn't match the state.
+
+    const currentParams = new URLSearchParams(window.location.search);
+    const currentSlug = currentParams.get("album");
+
+    if (viewMode === "DETAIL") {
+      const targetSlug = getSlug(ALBUMS[currentIndex].id);
+      if (currentSlug !== targetSlug) {
+        const newUrl = `${window.location.pathname}?album=${targetSlug}`;
+        window.history.pushState({ path: newUrl }, "", newUrl);
       }
+    } else {
+      // STACK mode
+      if (currentSlug) {
+        const newUrl = window.location.pathname; // Remove query
+        window.history.pushState({ path: newUrl }, "", newUrl);
+      }
+    }
   }, [viewMode, currentIndex]);
 
   // Updated handlers to use history where appropriate or rely on state sync
   // Actually, we can just update state, and the Effect above will update URL.
   // But for Back button, we need to ensure we don't trap user.
   // handleBackToStack just sets ViewMode 'STACK'. The Effect will remove the URL param.
-  // "Back" in browser (popstate) will trigger handleUrlChange -> setViewMode('STACK'). 
+  // "Back" in browser (popstate) will trigger handleUrlChange -> setViewMode('STACK').
   // Perfect.
-
 
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -158,10 +169,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Initialize Audio
-    audioRef.current = new Audio('/musics/00bgm.wav');
+    audioRef.current = new Audio("/musics/00bgm.wav");
     audioRef.current.loop = true;
     audioRef.current.volume = 0; // Initialize silent
-    
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -176,90 +187,102 @@ const App: React.FC = () => {
       // Play comfortably silence (muted) to unlock capabilities
       // Volume 0 is not enough on iOS (hardware volume control)
       audioRef.current.muted = true;
-      audioRef.current.play().catch(e => console.log("Audio Prime Failed:", e));
+      audioRef.current
+        .play()
+        .catch((e) => console.log("Audio Prime Failed:", e));
     }
   }, []);
 
   // BGM Persistence State
-  const bgmState = useRef<{ isPlaying: boolean; currentTime: number }>({ isPlaying: false, currentTime: 0 });
+  const bgmState = useRef<{ isPlaying: boolean; currentTime: number }>({
+    isPlaying: false,
+    currentTime: 0,
+  });
 
   // Handle Track Switching & Auto-Play on View Change
   useEffect(() => {
+    if (!audioRef.current) return;
+
+    const switchTrack = async (
+      newSrc: string,
+      mode: "ENTER_ALBUM" | "RETURN_HOME",
+    ) => {
       if (!audioRef.current) return;
 
-      const switchTrack = async (newSrc: string, mode: 'ENTER_ALBUM' | 'RETURN_HOME') => {
-          if (!audioRef.current) return;
-          
-          const currentSrc = audioRef.current.getAttribute('src');
-          
-          if (mode === 'ENTER_ALBUM') {
-               // LEAVING HOME: Save BGM State
-               if (currentSrc === '/musics/00bgm.wav') {
-                   bgmState.current = {
-                       isPlaying: isMusicPlaying,
-                       currentTime: audioRef.current.currentTime
-                   };
-               }
-               
-               // Switch to Album Music
-               if (currentSrc !== newSrc) {
-                   audioRef.current.src = newSrc;
-                   audioRef.current.load();
-               }
+      const currentSrc = audioRef.current.getAttribute("src");
 
-               // Attempt Auto-Play
-               audioRef.current.muted = false; // Ensure unmuted
-               audioRef.current.volume = 0.4;
-               audioRef.current.play()
-                .then(() => {
-                    setIsMusicPlaying(true);
-                })
-                .catch(e => {
-                    console.log("Album auto-play blocked (user interaction required):", e);
-                    setIsMusicPlaying(false);
-                });
-          } 
-          else if (mode === 'RETURN_HOME') {
-               // RETURNING HOME: Switch back to BGM
-                if (currentSrc !== '/musics/00bgm.wav') {
-                   audioRef.current.src = '/musics/00bgm.wav';
-                   audioRef.current.load();
-                   // Restore Progress
-                   audioRef.current.currentTime = bgmState.current.currentTime;
-               }
+      if (mode === "ENTER_ALBUM") {
+        // LEAVING HOME: Save BGM State
+        if (currentSrc === "/musics/00bgm.wav") {
+          bgmState.current = {
+            isPlaying: isMusicPlaying,
+            currentTime: audioRef.current.currentTime,
+          };
+        }
 
-               // Restore Play State
-               if (bgmState.current.isPlaying) {
-                   audioRef.current.muted = false; // Ensure unmuted
-                   audioRef.current.volume = 0.4;
-                   audioRef.current.play()
-                    .then(() => {
-                        setIsMusicPlaying(true);
-                    })
-                    .catch(e => {
-                        console.log("BGM Resume Failed:", e);
-                        setIsMusicPlaying(false);
-                    });
-               } else {
-                   setIsMusicPlaying(false);
-                   audioRef.current.pause();
-               }
-          }
-      };
+        // Switch to Album Music
+        if (currentSrc !== newSrc) {
+          audioRef.current.src = newSrc;
+          audioRef.current.load();
+        }
 
-      if (viewMode === 'DETAIL') {
-          // ENTERING ALBUM
-          const albumMusic = activeAlbum.musicFile || '/musics/00bgm.wav';
-          switchTrack(albumMusic, 'ENTER_ALBUM');
-      } else {
-          // STACK MODE
-          // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
-          // This prevents stopping the music when just swiping through albums on the homepage.
-          const currentSrc = audioRef.current.getAttribute('src');
-          if (currentSrc !== '/musics/00bgm.wav') {
-              switchTrack('/musics/00bgm.wav', 'RETURN_HOME');
-          }
+        // Attempt Auto-Play
+        audioRef.current.muted = false; // Ensure unmuted
+        audioRef.current.volume = 0.4;
+        audioRef.current
+          .play()
+          .then(() => {
+            setIsMusicPlaying(true);
+          })
+          .catch((e) => {
+            console.log(
+              "Album auto-play blocked (user interaction required):",
+              e,
+            );
+            setIsMusicPlaying(false);
+          });
+      } else if (mode === "RETURN_HOME") {
+        // RETURNING HOME: Switch back to BGM
+        if (currentSrc !== "/musics/00bgm.wav") {
+          audioRef.current.src = "/musics/00bgm.wav";
+          audioRef.current.load();
+          // Restore Progress
+          audioRef.current.currentTime = bgmState.current.currentTime;
+        }
+
+        // Restore Play State
+        if (bgmState.current.isPlaying) {
+          audioRef.current.muted = false; // Ensure unmuted
+          audioRef.current.volume = 0.4;
+          audioRef.current
+            .play()
+            .then(() => {
+              setIsMusicPlaying(true);
+            })
+            .catch((e) => {
+              console.log("BGM Resume Failed:", e);
+              setIsMusicPlaying(false);
+            });
+        } else {
+          setIsMusicPlaying(false);
+          audioRef.current.pause();
+        }
       }
+    };
+
+    if (viewMode === "DETAIL") {
+      // ENTERING ALBUM
+      const albumMusic = activeAlbum.musicFile || "/musics/00bgm.wav";
+      switchTrack(albumMusic, "ENTER_ALBUM");
+    } else {
+      // STACK MODE
+      // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
+      // This prevents stopping the music when just swiping through albums on the homepage.
+      const currentSrc = audioRef.current.getAttribute("src");
+      if (currentSrc !== "/musics/00bgm.wav") {
+        switchTrack("/musics/00bgm.wav", "RETURN_HOME");
+      }
+    }
   }, [viewMode, activeAlbum]);
 
   // Handle Play/Pause Toggle
@@ -270,14 +293,14 @@ const App: React.FC = () => {
 
     if (isMusicPlaying) {
       audioRef.current.muted = false; // Ensure unmuted
-      
+
       const startVolume = audioRef.current.volume;
       const targetVolume = 0.4;
 
       // Play audio
       const playPromise = audioRef.current.play();
       if (playPromise) {
-        playPromise.catch(e => console.log("Autoplay prevented:", e));
+        playPromise.catch((e) => console.log("Autoplay prevented:", e));
       }
 
       // Fade in logic for smooth transition (e.g. from Opening Screen)
@@ -286,7 +309,7 @@ const App: React.FC = () => {
           duration: 0.3,
           onUpdate: (v) => {
             if (audioRef.current) audioRef.current.volume = v;
-          }
+          },
         });
       } else {
         audioRef.current.volume = targetVolume;
@@ -301,7 +324,7 @@ const App: React.FC = () => {
   }, [isMusicPlaying]);
 
   const handleMusicToggle = () => {
-    setIsMusicPlaying(prev => !prev);
+    setIsMusicPlaying((prev) => !prev);
     // If user manually toggles OFF, reset was playing memory to prevent unwanted resume
     if (isMusicPlaying) {
       setWasPlayingBeforeVideo(false);
@@ -327,35 +350,37 @@ const App: React.FC = () => {
 
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
-      
       {showOpening && (
-        <OpeningScreen 
+        <OpeningScreen
           onStart={primeAudio}
           onComplete={() => {
             setShowOpening(false);
             // No longer using session storage to block future visits
             // sessionStorage.setItem('hasVisited', 'true');
-            
+
             // Auto-play BGM on entry (User interaction has occurred in OpeningScreen)
             setIsMusicPlaying(true);
-        }} />
+          }}
+        />
       )}
 
       {/* Background Layer */}
-      <CinematicBackground 
-          color={activeAlbum.color} 
-          backgroundColor={activeAlbum.backgroundColor} 
+      <CinematicBackground
+        color={activeAlbum.color}
+        backgroundColor={activeAlbum.backgroundColor}
       />
 
       {/* Main Content Area */}
-      <main className={`w-full h-full relative z-10 transition-opacity duration-1000 ${showOpening ? 'opacity-0' : 'opacity-100'}`}>
+      <main
+        className={`w-full h-full relative z-10 transition-opacity duration-1000 ${showOpening ? "opacity-0" : "opacity-100"}`}
+      >
         <AnimatePresence mode="wait">
-        {viewMode === 'STACK' ? (
-           <>
+          {viewMode === "STACK" ? (
+            <>
               {/* Header for Stack Mode */}
               <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none">
                 <div className="pointer-events-auto relative flex flex-col items-center justify-center">
-                  <motion.h1 
+                  <motion.h1
                     className="text-xs md:text-sm font-bold tracking-tight"
                     animate={{ color: activeAlbum.textColor }}
                     transition={{ duration: 0.5 }}
@@ -363,105 +388,116 @@ const App: React.FC = () => {
                     DAI<span style={{ opacity: 0.4 }}>.DESIGN</span>
                   </motion.h1>
                   {/* Dynamic Brand Accent Bar - Absolute to not affect text alignment */}
-                  <div 
+                  <div
                     className="absolute top-full left-0 w-8 h-0.5 mt-2 transition-colors duration-500"
                     style={{ backgroundColor: activeAlbum.color }}
                   ></div>
                 </div>
 
-
                 <div className="flex items-center justify-end pointer-events-auto">
-                   {/* Music Control - Top Right */}
-                   <button 
-                      onClick={handleMusicToggle}
-                      className={`flex items-center gap-3 transition-all duration-500 group cursor-pointer ${isMusicPlaying ? 'opacity-100' : 'opacity-40 hover:opacity-80'}`}
-                   >
-                      {/* Spectrum Visualizer */}
-                      <div className="flex items-end gap-[2px] h-3">
-                         {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
-                             <motion.div 
-                                key={i}
-                                className="w-[1.5px]"
-                                animate={{ 
-                                   height: isMusicPlaying ? ['20%', '70%', '30%', '60%', '20%'] : '25%', // Softer animation & Flat inactive state
-                                }}
-                                transition={isMusicPlaying ? {
-                                   duration: 1.5,
-                                   repeat: Infinity,
-                                   repeatType: "mirror",
-                                   delay: i * 0.2, // Rippling delay
-                                   ease: "easeInOut",
-                                } : {
-                                   duration: 0.5 // Smooth return to static
-                                }}
-                                style={{ backgroundColor: activeAlbum.textColor }} 
-                              />
-                         ))}
-                      </div>
+                  {/* Music Control - Top Right */}
+                  <button
+                    onClick={handleMusicToggle}
+                    className={`flex items-center gap-3 transition-all duration-500 group cursor-pointer ${isMusicPlaying ? "opacity-100" : "opacity-40 hover:opacity-80"}`}
+                  >
+                    {/* Spectrum Visualizer */}
+                    <div className="flex items-end gap-[2px] h-3">
+                      {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
+                        <motion.div
+                          key={i}
+                          className="w-[1.5px]"
+                          animate={{
+                            height: isMusicPlaying
+                              ? ["20%", "70%", "30%", "60%", "20%"]
+                              : "25%", // Softer animation & Flat inactive state
+                          }}
+                          transition={
+                            isMusicPlaying
+                              ? {
+                                  duration: 1.5,
+                                  repeat: Infinity,
+                                  repeatType: "mirror",
+                                  delay: i * 0.2, // Rippling delay
+                                  ease: "easeInOut",
+                                }
+                              : {
+                                  duration: 0.5, // Smooth return to static
+                                }
+                          }
+                          style={{ backgroundColor: activeAlbum.textColor }}
+                        />
+                      ))}
+                    </div>
 
-                      {/* Title */}
-                      <motion.span 
-                         className="text-[9px] font-bold tracking-widest uppercase leading-none mt-[1px]" // Unified Font (Sans Bold) & Size (9px)
-                         animate={{ color: activeAlbum.textColor }}
-                         transition={{ duration: 0.5 }}
-                      >
-                         {viewMode === 'DETAIL' && activeAlbum.musicFile ? 'Now Playing' : 'Outer Wilds'}
-                      </motion.span>
-                   </button>
+                    {/* Title */}
+                    <motion.span
+                      className="text-[9px] font-bold tracking-widest uppercase leading-none mt-[1px]" // Unified Font (Sans Bold) & Size (9px)
+                      animate={{ color: activeAlbum.textColor }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      {viewMode === "DETAIL" && activeAlbum.musicFile
+                        ? "Now Playing"
+                        : "Outer Wilds"}
+                    </motion.span>
+                  </button>
                 </div>
               </header>
 
-              <motion.div 
+              <motion.div
                 key="stack"
                 className="w-full h-full"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)', transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] } }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.95,
+                  filter: "blur(10px)",
+                  transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] },
+                }}
               >
-                <AlbumStack 
-                    albums={ALBUMS} 
-                    currentIndex={currentIndex}
-                    onIndexChange={handleIndexChange}
-                    onSelect={handleSelectAlbum} 
+                <AlbumStack
+                  albums={ALBUMS}
+                  currentIndex={currentIndex}
+                  onIndexChange={handleIndexChange}
+                  onSelect={handleSelectAlbum}
                 />
               </motion.div>
 
-               {/* Footer for Stack Mode */}
+              {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
-                <motion.p 
+                <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                   animate={{ color: activeAlbum.textColor }}
                   style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
                 >
-                   Stay hungry,Stay foolish
+                  Stay hungry,Stay foolish
                 </motion.p>
-                <motion.p 
+                <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                   animate={{ color: activeAlbum.textColor }}
                   style={{ opacity: 0.5 }}
                   transition={{ duration: 0.5 }}
                 >
-                   {String(currentIndex + 1).padStart(2, '0')} / {String(ALBUMS.length).padStart(2, '0')}
+                  {String(currentIndex + 1).padStart(2, "0")} /{" "}
+                  {String(ALBUMS.length).padStart(2, "0")}
                 </motion.p>
               </footer>
-           </>
-        ) : (
-          /* DETAIL VIEW (Immersive) - No animation wrapper here, handled inside component */
-          <ImmersiveView 
-            key="detail"
-            album={activeAlbum} 
-            onClose={handleBackToStack} 
-            isMusicPlaying={isMusicPlaying}
-            onMusicToggle={handleMusicToggle}
-            onVideoPlay={handleVideoPlay}
-            onVideoEnd={handleVideoEnd}
-          />
-        )}
+            </>
+          ) : (
+            /* DETAIL VIEW (Immersive) - No animation wrapper here, handled inside component */
+            <ImmersiveView
+              key="detail"
+              album={activeAlbum}
+              onClose={handleBackToStack}
+              isMusicPlaying={isMusicPlaying}
+              onMusicToggle={handleMusicToggle}
+              onVideoPlay={handleVideoPlay}
+              onVideoEnd={handleVideoEnd}
+            />
+          )}
         </AnimatePresence>
       </main>
-
-      
     </div>
   );
 };

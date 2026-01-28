@@ -167,6 +167,7 @@ const SimpleMarkdown: React.FC<{
                 <video 
                     src={videoMatch[1]} 
                     controls 
+                    controlsList="nodownload"
                     playsInline
                     className="w-full rounded-sm shadow-sm bg-black/5"
                 />
@@ -425,6 +426,7 @@ const VideoGridItem: React.FC<{
                             src={videoUrl + (track.imageUrl ? "" : "#t=0.001")} // Only use hack if no poster
                             poster={track.imageUrl || undefined}
                             controls={isPlaying}
+                            controlsList="nodownload"
                             playsInline
                             webkit-playsinline="true"
                             muted // Required for autoplay/preview on mobile
@@ -745,18 +747,27 @@ const Lightbox: React.FC<{
                 <video 
                     src={url} 
                     controls 
+                    controlsList="nodownload"
                     autoPlay 
                     playsInline
                     onClick={(e) => e.stopPropagation()}
                     className="max-w-full max-h-full rounded-sm shadow-2xl pointer-events-auto"
                 />
             ) : (
-                <img 
-                    src={url} 
-                    alt="Full View" 
-                    onClick={(e) => e.stopPropagation()}
-                    className="max-w-full max-h-full object-contain rounded-sm shadow-2xl pointer-events-auto" 
-                />
+                <div className="relative max-w-full max-h-full pointer-events-auto">
+                    <img 
+                        src={url} 
+                        alt="Full View" 
+                        onClick={(e) => e.stopPropagation()}
+                        className="max-w-full max-h-full object-contain rounded-sm shadow-2xl" 
+                    />
+                    {/* Protection Overlay for Lightbox */}
+                    <div 
+                        className="absolute inset-0 z-50 bg-transparent"
+                        onContextMenu={(e) => e.preventDefault()}
+                        onClick={(e) => e.stopPropagation()} 
+                    />
+                </div>
             )}
         </motion.div>
     </motion.div>
