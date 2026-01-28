@@ -4,10 +4,16 @@ import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import OpeningScreen from "./components/OpeningScreen";
+import Cheers from "./components/Cheers";
 
 import CinematicBackground from "./components/CinematicBackground";
 
+import { useCheers } from "./hooks/useCheers";
+
 const App: React.FC = () => {
+  // Global Cheers State (Prefetched)
+  const { count: cheersCount, increment: incrementCheers } = useCheers();
+
   // Helper to get slug from album (defined early for state init)
   const getSlug = (albumId: string) => albumId.toLowerCase();
 
@@ -348,6 +354,10 @@ const App: React.FC = () => {
     setWasPlayingBeforeVideo(false);
   };
 
+  // Determine active album for decorations (headers/footers)
+  // If we are on the Cheers page (index = length), use the last album's style
+  const displayAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
+
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       {showOpening && (
@@ -366,8 +376,8 @@ const App: React.FC = () => {
 
       {/* Background Layer */}
       <CinematicBackground
-        color={activeAlbum.color}
-        backgroundColor={activeAlbum.backgroundColor}
+        color={displayAlbum.color}
+        backgroundColor={displayAlbum.backgroundColor}
       />
 
       {/* Main Content Area */}
@@ -376,13 +386,13 @@ const App: React.FC = () => {
       >
         <AnimatePresence mode="wait">
           {viewMode === "STACK" ? (
-            <>
+            <motion.div className="w-full h-full" key="stack-container">
               {/* Header for Stack Mode */}
               <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none">
                 <div className="pointer-events-auto relative flex flex-col items-center justify-center">
                   <motion.h1
                     className="text-xs md:text-sm font-bold tracking-tight"
-                    animate={{ color: activeAlbum.textColor }}
+                    animate={{ color: displayAlbum.textColor }}
                     transition={{ duration: 0.5 }}
                   >
                     DAI<span style={{ opacity: 0.4 }}>.DESIGN</span>
@@ -390,7 +400,7 @@ const App: React.FC = () => {
                   {/* Dynamic Brand Accent Bar - Absolute to not affect text alignment */}
                   <div
                     className="absolute top-full left-0 w-8 h-0.5 mt-2 transition-colors duration-500"
-                    style={{ backgroundColor: activeAlbum.color }}
+                    style={{ backgroundColor: displayAlbum.color }}
                   ></div>
                 </div>
 
@@ -424,7 +434,7 @@ const App: React.FC = () => {
                                   duration: 0.5, // Smooth return to static
                                 }
                           }
-                          style={{ backgroundColor: activeAlbum.textColor }}
+                          style={{ backgroundColor: displayAlbum.textColor }}
                         />
                       ))}
                     </div>
@@ -432,10 +442,10 @@ const App: React.FC = () => {
                     {/* Title */}
                     <motion.span
                       className="text-[9px] font-bold tracking-widest uppercase leading-none mt-[1px]" // Unified Font (Sans Bold) & Size (9px)
-                      animate={{ color: activeAlbum.textColor }}
+                      animate={{ color: displayAlbum.textColor }}
                       transition={{ duration: 0.5 }}
                     >
-                      {viewMode === "DETAIL" && activeAlbum.musicFile
+                      {viewMode === "DETAIL" && activeAlbum ?.musicFile // activeAlbum might be undefined if on Cheers page, but viewMode is STACK there
                         ? "Now Playing"
                         : "Outer Wilds"}
                     </motion.span>
@@ -443,31 +453,51 @@ const App: React.FC = () => {
                 </div>
               </header>
 
-              <motion.div
-                key="stack"
-                className="w-full h-full"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{
-                  opacity: 0,
-                  scale: 0.95,
-                  filter: "blur(10px)",
-                  transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] },
-                }}
-              >
-                <AlbumStack
-                  albums={ALBUMS}
-                  currentIndex={currentIndex}
-                  onIndexChange={handleIndexChange}
-                  onSelect={handleSelectAlbum}
-                />
-              </motion.div>
+              {/* Stack vs Cheers */}
+              <AnimatePresence mode="wait">
+                 {currentIndex < ALBUMS.length ? (
+                    <motion.div
+                        key="stack"
+                        className="w-full h-full"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{
+                        opacity: 0,
+                        scale: 0.95,
+                        filter: "blur(10px)",
+                        transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] },
+                        }}
+                    >
+                        <AlbumStack
+                        albums={ALBUMS}
+                        currentIndex={currentIndex}
+                        onIndexChange={handleIndexChange}
+                        onSelect={handleSelectAlbum}
+                        />
+                    </motion.div>
+                 ) : (
+                    <motion.div
+                        key="cheers"
+                        className="w-full h-full absolute inset-0 z-20"
+                        initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <Cheers 
+                            onBack={() => handleIndexChange(ALBUMS.length - 1)} 
+                            count={cheersCount}
+                            increment={incrementCheers}
+                        />
+                    </motion.div>
+                 )}
+              </AnimatePresence>
 
               {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
                 <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
-                  animate={{ color: activeAlbum.textColor }}
+                  animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
                 >
@@ -475,15 +505,15 @@ const App: React.FC = () => {
                 </motion.p>
                 <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
-                  animate={{ color: activeAlbum.textColor }}
+                  animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.5 }}
                   transition={{ duration: 0.5 }}
                 >
-                  {String(currentIndex + 1).padStart(2, "0")} /{" "}
+                  {Math.min(currentIndex + 1, ALBUMS.length)} /{" "}
                   {String(ALBUMS.length).padStart(2, "0")}
                 </motion.p>
               </footer>
-            </>
+            </motion.div>
           ) : (
             /* DETAIL VIEW (Immersive) - No animation wrapper here, handled inside component */
             <ImmersiveView

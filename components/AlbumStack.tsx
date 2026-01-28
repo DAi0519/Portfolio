@@ -144,7 +144,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
             isScrolling = true;
             
             if (e.deltaY > 0 || e.deltaX > 0) {
-                if (currentIndex < albums.length - 1) {
+                if (currentIndex < albums.length) {
                     onIndexChange(currentIndex + 1);
                 }
             } else {
@@ -212,7 +212,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
             if (dragX > THRESHOLD && currentIndex > 0) {
                 // Dragged Right -> Previous
                 onIndexChange(currentIndex - 1);
-            } else if (dragX < -THRESHOLD && currentIndex < albums.length - 1) {
+            } else if (dragX < -THRESHOLD && currentIndex < albums.length) {
                 // Dragged Left -> Next
                 onIndexChange(currentIndex + 1);
             }
@@ -364,7 +364,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       - Desktop: Absolute 'bottom-12' (Pinned to viewport bottom)
       - Short Screens: HIDDEN (as per user request for "Extremely Narrow/Landscape" view)
     */}
-    {!layout.isShort && (
+    {!layout.isShort && currentIndex < albums.length && (
     <div className={`
         pointer-events-none px-6 z-50 text-center
         ${isMobileOrTablet 
