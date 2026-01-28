@@ -297,7 +297,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
                       <text
                         fill="rgba(20, 20, 20, 0.95)"
                         fontSize="14.5"
-                        fontFamily="'OPPOSans', 'ChillDuanHeiSong', sans-serif"
+                        fontFamily="'ChillDuanHeiSong', 'OPPOSans', sans-serif"
                         fontWeight="200"
                         letterSpacing="0.08em"
                         textAnchor="middle"
@@ -310,7 +310,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
                       <text
                         fill="rgba(20, 20, 20, 0.55)"
                         fontSize="10.5"
-                        fontFamily="'OPPOSans', 'ChillDuanHeiSong', sans-serif"
+                        fontFamily="'ChillDuanHeiSong', 'OPPOSans', sans-serif"
                         fontWeight="400"
                         letterSpacing="0.2em"
                         textAnchor="middle"
