@@ -198,7 +198,7 @@ const SimpleMarkdown: React.FC<{
       // H1 Heading
       if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
         return (
-          <h1 key={i} className="text-2xl md:text-3xl font-sans font-bold mt-10 mb-6 text-neutral-900 tracking-tight leading-tight">
+          <h1 key={i} className="text-2xl md:text-3xl font-chill font-medium mt-10 mb-6 text-neutral-900 tracking-tight leading-tight">
             {parseInlineFormats(trimmed.replace('# ', ''))}
           </h1>
         );
@@ -206,7 +206,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={i} className="text-xs font-sans font-bold uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1">
+          <h3 key={i} className="text-xs font-chill font-medium uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1">
             {parseInlineFormats(trimmed.replace('### ', ''))}
           </h3>
         );
@@ -214,7 +214,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('## ')) {
            return (
-             <h2 key={i} className="text-xl md:text-2xl font-sans font-bold mt-10 mb-4 text-neutral-900 tracking-tight leading-tight">
+             <h2 key={i} className="text-xl md:text-2xl font-chill font-medium mt-10 mb-4 text-neutral-900 tracking-tight leading-tight">
                {parseInlineFormats(trimmed.replace('## ', ''))}
              </h2>
            );
@@ -226,7 +226,7 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('> ')) {
            return (
-                <blockquote key={i} className="pl-0 border-l-0 my-4 font-sans text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
+                <blockquote key={i} className="pl-0 border-l-0 my-4 font-chill font-extralight text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
                    "{parseInlineFormats(trimmed.replace('> ', ''))}"
                 </blockquote>
            );
@@ -240,7 +240,7 @@ const SimpleMarkdown: React.FC<{
          return (
            <div key={i} className="flex items-baseline gap-4 mt-2 mb-2 pl-2">
               <span className="w-1.5 h-1.5 rounded-sm shrink-0 translate-y-[-2px] bg-neutral-800" />
-              <p className="flex-1 text-neutral-800 leading-[1.8] m-0 text-base font-sans font-normal tracking-wide">
+              <p className="flex-1 text-neutral-800 leading-[1.8] m-0 text-base font-chill font-extralight tracking-wide">
                  {parseInlineFormats(trimmed.replace('- ', ''))}
               </p>
            </div>
@@ -248,7 +248,7 @@ const SimpleMarkdown: React.FC<{
       }
 
       return (
-        <p key={i} className="text-neutral-800 leading-[1.8] mt-5 mb-2 font-sans font-normal text-base md:text-lg tracking-wide">
+        <p key={i} className="text-neutral-800 leading-[1.8] mt-5 mb-2 font-chill font-extralight text-base md:text-lg tracking-wide">
            {parseInlineFormats(trimmed)}
         </p>
       );
@@ -271,7 +271,7 @@ const SimpleMarkdown: React.FC<{
                   <thead className="bg-neutral-50">
                       <tr>
                           {headerCells.map((cell, i) => (
-                              <th key={i} className="px-4 py-3 font-sans text-xs font-bold uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap">
+                              <th key={i} className="px-4 py-3 font-chill font-medium text-xs uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap">
                                   {parseInlineFormats(cell)}
                               </th>
                           ))}
@@ -281,7 +281,7 @@ const SimpleMarkdown: React.FC<{
                       {bodyRows.map((row, rowIdx) => (
                           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
                               {parseRow(row).map((cell, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-sans leading-[1.8]">
+                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-chill font-extralight leading-[1.8]">
                                       {parseInlineFormats(cell)}
                                   </td>
                               ))}
@@ -352,7 +352,7 @@ const TrackItem: React.FC<{
             {/* MAIN CONTENT AREA */}
             <div className="flex-1 flex items-center justify-between py-5 border-b border-neutral-200 transition-colors duration-500 group-hover:border-neutral-300">
                 <h3 
-                    className="text-lg md:text-xl font-bold tracking-tight text-neutral-900 transition-colors pr-8 leading-tight flex-1"
+                    className="text-lg md:text-xl font-chill font-medium tracking-tight text-neutral-900 transition-colors pr-8 leading-tight flex-1"
                     style={{ color: isHovered ? safeColor : undefined }}
                 >
                      {track.title}
@@ -502,7 +502,7 @@ const VideoGridItem: React.FC<{
             </div>
             
             <div>
-                <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                <h3 className="text-sm font-chill font-extralight text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
                     {track.title}
                 </h3>
                 <p className="text-[10px] font-mono text-neutral-400 mt-1 line-clamp-1">
@@ -700,7 +700,7 @@ const CodingGridItem: React.FC<{
             <div className="w-full">
                 {/* Title Row with Date */}
                 <div className="flex justify-between items-baseline mb-2">
-                    <h3 className="text-base font-bold text-neutral-900 leading-tight group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-base font-chill font-medium text-neutral-900 leading-tight group-hover:text-blue-600 transition-colors">
                         {track.title}
                     </h3>
                     <span className="text-[10px] font-mono text-neutral-400 text-right tabular-nums shrink-0 ml-4">
@@ -708,7 +708,7 @@ const CodingGridItem: React.FC<{
                     </span>
                 </div>
                 {/* Description - Full Width */}
-                <p className="text-sm text-neutral-500 font-normal line-clamp-2 leading-relaxed">
+                <p className="text-sm text-neutral-500 font-chill font-extralight line-clamp-2 leading-relaxed">
                     {track.description}
                 </p>
             </div>
@@ -960,7 +960,7 @@ const ProjectModal: React.FC<{
                      
                      {/* Article Title */}
                      {project.title && (
-                         <h1 className="text-3xl md:text-5xl font-bold text-neutral-900 mb-8 tracking-tight leading-[1.1]">
+                         <h1 className="text-3xl md:text-5xl font-chill font-medium text-neutral-900 mb-8 tracking-tight leading-[1.1]">
                              {project.title}
                          </h1>
                      )}
@@ -1058,7 +1058,7 @@ const ProjectModal: React.FC<{
 
                         {/* Title */}
                         {project.title && project.title.toLowerCase() !== 'untitled' && (
-                            <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4 tracking-tight leading-tight">
+                            <h2 className="text-2xl md:text-3xl font-chill font-medium text-neutral-900 mb-4 tracking-tight leading-tight">
                                 {project.title}
                             </h2>
                         )}
@@ -1087,7 +1087,7 @@ const ProjectModal: React.FC<{
                                     )}
                                 </div>
                             ) : (
-                                 <p className="leading-relaxed font-normal">
+                                 <p className="leading-relaxed font-chill font-extralight">
                                     {project.description}
                                 </p>
                             )}
