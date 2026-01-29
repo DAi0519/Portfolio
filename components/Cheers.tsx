@@ -58,10 +58,10 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
 
   return (
     <motion.div
-      className="w-full h-full flex flex-col items-center justify-center relative cursor-pointer touch-none"
+      className="w-full h-full flex flex-col items-center justify-center relative touch-none"
       onPanEnd={onPanEnd}
       onWheel={handleWheel}
-      onTap={handleCheers} // Use onTap for the click/tap action to avoid conflict with pan
+      // onTap removed - restricted to inner content
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -91,8 +91,14 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
         </motion.div>
       </motion.div>
 
-      {/* Centered Content */}
-      <div className="relative flex flex-col items-center gap-6"> {/* Reduced gap-8 to gap-6 */}
+      {/* Centered Content - Interaction Zone */}
+      <motion.div 
+        className="relative flex flex-col items-center gap-6 cursor-pointer" // Added cursor-pointer
+        onTap={(e) => {
+            e.stopPropagation(); // Prevent bubbling if needed, though mostly visual here
+            handleCheers();
+        }}
+      > 
         
         {/* Slogan Image - Placed above cups, pointer-events-none to prevent blocking */}
         <motion.div
@@ -162,10 +168,10 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
         </div>
 
         {/* Counter */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 mt-4"> {/* Added mt-4 to match visual spacing of top slogan */}
             <div className="flex items-baseline justify-center gap-1 text-neutral-800 font-bold">
                 {/* Increased Text Sizes */}
-                <span className="text-base md:text-lg">已碰杯</span>
+                <span className="text-base md:text-lg">已有</span>
                 <motion.div
                     key={count} // Re-trigger animation on change
                     initial={{ scale: 1.5, opacity: 0, y: 10 }}
@@ -174,12 +180,12 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
                 >
                     {count}
                 </motion.div>
-                <span className="text-base md:text-lg">次</span>
+                <span className="text-base md:text-lg">次碰杯，来一杯？</span>
             </div>
             {/* Removed the redundant "CHEERS" text as requested implicit context replacement */}
         </div>
 
-      </div>
+      </motion.div>
 
         {/* Swipe Hint (Optional, or just rely on user knowing to swipe back) */}
         {/* Since this replaces the stack, we might want to handle swipes here too to go back */}

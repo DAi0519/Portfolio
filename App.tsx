@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ALBUMS } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
-import { motion, AnimatePresence, animate } from "framer-motion";
+import { AnimatePresence, motion, animate } from "framer-motion";
+import { ChevronRight } from "lucide-react"; // Import ChevronRight
 import OpeningScreen from "./components/OpeningScreen";
 import Cheers from "./components/Cheers";
 
@@ -358,6 +359,13 @@ const App: React.FC = () => {
   // If we are on the Cheers page (index = length), use the last album's style
   const displayAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
 
+  // Background Colors Logic
+  // If distinct "Cheers" page logic is needed for background override:
+  const isCheersPage = viewMode === "STACK" && currentIndex === ALBUMS.length;
+  const bgProps = isCheersPage 
+    ? { color: "#E5E5E5", backgroundColor: "#FFFFFF" } // Pure White + Light Grey for Cheers
+    : { color: displayAlbum.color, backgroundColor: displayAlbum.backgroundColor };
+
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       {showOpening && (
@@ -376,8 +384,8 @@ const App: React.FC = () => {
 
       {/* Background Layer */}
       <CinematicBackground
-        color={displayAlbum.color}
-        backgroundColor={displayAlbum.backgroundColor}
+        color={bgProps.color}
+        backgroundColor={bgProps.backgroundColor}
       />
 
       {/* Main Content Area */}
@@ -453,45 +461,71 @@ const App: React.FC = () => {
                 </div>
               </header>
 
-              {/* Stack vs Cheers */}
-              <AnimatePresence mode="wait">
-                 {currentIndex < ALBUMS.length ? (
-                    <motion.div
-                        key="stack"
-                        className="w-full h-full"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{
-                        opacity: 0,
-                        scale: 0.95,
-                        filter: "blur(10px)",
-                        transition: { duration: 0.5, ease: [0.32, 0, 0.67, 0] },
-                        }}
-                    >
-                        <AlbumStack
-                        albums={ALBUMS}
-                        currentIndex={currentIndex}
-                        onIndexChange={handleIndexChange}
-                        onSelect={handleSelectAlbum}
-                        />
-                    </motion.div>
-                 ) : (
-                    <motion.div
-                        key="cheers"
-                        className="w-full h-full absolute inset-0 z-20"
-                        initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                        exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <Cheers 
-                            onBack={() => handleIndexChange(ALBUMS.length - 1)} 
-                            count={cheersCount}
-                            increment={incrementCheers}
-                        />
-                    </motion.div>
-                 )}
-              </AnimatePresence>
+              {/* Stack vs Cheers Structure Refactor: Keep Stack Mounted */}
+              <div className="relative w-full h-full">
+                  {/* Layer 1: Album Stack (Always Mounted to prevent re-layout tremble) */}
+                  <motion.div
+                      className="absolute inset-0 w-full h-full"
+                      animate={{ 
+                          opacity: currentIndex < ALBUMS.length ? 1 : 0,
+                          scale: currentIndex < ALBUMS.length ? 1 : 0.95,
+                          filter: currentIndex < ALBUMS.length ? "blur(0px)" : "blur(10px)",
+                          pointerEvents: currentIndex < ALBUMS.length ? "auto" : "none"
+                      }}
+                      transition={{ duration: 0.5 }}
+                  >
+                      <AlbumStack
+                          albums={ALBUMS}
+                          currentIndex={Math.min(currentIndex, ALBUMS.length - 1)} // Clamp index for stack logic so it doesn't go out of bounds visually
+                          onIndexChange={handleIndexChange}
+                          onSelect={handleSelectAlbum}
+                      />
+                  </motion.div>
+
+                  {/* Layer 2: Cheers Overlay */}
+                  <AnimatePresence>
+                      {currentIndex === ALBUMS.length && (
+                          <motion.div
+                              key="cheers"
+                              className="absolute inset-0 z-20 w-full h-full"
+                              initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                              exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                              transition={{ duration: 0.5 }}
+                          >
+                              <Cheers 
+                                  onBack={() => handleIndexChange(ALBUMS.length - 1)} 
+                                  count={cheersCount}
+                                  increment={incrementCheers}
+                              />
+                          </motion.div>
+                      )}
+                  </AnimatePresence>
+              </div>
+
+              {/* Forward Navigation Arrow - Right Edge (Only on Last Album) */}
+              {currentIndex === ALBUMS.length - 1 && (
+                  <motion.div
+                      className="absolute right-2 md:right-6 top-[38%] -translate-y-1/2 p-4 z-50 group cursor-pointer"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ delay: 0.5, duration: 1 }}
+                      onClick={() => handleIndexChange(ALBUMS.length)}
+                  >
+                      <motion.div
+                          animate={{ x: [0, 5, 0] }} // Oscillate right
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                          <ChevronRight 
+                              size={36} 
+                              strokeWidth={3} 
+                              absoluteStrokeWidth
+                              className="text-neutral-400 group-hover:text-neutral-600 transition-colors duration-300 opacity-50" // Subtle grey for album page
+                          />
+                      </motion.div>
+                  </motion.div>
+              )}
 
               {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
@@ -509,7 +543,7 @@ const App: React.FC = () => {
                   style={{ opacity: 0.5 }}
                   transition={{ duration: 0.5 }}
                 >
-                  {Math.min(currentIndex + 1, ALBUMS.length)} /{" "}
+                  {String(Math.min(currentIndex + 1, ALBUMS.length)).padStart(2, "0")} /{" "}
                   {String(ALBUMS.length).padStart(2, "0")}
                 </motion.p>
               </footer>
