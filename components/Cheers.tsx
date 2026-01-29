@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coffee } from "lucide-react";
+import { Coffee, ChevronLeft } from "lucide-react";
 import React from "react";
 
 interface CheersProps {
@@ -35,29 +35,81 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
     setTimeout(() => setIsAnimating(false), 300);
   };
 
-  // Swipe Logic
+  // Swipe & Wheel Logic
   const onPanEnd = (event: any, info: any) => {
-    // Swipe Right (positive x) -> Back
+    // Swipe Right (Back) - Existing
     if (info.offset.x > 50 && onBack) {
       onBack();
     }
+    // Swipe Left (Back) - Requested by User ("左滑...返回")
+    // Treating the page as a dismissible overlay that can be swiped either way or specifically left
+    if (info.offset.x < -50 && onBack) {
+        onBack();
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+      // Scroll Up (deltaY < 0) -> Back
+      // Scroll Left (deltaX < 0) -> Back (optional, but good mapping)
+      if ((e.deltaY < -20 || e.deltaX < -20) && onBack) {
+          onBack();
+      }
   };
 
   return (
     <motion.div
       className="w-full h-full flex flex-col items-center justify-center relative cursor-pointer touch-none"
       onPanEnd={onPanEnd}
+      onWheel={handleWheel}
       onTap={handleCheers} // Use onTap for the click/tap action to avoid conflict with pan
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
+      {/* Back Navigation Arrow - Left Edge */}
+      <motion.div
+        className="absolute left-2 md:left-6 top-[45%] -translate-y-1/2 p-4 z-50 group cursor-pointer" // Visual alignment with cups (approx 45%) rather than geometric center (50%)
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 1, duration: 1 }}
+        onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering cheers
+            onBack();
+        }}
+      >
+        <motion.div
+            animate={{ x: [0, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+            <ChevronLeft 
+                size={36} // Slightly larger for visibility
+                strokeWidth={3} // Thicker from default (2->3)
+                absoluteStrokeWidth // ensures crisp rendering
+                className="text-neutral-300 md:text-neutral-200 group-hover:text-neutral-400 transition-colors duration-300"
+            />
+        </motion.div>
+      </motion.div>
+
       {/* Centered Content */}
-      <div className="relative flex flex-col items-center gap-8">
+      <div className="relative flex flex-col items-center gap-6"> {/* Reduced gap-8 to gap-6 */}
         
+        {/* Slogan Image - Placed above cups, pointer-events-none to prevent blocking */}
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="pointer-events-none mb-2 select-none" // Reduced mb-4 to mb-2
+        >
+            <img 
+                src="/images/cheers-slogan.png" 
+                alt="Cheers Slogan" 
+                className="w-80 md:w-[32rem] h-auto mix-blend-multiply opacity-80" // Increased from w-64/w-96
+            />
+        </motion.div>
+
         {/* Cups Container */}
-        <div className="relative flex items-center justify-center gap-4">
+        <div className="relative flex items-center justify-center gap-2"> {/* Reduced gap-4 to gap-2 */}
           <AnimatePresence>
             {isAnimating && (
               <motion.div
@@ -84,35 +136,47 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
 
           {/* Left Cup - Flipped to have handle on left */}
           <motion.div
-            animate={isAnimating ? { rotate: 15, x: 10 } : { rotate: 0, x: 0 }}
+            // Pivot from bottom for realistic tipping
+            // Idle: Rotate 10 (with flip = Tilted Left/Out)
+            // Clink: Rotate -12 (increased from -5 for harder hit)
+            animate={isAnimating ? { rotate: -12, x: 0 } : { rotate: 10, x: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
-            style={{ scaleX: -1 }}
+            style={{ scaleX: -1, originY: 1 }} // Set anchor to bottom
           >
-            <Coffee size={64} strokeWidth={1.5} className="text-neutral-800" />
+            {/* Increased size 48 -> 56 */}
+            <Coffee size={56} strokeWidth={1.5} className="text-neutral-800" />
           </motion.div>
 
           {/* Right Cup - Normal to have handle on right */}
           <motion.div
-            animate={isAnimating ? { rotate: -15, x: -10 } : { rotate: 0, x: 0 }}
+            // Pivot from bottom
+            // Idle: Rotate 10 (Tilted Right/Out)
+            // Clink: Rotate -12 (increased from -5 for harder hit)
+            animate={isAnimating ? { rotate: -12, x: 0 } : { rotate: 10, x: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 10 }}
+            style={{ originY: 1 }} // Set anchor to bottom
           >
-            <Coffee size={64} strokeWidth={1.5} className="text-neutral-800" />
+            {/* Increased size 48 -> 56 */}
+            <Coffee size={56} strokeWidth={1.5} className="text-neutral-800" />
           </motion.div>
         </div>
 
         {/* Counter */}
         <div className="flex flex-col items-center gap-2">
-            <motion.div
-                key={count} // Re-trigger animation on change
-                initial={{ scale: 1.5, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                className="text-4xl font-bold text-neutral-800 tabular-nums"
-            >
-                {count}
-            </motion.div>
-            <div className="text-xs font-medium tracking-widest uppercase text-neutral-400">
-                CHEERS
+            <div className="flex items-baseline justify-center gap-1 text-neutral-800 font-bold">
+                {/* Increased Text Sizes */}
+                <span className="text-base md:text-lg">已碰杯</span>
+                <motion.div
+                    key={count} // Re-trigger animation on change
+                    initial={{ scale: 1.5, opacity: 0, y: 10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    className="text-4xl md:text-5xl tabular-nums mx-1 text-[#002FA7]" // Increased 3xl->4xl, 4xl->5xl, Added Klein Blue
+                >
+                    {count}
+                </motion.div>
+                <span className="text-base md:text-lg">次</span>
             </div>
+            {/* Removed the redundant "CHEERS" text as requested implicit context replacement */}
         </div>
 
       </div>
