@@ -53,13 +53,19 @@ const SimpleMarkdown: React.FC<{
         } else if (fullMatch.startsWith('*')) {
           result.push(<em key={keyIdx++} className="italic">{match[4]}</em>);
         } else if (fullMatch.startsWith('[')) {
+          const isMailto = match[6].startsWith('mailto:');
           result.push(
             <a 
               key={keyIdx++} 
               href={match[6]} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-neutral-600 transition-colors"
+              target={isMailto ? undefined : "_blank"} 
+              rel={isMailto ? undefined : "noopener noreferrer"}
+              onClick={isMailto ? (e) => {
+                  e.preventDefault();
+                  console.log('Mailto clicked:', match[6]);
+                  window.location.href = match[6];
+              } : undefined}
+              className="underline underline-offset-2 hover:text-neutral-600 transition-colors cursor-pointer"
             >
               {match[5]}
             </a>

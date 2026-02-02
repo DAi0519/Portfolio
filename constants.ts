@@ -30,21 +30,26 @@ export const ALBUMS: Album[] = [
     // Solid Pure White
     coverImage: "/covers/cover-intro.png",
     introContent: `
-### HELLO, WORLD.
-我是一名游走在 **设计与代码** 边界的创造者。
-我相信最好的数字产品不仅好用，更要动人。
-### TECH STACK
-- **Frontend:** React, TypeScript, Next.js, Framer Motion
-- **Creative:** Three.js, WebGL, Shader Programming
-- **Design:** Figma, Blender, Adobe Suite
-### PHILOSOPHY
-**"Less but Better"**
-这是 Dieter Rams 的设计十诫中我最以此为然的一条。
-在信息过载的时代，我致力于通过做减法来还原事物的本质。
-我的代码追求语义化的清晰，我的设计追求功能的纯粹。
-### CONTACT
-如果你对我的项目感兴趣，或者想聊聊设计与技术：
-hello@dai.design / @daidesign
+# HELLO, WORLD.
+我随机漫步在设计与技术的交界，连接我所知的一切，然后创造。
+曾经在景观与建筑的世界里，我学会用秩序、尺度与光去组织体验：哪里该被看见、哪里该被忽略、哪里需要引导。我相信好的体验像光：不喧哗，却让人自然看见该看见的东西。
+如今转向数字世界，我发现实质并没有变——只是换成了信息架构、交互节奏与工作流程。
+# 近期在做
+专注于 AI 视觉领域，把素材变成资产、把灵感变成模板、把不稳定的产出变成可控的流程。
+同时做一些关于「内容、工具与体验」的探索：用设计表达观点，用实践验证想法。
+# 偏好
+"Less but Better"
+把每一次表达收敛到必要，把每一个细节做到有理由。
+"Form follows function"
+形式从目的里长出来，而不仅仅是贴上去。
+"Order out of chaos"
+把混乱规整成秩序，品味由此而生。
+# 合作
+如果对我的项目感兴趣，或者聊聊：
+[daiziyu8@gmail.com](https://mail.google.com/mail/?view=cm&fs=1&to=daiziyu8@gmail.com)
+已合作过品牌：
+The North Face / Timberland / 李宁 / 安踏
+
     `,
     tracks: [],
     musicFile: "/musics/1.wav"
