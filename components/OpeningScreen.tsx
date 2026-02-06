@@ -432,7 +432,7 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
     
     // Play Sound Effect
     if (!audioRef.current) {
-        audioRef.current = new Audio('/musics/vinyl_start.wav');
+        audioRef.current = new Audio('/musics/vinyl_start.mp3');
         audioRef.current.volume = 0.6; // Moderate volume
     }
     audioRef.current.play().catch(e => console.log("SFX Play failed", e));
