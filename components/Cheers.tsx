@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coffee, ChevronLeft } from "lucide-react";
+import { Coffee } from "lucide-react";
 import React from "react";
 
 interface CheersProps {
@@ -68,28 +68,7 @@ export default function Cheers({ onBack, count, increment }: CheersProps) {
       transition={{ duration: 0.5 }}
     >
       {/* Back Navigation Arrow - Left Edge */}
-      <motion.div
-        className="absolute left-2 md:left-6 top-[45%] -translate-y-1/2 p-4 z-50 group cursor-pointer" // Visual alignment with cups (approx 45%) rather than geometric center (50%)
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1, duration: 1 }}
-        onClick={(e) => {
-            e.stopPropagation(); // Prevent triggering cheers
-            onBack();
-        }}
-      >
-        <motion.div
-            animate={{ x: [0, -5, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-            <ChevronLeft 
-                size={36} // Slightly larger for visibility
-                strokeWidth={3} // Thicker from default (2->3)
-                absoluteStrokeWidth // ensures crisp rendering
-                className="text-neutral-300 md:text-neutral-200 group-hover:text-neutral-400 transition-colors duration-300"
-            />
-        </motion.div>
-      </motion.div>
+
 
       {/* Centered Content - Interaction Zone */}
       <motion.div 

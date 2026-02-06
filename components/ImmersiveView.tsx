@@ -204,7 +204,11 @@ const SimpleMarkdown: React.FC<{
       // H1 Heading
       if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
         return (
-          <h1 key={i} className="text-2xl md:text-3xl font-chill font-medium mt-10 mb-6 text-neutral-900 tracking-tight leading-tight">
+          <h1 
+            key={i} 
+            className="article-section-header text-2xl md:text-3xl font-chill font-medium mt-10 mb-6 text-neutral-900 tracking-tight leading-tight"
+            data-section-title={trimmed.replace('# ', '')}
+          >
             {parseInlineFormats(trimmed.replace('# ', ''))}
           </h1>
         );
@@ -212,7 +216,11 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h3 key={i} className="text-xs font-chill font-medium uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1">
+          <h3 
+            key={i} 
+            className="article-section-header text-xs font-chill font-medium uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1"
+            data-section-title={trimmed.replace('### ', '')}
+          >
             {parseInlineFormats(trimmed.replace('### ', ''))}
           </h3>
         );
@@ -220,7 +228,11 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('## ')) {
            return (
-             <h2 key={i} className="text-xl md:text-2xl font-chill font-medium mt-10 mb-4 text-neutral-900 tracking-tight leading-tight">
+             <h2 
+               key={i} 
+               className="article-section-header text-xl md:text-2xl font-chill font-medium mt-10 mb-4 text-neutral-900 tracking-tight leading-tight"
+               data-section-title={trimmed.replace('## ', '')}
+             >
                {parseInlineFormats(trimmed.replace('## ', ''))}
              </h2>
            );
@@ -563,7 +575,8 @@ const MasonryLayout: React.FC<{
 
     React.useEffect(() => {
         const updateColumns = () => {
-            setColumns(window.innerWidth >= 768 ? 3 : 2);
+
+            setColumns(window.innerWidth >= 768 ? 3 : 1);
         };
         
         updateColumns();
@@ -1133,6 +1146,189 @@ const ProjectModal: React.FC<{
   );
 };
 
+// -----------------------------------------------------------------------------
+// FULL-PAGE ARTICLE VIEW (for WRITING)
+// -----------------------------------------------------------------------------
+const ArticlePage: React.FC<{
+  project: ProjectItem;
+  color: string;
+  onClose: () => void;
+}> = ({ project, color, onClose }) => {
+  const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+  const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [isContentReady, setIsContentReady] = React.useState(false);
+  const [headerTitle, setHeaderTitle] = React.useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsContentReady(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Update Header on Scroll
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+        // Threshold: Header height + some buffer
+        const threshold = 120; 
+        
+        // Find all section headers
+        const headers = Array.from(container.querySelectorAll('.article-section-header')) as HTMLElement[];
+        
+        // Find the last header that is above the threshold (or close to top)
+        let activeHeader: string | null = null;
+        
+        // Optimize: reverse loop to find the "deepest" valid header
+        for (let i = headers.length - 1; i >= 0; i--) {
+            const rect = headers[i].getBoundingClientRect();
+            // Note: Since container is fixed, rect.top is relative to viewport.
+            // We want header whose top is <= simple threshold (e.g. 150px form top)
+            if (rect.top < 150) { 
+                activeHeader = headers[i].getAttribute('data-section-title');
+                break;
+            }
+        }
+
+        if (activeHeader) {
+            setHeaderTitle(activeHeader.length > 25 ? activeHeader.substring(0, 25) + '...' : activeHeader);
+        } else {
+            // Default: Hidden when at top
+            setHeaderTitle("");
+        }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isContentReady]); // Re-run when content renders
+
+  return (
+    <motion.div
+      ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="fixed inset-0 z-[70] bg-white overflow-y-auto overscroll-contain"
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={{ left: 0, right: 0.5 }}
+      onDragEnd={(e, { offset, velocity }) => {
+        if (offset.x > 100 || velocity.x > 500) {
+          onClose();
+        }
+      }}
+    >
+      {/* Mobile: Inline Back Button (Avoids overlap) */}
+      <div className="md:hidden sticky top-0 z-50 px-6 py-2 bg-white/80 backdrop-blur-md flex items-center justify-between border-b border-transparent transition-colors duration-300">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-900 active:scale-95 transition-transform"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          
+          <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest pr-2 opacity-60 transition-all duration-300 truncate max-w-[200px] text-right">
+             {headerTitle}
+          </span>
+      </div>
+
+      {/* Desktop: Fixed Back Button */}
+      <button
+        onClick={onClose}
+        className="hidden md:flex fixed top-6 left-6 z-50 w-10 h-10 bg-white/90 backdrop-blur rounded-full items-center justify-center shadow-sm border border-neutral-100 hover:bg-neutral-50 active:scale-95 transition-all text-neutral-900"
+      >
+        <ArrowLeft size={18} />
+      </button>
+
+      {/* Article Content */}
+      <div className="max-w-3xl mx-auto px-6 py-6 md:py-24">
+        {/* Title */}
+        {project.title && (
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="text-3xl md:text-5xl font-chill font-medium text-neutral-900 mb-8 tracking-tight leading-[1.1]"
+          >
+            {project.title}
+          </motion.h1>
+        )}
+
+        {/* Metadata */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="flex flex-wrap gap-4 mb-12 items-center text-sm md:text-base text-neutral-500 font-mono border-b border-neutral-100 pb-8"
+        >
+          <span>{project.date}</span>
+          {project.tags.length > 0 && (
+            <>
+              <span className="text-neutral-300">/</span>
+              {project.tags.map(tag => (
+                <span key={tag} className="uppercase tracking-widest text-xs">#{tag}</span>
+              ))}
+            </>
+          )}
+        </motion.div>
+
+        {/* Cover Image */}
+        {project.imageUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+            className="w-full mb-16 rounded-sm overflow-hidden bg-neutral-50"
+          >
+            <ImageWithLoader src={project.imageUrl} alt={project.title} className="w-full h-auto" />
+          </motion.div>
+        )}
+
+        {/* Article Body */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="prose prose-neutral prose-lg max-w-none text-neutral-800 leading-relaxed mb-20"
+        >
+          {isContentReady && (
+            <SimpleMarkdown
+              content={project.content || ''}
+              color={safeColor}
+              albumId={AlbumType.WRITING}
+              onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+            />
+          )}
+        </motion.div>
+
+        {/* External Link */}
+        {project.link && (
+          <div className="pt-8 border-t border-neutral-100">
+            <a
+              href={project.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+              style={{ color: safeColor }}
+            >
+              Visit Article <ExternalLink size={14} />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {visibleImage && (
+          <Lightbox url={visibleImage.url} type={visibleImage.type} onClose={() => setVisibleImage(null)} />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 import { getAlbumWithProjects } from '../lib/api';
 import { Loader2 } from 'lucide-react';
 
@@ -1144,6 +1340,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
   const [showVinyl, setShowVinyl] = useState(false);
   const [hoveredTrack, setHoveredTrack] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<ProjectItem | null>(null); // Full-page for Writing
   const [backHovered, setBackHovered] = useState(false);
   const [showMiniControl, setShowMiniControl] = useState(false); // Mini Vinyl State
 
@@ -1519,7 +1716,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                         ))}
                                     </div>
                                 ) : (
-                                    // DEFAULT LIST (WRITING, CODING)
+                                    // DEFAULT LIST (WRITING)
                                     albumData.tracks.map((track, index) => (
                                         <TrackItem 
                                             key={track.id} 
@@ -1528,7 +1725,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                             color={albumData.color}
                                             isHovered={hoveredTrack === track.id}
                                             onHover={setHoveredTrack}
-                                            onClick={() => setSelectedProject(track)}
+                                            onClick={() => setSelectedArticle(track)}
                                             delay={400 + (index * 80)}
                                         />
                                     ))
@@ -1552,6 +1749,18 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
             albumId={albumData.id}
             onClose={() => setSelectedProject(null)} 
             key="modal"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* FULL-PAGE ARTICLE VIEW (Writing) */}
+      <AnimatePresence>
+        {selectedArticle && (
+          <ArticlePage
+            project={selectedArticle}
+            color={albumData.color}
+            onClose={() => setSelectedArticle(null)}
+            key="article"
           />
         )}
       </AnimatePresence>

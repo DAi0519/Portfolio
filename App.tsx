@@ -3,7 +3,7 @@ import { ALBUMS } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
 import { AnimatePresence, motion, animate } from "framer-motion";
-import { ChevronRight } from "lucide-react"; // Import ChevronRight
+
 import OpeningScreen from "./components/OpeningScreen";
 import Cheers from "./components/Cheers";
 
@@ -503,29 +503,7 @@ const App: React.FC = () => {
                   </AnimatePresence>
               </div>
 
-              {/* Forward Navigation Arrow - Right Edge (Only on Last Album) */}
-              {currentIndex === ALBUMS.length - 1 && (
-                  <motion.div
-                      className="absolute right-2 md:right-6 top-[38%] -translate-y-1/2 p-4 z-50 group cursor-pointer"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: 0.5, duration: 1 }}
-                      onClick={() => handleIndexChange(ALBUMS.length)}
-                  >
-                      <motion.div
-                          animate={{ x: [0, 5, 0] }} // Oscillate right
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                          <ChevronRight 
-                              size={36} 
-                              strokeWidth={3} 
-                              absoluteStrokeWidth
-                              className="text-neutral-400 group-hover:text-neutral-600 transition-colors duration-300 opacity-50" // Subtle grey for album page
-                          />
-                      </motion.div>
-                  </motion.div>
-              )}
+
 
               {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
