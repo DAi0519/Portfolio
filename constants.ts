@@ -52,7 +52,7 @@ The North Face / Timberland / 李宁 / 安踏
 
     `,
     tracks: [],
-    musicFile: "/musics/1.wav"
+    musicFile: "/musics/1.mp3"
   },
   {
     id: AlbumType.CODING,
@@ -64,7 +64,7 @@ The North Face / Timberland / 李宁 / 安踏
     // Solid International Klein Blue
     coverImage: "/covers/cover-coding.png", 
     tracks: [],
-    musicFile: "/musics/2.wav"
+    musicFile: "/musics/2.mp3"
   },
   {
     id: AlbumType.VIDEO,
@@ -76,7 +76,7 @@ The North Face / Timberland / 李宁 / 安踏
     // Solid Safety Orange
     coverImage: "/covers/cover-video.png", 
     tracks: [],
-    musicFile: "/musics/3.wav"
+    musicFile: "/musics/3.mp3"
   },
   {
     id: AlbumType.PHOTO,
@@ -88,7 +88,7 @@ The North Face / Timberland / 李宁 / 安踏
     // Solid Cyan
     coverImage: "/covers/cover-photo.png", 
     tracks: [],
-    musicFile: "/musics/4.wav"
+    musicFile: "/musics/4.mp3"
   },
   {
     id: AlbumType.WRITING,
@@ -100,6 +100,6 @@ The North Face / Timberland / 李宁 / 安踏
     // Solid Matte Charcoal
     coverImage: "/covers/cover-writing.png", 
     tracks: [],
-    musicFile: "/musics/5.wav"
+    musicFile: "/musics/5.mp3"
   }
 ];

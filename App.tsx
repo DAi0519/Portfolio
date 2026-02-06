@@ -11,7 +11,17 @@ import CinematicBackground from "./components/CinematicBackground";
 
 import { useCheers } from "./hooks/useCheers";
 
+import { useAudioPreloader } from "./hooks/useAudioPreloader";
+import LoadingScreen from "./components/LoadingScreen";
+
 const App: React.FC = () => {
+  // Preload Audio Assets
+  const audioAssets = [
+    '/musics/vinyl_start.mp3',
+    '/musics/00bgm.mp3'
+  ];
+  const { loaded: audioLoaded } = useAudioPreloader(audioAssets);
+
   // Global Cheers State (Prefetched)
   const { count: cheersCount, increment: incrementCheers } = useCheers();
 
@@ -176,7 +186,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Initialize Audio
-    audioRef.current = new Audio("/musics/00bgm.wav");
+    audioRef.current = new Audio("/musics/00bgm.mp3");
     audioRef.current.loop = true;
     audioRef.current.volume = 0; // Initialize silent
 
@@ -220,7 +230,7 @@ const App: React.FC = () => {
 
       if (mode === "ENTER_ALBUM") {
         // LEAVING HOME: Save BGM State
-        if (currentSrc === "/musics/00bgm.wav") {
+        if (currentSrc === "/musics/00bgm.mp3") {
           bgmState.current = {
             isPlaying: isMusicPlaying,
             currentTime: audioRef.current.currentTime,
@@ -250,8 +260,8 @@ const App: React.FC = () => {
           });
       } else if (mode === "RETURN_HOME") {
         // RETURNING HOME: Switch back to BGM
-        if (currentSrc !== "/musics/00bgm.wav") {
-          audioRef.current.src = "/musics/00bgm.wav";
+        if (currentSrc !== "/musics/00bgm.mp3") {
+          audioRef.current.src = "/musics/00bgm.mp3";
           audioRef.current.load();
           // Restore Progress
           audioRef.current.currentTime = bgmState.current.currentTime;
@@ -279,15 +289,15 @@ const App: React.FC = () => {
 
     if (viewMode === "DETAIL") {
       // ENTERING ALBUM
-      const albumMusic = activeAlbum.musicFile || "/musics/00bgm.wav";
+      const albumMusic = activeAlbum.musicFile || "/musics/00bgm.mp3";
       switchTrack(albumMusic, "ENTER_ALBUM");
     } else {
       // STACK MODE
       // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
       // This prevents stopping the music when just swiping through albums on the homepage.
       const currentSrc = audioRef.current.getAttribute("src");
-      if (currentSrc !== "/musics/00bgm.wav") {
-        switchTrack("/musics/00bgm.wav", "RETURN_HOME");
+      if (currentSrc !== "/musics/00bgm.mp3") {
+        switchTrack("/musics/00bgm.mp3", "RETURN_HOME");
       }
     }
   }, [viewMode, activeAlbum]);
@@ -368,9 +378,17 @@ const App: React.FC = () => {
 
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
-      {showOpening && (
-        <OpeningScreen
-          onStart={primeAudio}
+      
+      {/* Loading Screen (Preload Audio) */}
+      <AnimatePresence>
+         {showOpening && !audioLoaded && <LoadingScreen />}
+      </AnimatePresence>
+
+      {/* Opening Screen (Only after audio loaded) */}
+      <AnimatePresence>
+        {showOpening && audioLoaded && (
+          <OpeningScreen
+            onStart={primeAudio}
           onComplete={() => {
             setShowOpening(false);
             // No longer using session storage to block future visits
@@ -381,6 +399,7 @@ const App: React.FC = () => {
           }}
         />
       )}
+      </AnimatePresence>
 
       {/* Background Layer */}
       <CinematicBackground
