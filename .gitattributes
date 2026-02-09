@@ -16,4 +16,4 @@
 
 # Audio
 *.wav filter=lfs diff=lfs merge=lfs -text
-*.mp3 filter=lfs diff=lfs merge=lfs -text
+# *.mp3 - NOT using LFS for mp3 to ensure Vercel compatibility
