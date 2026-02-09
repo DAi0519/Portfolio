@@ -1488,9 +1488,21 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         {/* Mobile Back Button - Pinned */}
         <button 
           onClick={onClose}
-          className="md:hidden absolute top-6 left-6 z-50 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-sm border border-neutral-100 active:scale-95 transition-transform text-neutral-900"
+          className="md:hidden absolute top-6 left-6 z-50 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-sm active:scale-95 transition-transform text-neutral-900"
         >
           <ArrowLeft size={18} />
+        </button>
+
+        {/* Desktop Back Button - Pinned & High Z-Index */}
+        <button 
+            onClick={onClose}
+            onMouseEnter={() => setBackHovered(true)}
+            onMouseLeave={() => setBackHovered(false)}
+            className="hidden md:flex absolute top-10 left-10 items-center justify-center px-0 py-2 transition-all group z-50"
+        >
+            <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${albumData.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-400 text-neutral-600'}`} style={{ backgroundColor: backHovered ? albumData.color : 'transparent' }}>
+                <ArrowLeft size={14} />
+            </div>
         </button>
 
         {/* PULL TO REFRESH INDICATOR */}
@@ -1562,16 +1574,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
               </motion.div>
 
               {/* Desktop Back Button */}
-              <button 
-                onClick={onClose}
-                onMouseEnter={() => setBackHovered(true)}
-                onMouseLeave={() => setBackHovered(false)}
-                className="hidden md:flex absolute top-10 left-10 items-center justify-center px-0 py-2 transition-all group z-20"
-              >
-                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${albumData.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-400 text-neutral-600'}`} style={{ backgroundColor: backHovered ? albumData.color : 'transparent' }}>
-                    <ArrowLeft size={14} />
-                </div>
-              </button>
+
             </div>
 
             {/* RIGHT COLUMN: Content */}
