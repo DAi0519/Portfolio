@@ -469,7 +469,7 @@ const VideoGridItem: React.FC<{
                                 className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors cursor-pointer group/play"
                             >
                                 {/* Dieter Rams Style: Minimal, Geometric, Functional */}
-                                <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/play:bg-white group-hover/play:border-white group-hover/play:scale-105">
+                                <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/play:bg-white group-hover/play:border-white group-hover/play:scale-[1.02]">
                                     <Play 
                                         size={16} 
                                         className="ml-0.5 text-white transition-colors duration-300 group-hover/play:text-black" 
@@ -492,13 +492,13 @@ const VideoGridItem: React.FC<{
                                         alt={track.title}
                                         data-hint="true"
                                         containerClassName="w-full h-auto"
-                                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
+                                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                                     />
                                 );
                             } else {
                                 return (
                                     <div 
-                                        className="w-full aspect-video transition-transform duration-700 group-hover:scale-105"
+                                        className="w-full aspect-video transition-transform duration-700 group-hover:scale-[1.02]"
                                         style={{ background: fallback.value }}
                                     />
                                 );
@@ -506,7 +506,7 @@ const VideoGridItem: React.FC<{
                         })()}
                         
                         <div className="absolute inset-0 bg-black/5 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 duration-300 group/overlay">
-                             <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/overlay:bg-white group-hover/overlay:border-white group-hover/overlay:scale-105">
+                             <div className="w-12 h-12 rounded-full border-[1px] border-white/70 bg-black/5 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300 group-hover/overlay:bg-white group-hover/overlay:border-white group-hover/overlay:scale-[1.02]">
                                  <Play 
                                     size={16} 
                                     className="ml-0.5 text-white transition-colors duration-300 group-hover/overlay:text-black" 
@@ -554,11 +554,11 @@ const PhotoGridItem: React.FC<{
                     alt={track.title}
                     containerClassName="w-full h-auto"
                     data-hint="true"
-                    className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-105"
+                    className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-[1.02]"
                 />
             ) : (
                 <div 
-                    className="w-full aspect-square transition-transform duration-1000 group-hover:scale-105"
+                    className="w-full aspect-square transition-transform duration-1000 group-hover:scale-[1.02]"
                     style={{ background: fallback.value }}
                 />
             )}
@@ -675,7 +675,7 @@ const CodingGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.2 }}
-            className="group cursor-pointer mb-6 w-full block"
+            className={`cursor-pointer mb-6 w-full block ${!loadingPreview ? 'group' : ''}`}
         >
             {/* Card Container - Dieter Rams Style: Clean, precise, subtle shadows */}
             <div className="relative w-full aspect-[16/9] overflow-hidden rounded-sm bg-neutral-100 mb-4 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:-translate-y-1">
@@ -693,12 +693,12 @@ const CodingGridItem: React.FC<{
                         alt={track.title}
                         data-hint="true"
                         containerClassName="w-full h-full"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                      />
                 ) : (
                      // Fallback for Coding Items
                      <div 
-                        className="w-full h-full transition-transform duration-700 group-hover:scale-105"
+                        className="w-full h-full transition-transform duration-700 group-hover:scale-[1.02]"
                         style={{ background: getFallbackCover(track).value.toString().includes('gradient') ? getFallbackCover(track).value : '#f5f5f5' }}
                      >
                         <div className="w-full h-full flex items-center justify-center opacity-20">
@@ -707,12 +707,7 @@ const CodingGridItem: React.FC<{
                      </div>
                 )}
 
-                {/* Hover Overlay with Action */}
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                     <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                        <ExternalLink size={16} className="text-black" />
-                     </div>
-                </div>
+
             </div>
 
             {/* Info Section */}
@@ -1571,12 +1566,11 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                 onClick={onClose}
                 onMouseEnter={() => setBackHovered(true)}
                 onMouseLeave={() => setBackHovered(false)}
-                className="hidden md:flex absolute top-10 left-10 items-center gap-3 px-0 py-2 transition-all group z-20"
+                className="hidden md:flex absolute top-10 left-10 items-center justify-center px-0 py-2 transition-all group z-20"
               >
-                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${albumData.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-300 text-neutral-400'}`} style={{ backgroundColor: backHovered ? albumData.color : 'transparent' }}>
+                <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${backHovered ? `border-transparent ${albumData.color.toLowerCase() === '#ffffff' ? 'text-neutral-900' : 'text-white'}` : 'border-neutral-400 text-neutral-600'}`} style={{ backgroundColor: backHovered ? albumData.color : 'transparent' }}>
                     <ArrowLeft size={14} />
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${backHovered ? 'text-neutral-900' : 'text-neutral-400'}`}>返回</span>
               </button>
             </div>
 

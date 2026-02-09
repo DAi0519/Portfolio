@@ -42,7 +42,7 @@ export const ALBUMS: Album[] = [
 把每一次表达收敛到必要，把每一个细节做到有理由。
 "Form follows function"
 形式从目的里长出来，而不仅仅是贴上去。
-"Order out of chaos"
+"Order out of chaos—taste follows"
 把混乱规整成秩序，品味由此而生。
 # 合作
 如果对我的项目感兴趣，或者聊聊：

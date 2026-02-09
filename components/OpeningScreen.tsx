@@ -195,9 +195,13 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
   };
 
   return (
-    <div 
+    <motion.div 
       className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#fbfbf9] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
       ref={containerRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+      transition={{ duration: 1.2, ease: "easeOut" }} // Slow, elegant fade in
     >
       {/* Scroll Track - Dramatically reduced to 150vh for "Quick Scroll" */}
       <div className="w-full h-[150vh] relative">
@@ -418,7 +422,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
