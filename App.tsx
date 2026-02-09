@@ -187,7 +187,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Initialize Audio
     audioRef.current = new Audio("/musics/00bgm.mp3");
-    audioRef.current.loop = true;
+    audioRef.current.loop = false;
     audioRef.current.volume = 0; // Initialize silent
 
     return () => {
@@ -372,18 +372,16 @@ const App: React.FC = () => {
   // Background Colors Logic
   // If distinct "Cheers" page logic is needed for background override:
   const isCheersPage = viewMode === "STACK" && currentIndex === ALBUMS.length;
-  const bgProps = isCheersPage 
-    ? { color: "#E5E5E5", backgroundColor: "#FFFFFF" } // Pure White + Light Grey for Cheers
-    : { color: displayAlbum.color, backgroundColor: displayAlbum.backgroundColor };
+  const bgProps = showOpening
+     ? { color: "transparent", backgroundColor: "#fbfbf9" } // Exact match for OpeningScreen
+     : isCheersPage 
+     ? { color: "#E5E5E5", backgroundColor: "#FFFFFF" } // Pure White + Light Grey for Cheers
+     : { color: displayAlbum.color, backgroundColor: displayAlbum.backgroundColor };
 
   return (
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
-      {/* Loading Screen (Preload Audio) */}
-      <AnimatePresence>
-         {showOpening && !audioLoaded && <LoadingScreen />}
-      </AnimatePresence>
-
+      
       {/* Opening Screen (Only after audio loaded) */}
       <AnimatePresence>
         {showOpening && audioLoaded && (
@@ -409,7 +407,7 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main
-        className={`w-full h-full relative z-10 transition-opacity duration-1000 ${showOpening ? "opacity-0" : "opacity-100"}`}
+        className={`w-full h-full relative z-10 ${showOpening ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
       >
         <AnimatePresence mode="wait">
           {viewMode === "STACK" ? (
