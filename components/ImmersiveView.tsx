@@ -1153,6 +1153,7 @@ const ArticlePage: React.FC<{
   const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [isContentReady, setIsContentReady] = React.useState(false);
   const [headerTitle, setHeaderTitle] = React.useState("");
+  const [isScrolled, setIsScrolled] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -1192,6 +1193,8 @@ const ArticlePage: React.FC<{
             // Default: Hidden when at top
             setHeaderTitle("");
         }
+
+        setIsScrolled(container.scrollTop > 20);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -1216,10 +1219,10 @@ const ArticlePage: React.FC<{
       }}
     >
       {/* Mobile: Inline Back Button (Avoids overlap) */}
-      <div className="md:hidden sticky top-0 z-50 px-6 py-2 bg-white/80 backdrop-blur-md flex items-center justify-between border-b border-transparent transition-colors duration-300">
+      <div className={`md:hidden sticky top-0 z-50 px-6 py-2 flex items-center justify-between border-b transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md border-transparent' : 'bg-white/0 border-transparent'}`}>
           <button
             onClick={onClose}
-            className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-900 active:scale-95 transition-transform"
+            className={`w-10 h-10 flex items-center justify-center text-neutral-900 active:scale-95 transition-all duration-300 ${isScrolled ? 'bg-transparent -ml-2' : 'bg-neutral-100 rounded-full'}`}
           >
             <ArrowLeft size={18} />
           </button>
