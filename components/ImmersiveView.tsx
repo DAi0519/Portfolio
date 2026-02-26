@@ -289,7 +289,7 @@ const SimpleMarkdown: React.FC<{
                   <thead className="bg-neutral-50">
                       <tr>
                           {headerCells.map((cell, i) => (
-                              <th key={i} className="px-4 py-3 font-chill font-medium text-xs uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap">
+                              <th key={i} className="px-4 py-3 font-chill font-medium text-xs uppercase tracking-[0.15em] text-neutral-500 border-b border-neutral-200 whitespace-nowrap min-w-[100px]">
                                   {parseInlineFormats(cell)}
                               </th>
                           ))}
@@ -299,7 +299,7 @@ const SimpleMarkdown: React.FC<{
                       {bodyRows.map((row, rowIdx) => (
                           <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}>
                               {parseRow(row).map((cell, cellIdx) => (
-                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-chill font-extralight leading-[1.8]">
+                                  <td key={cellIdx} className="px-4 py-4 text-neutral-800 border-b border-neutral-100 font-chill font-extralight leading-[1.8] min-w-[100px]">
                                       {parseInlineFormats(cell)}
                                   </td>
                               ))}
