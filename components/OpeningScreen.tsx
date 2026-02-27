@@ -315,7 +315,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
                         fill="rgba(20, 20, 20, 0.55)"
                         fontSize="10.5"
                         fontFamily="'ChillDuanHeiSong', 'OPPOSans', sans-serif"
-                        fontWeight="400"
+                        fontWeight="200"
                         letterSpacing="0.2em"
                         textAnchor="middle"
                       >
@@ -462,6 +462,12 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
           onClick={handleClick}
           className="relative group cursor-pointer outline-none flex flex-col items-center gap-3"
         >
+           {/* Scroll Hint */}
+           {!isOn && (
+             <span className="text-[9px] font-bold text-neutral-300 tracking-[0.12em] mb-2 animate-pulse">
+               向下滑动或轻点开关进入
+             </span>
+           )}
            {/* Switch Housing */}
            <div className="relative w-16 h-8 bg-[#e8e8e6] rounded-[2px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.15),0_1px_0_#fff] border border-[#d4d4d2] flex items-center p-[2px] overflow-hidden">
               
@@ -473,7 +479,7 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
                   </div>
 
                   {/* Right Side: Target Label (Covered when ON) */}
-                  <span className={`text-[6px] font-bold text-neutral-400 uppercase tracking-widest transition-opacity duration-300 ${isOn ? 'opacity-0' : 'opacity-100'}`}>
+                  <span className={`text-[9px] font-bold text-neutral-400 uppercase tracking-widest transition-opacity duration-300 ${isOn ? 'opacity-0' : 'opacity-100'}`}>
                     ON
                   </span>
               </div>

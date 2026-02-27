@@ -1,10 +1,21 @@
 
 import { Album, AlbumType } from './types';
 
+export const Z = {
+  BG:        0,
+  CONTENT:  10,
+  CARDS:    20,
+  HEADER:   30,
+  IMMERSIVE: 50,
+  MODAL:    60,
+  ARTICLE:  70,
+  NOISE:  9999,
+} as const;
+
 // Refined Palette
 const COLORS = {
   KLEIN_BLUE: "#002FA7",
-  FILM_ORANGE: "#F05A28", // Vibrant Kodak/Film Orange
+  FILM_ORANGE: "#F05A28",
   INK_CHARCOAL: "#1A1A1A", // Deep Matte Black
   DEVELOPING_CYAN: "#00C2CB", // Chemical Cyan
   PURE_WHITE: "#FFFFFF" // Pure White

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Album, ProjectItem, AlbumType } from '../types';
+import { Z } from '../constants';
 import { ArrowLeft, X, ExternalLink, Play } from 'lucide-react';
 import RecordVinyl from './RecordVinyl';
 import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion';
@@ -846,8 +847,8 @@ const MiniControl: React.FC<{
        whileHover={{ scale: 1.1 }}
        whileTap={{ scale: 0.9 }}
        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-       className="fixed bottom-6 right-6 z-[60] w-12 h-12 rounded-full cursor-pointer shadow-lg active:shadow-sm"
-       style={{ backgroundColor: album.color, WebkitTapHighlightColor: 'transparent' }}
+       className="fixed bottom-6 right-6 w-12 h-12 rounded-full cursor-pointer shadow-lg active:shadow-sm"
+       style={{ backgroundColor: album.color, WebkitTapHighlightColor: 'transparent', zIndex: Z.MODAL }}
     >
        {/* Vinyl Grooves - Mini */}
        <div className={`absolute inset-[10%] rounded-full border border-black/10 opacity-50`}></div>
@@ -913,7 +914,7 @@ const ProjectModal: React.FC<{
   const hasDidacticContent = cleanContent.length > 5;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12">
+    <div className="fixed inset-0 flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12" style={{ zIndex: Z.MODAL }}>
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -1208,7 +1209,8 @@ const ArticlePage: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="fixed inset-0 z-[70] bg-white overflow-y-auto overscroll-contain"
+      className="fixed inset-0 bg-white overflow-y-auto overscroll-contain"
+      style={{ zIndex: Z.ARTICLE }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={{ left: 0, right: 0.5 }}
@@ -1478,7 +1480,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
     <>
       <motion.div 
         ref={containerRef}
-        className="fixed inset-0 z-50 text-[#111] overflow-hidden flex flex-col"
+        className="fixed inset-0 text-[#111] overflow-hidden flex flex-col"
+        style={{ zIndex: Z.IMMERSIVE }}
         initial={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
         exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
