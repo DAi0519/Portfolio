@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────
+ * THEME: Custom Design Tokens (Tailwind v4)
+ * ───────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: "OPPOSans", "PingFang SC", "Microsoft YaHei", "Helvetica Neue",
+    "Helvetica", "Arial", sans-serif;
+  --font-serif: "OPPOSans", serif;
+  --font-chill: "ChillDuanHeiSong", "OPPOSans", serif;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * FONTS
+ * ───────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "OPPOSans";
+  src: url("/fonts/OPPOSans.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ChillDuanHeiSong";
+  src: url("/fonts/ChillDuanHeiSongExtraLight.otf") format("opentype");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ChillDuanHeiSong";
+  src: url("/fonts/ChillDuanHeiSongMedium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * DESIGN TOKENS (CSS Custom Properties)
+ * ───────────────────────────────────────────────────────── */
+:root {
+  --bg-color: #f3f3f1;
+  --text-color: #111111;
+  --klein-blue: #002fa7;
+  --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
+/* ─────────────────────────────────────────────────────────
+ * BASE STYLES
+ * ───────────────────────────────────────────────────────── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow: hidden;
+  font-family:
+    "OPPOSans", "PingFang SC", "Microsoft YaHei", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * 3D UTILITIES
+ * ───────────────────────────────────────────────────────── */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.perspective-origin-center {
+  perspective-origin: center;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * FILM GRAIN / PAPER TEXTURE OVERLAY
+ * ───────────────────────────────────────────────────────── */
+.bg-noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.08;
+  background-image: var(--paper-texture);
+  mix-blend-mode: multiply;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * SCROLLBAR HIDING
+ * ───────────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * ANIMATIONS
+ * ───────────────────────────────────────────────────────── */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+.card-stack-item {
+  will-change: transform;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * VINYL TEXTURES
+ * ───────────────────────────────────────────────────────── */
+.vinyl-grooves {
+  background: repeating-radial-gradient(
+    rgba(0, 0, 0, 0.15) 0,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.vinyl-shine {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.05) 15deg,
+    rgba(255, 255, 255, 0.25) 45deg,
+    rgba(255, 255, 255, 0.05) 75deg,
+    transparent 90deg,
+    transparent 180deg,
+    rgba(255, 255, 255, 0.05) 195deg,
+    rgba(255, 255, 255, 0.25) 225deg,
+    rgba(255, 255, 255, 0.05) 255deg,
+    transparent 270deg
+  );
+  filter: blur(20px);
+}
+
+.vinyl-shine-dark {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(0, 0, 0, 0.02) 15deg,
+    rgba(0, 0, 0, 0.1) 45deg,
+    rgba(0, 0, 0, 0.02) 75deg,
+    transparent 90deg,
+    transparent 180deg,
+    rgba(0, 0, 0, 0.02) 195deg,
+    rgba(0, 0, 0, 0.1) 225deg,
+    rgba(0, 0, 0, 0.02) 255deg,
+    transparent 270deg
+  );
+  filter: blur(20px);
+}
+
+/* ─────────────────────────────────────────────────────────
+ * MEDIA PROTECTION
+ * ───────────────────────────────────────────────────────── */
+img,
+video {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  pointer-events: auto;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * REDUCED MOTION: Respect user OS preference
+ * ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin-slow {
+    animation: none;
+  }
+}

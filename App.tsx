@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ALBUMS } from "./constants";
+import { ALBUMS, Z } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
 import { AnimatePresence, motion, animate } from "framer-motion";
@@ -118,7 +118,10 @@ const App: React.FC = () => {
   useEffect(() => {
     // Media Protection: Disable Right-Click Context Menu globally
     const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG' || target.tagName === 'VIDEO') {
+        e.preventDefault();
+      }
     };
     window.addEventListener("contextmenu", handleContextMenu);
 
@@ -183,6 +186,10 @@ const App: React.FC = () => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [wasPlayingBeforeVideo, setWasPlayingBeforeVideo] = useState(false); // Audio Ducking State
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Responsive volume: mobile devices get lower volume for comfort
+  const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const MUSIC_TARGET_VOLUME = isMobile ? 0.2 : 0.4;
+  const MUSIC_FADE_IN_DURATION = 0.9;
 
   useEffect(() => {
     // Initialize Audio
@@ -245,7 +252,7 @@ const App: React.FC = () => {
 
         // Attempt Auto-Play
         audioRef.current.muted = false; // Ensure unmuted
-        audioRef.current.volume = 0.4;
+        audioRef.current.volume = MUSIC_TARGET_VOLUME;
         audioRef.current
           .play()
           .then(() => {
@@ -270,7 +277,7 @@ const App: React.FC = () => {
         // Restore Play State
         if (bgmState.current.isPlaying) {
           audioRef.current.muted = false; // Ensure unmuted
-          audioRef.current.volume = 0.4;
+          audioRef.current.volume = MUSIC_TARGET_VOLUME;
           audioRef.current
             .play()
             .then(() => {
@@ -306,13 +313,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!audioRef.current) return;
 
-    let controls: any;
+    let controlsPrimary: any;
+    let controlsSecondary: any;
+    let isCancelled = false;
 
     if (isMusicPlaying) {
       audioRef.current.muted = false; // Ensure unmuted
 
       const startVolume = audioRef.current.volume;
-      const targetVolume = 0.4;
+      const targetVolume = MUSIC_TARGET_VOLUME;
 
       // Play audio
       const playPromise = audioRef.current.play();
@@ -320,14 +329,45 @@ const App: React.FC = () => {
         playPromise.catch((e) => console.log("Autoplay prevented:", e));
       }
 
-      // Fade in logic for smooth transition (e.g. from Opening Screen)
+      // Two-stage fade-in: softly introduce, then settle at target volume.
       if (Math.abs(startVolume - targetVolume) > 0.01) {
-        controls = animate(startVolume, targetVolume, {
-          duration: 0.3,
-          onUpdate: (v) => {
-            if (audioRef.current) audioRef.current.volume = v;
-          },
-        });
+        if (startVolume < targetVolume) {
+          const introVolume = Math.min(targetVolume, 0.12);
+          const stageOneDuration = Math.max(0.25, MUSIC_FADE_IN_DURATION * 0.35);
+          const stageTwoDuration = Math.max(
+            0.25,
+            MUSIC_FADE_IN_DURATION - stageOneDuration,
+          );
+
+          const runTwoStageFade = async () => {
+            controlsPrimary = animate(startVolume, introVolume, {
+              duration: stageOneDuration,
+              ease: "easeOut",
+              onUpdate: (v) => {
+                if (audioRef.current) audioRef.current.volume = v;
+              },
+            });
+            await controlsPrimary.finished.catch(() => undefined);
+            if (isCancelled) return;
+
+            controlsSecondary = animate(introVolume, targetVolume, {
+              duration: stageTwoDuration,
+              ease: "easeInOut",
+              onUpdate: (v) => {
+                if (audioRef.current) audioRef.current.volume = v;
+              },
+            });
+          };
+
+          runTwoStageFade();
+        } else {
+          controlsPrimary = animate(startVolume, targetVolume, {
+            duration: MUSIC_FADE_IN_DURATION,
+            onUpdate: (v) => {
+              if (audioRef.current) audioRef.current.volume = v;
+            },
+          });
+        }
       } else {
         audioRef.current.volume = targetVolume;
       }
@@ -336,7 +376,9 @@ const App: React.FC = () => {
     }
 
     return () => {
-      if (controls) controls.stop();
+      isCancelled = true;
+      if (controlsPrimary) controlsPrimary.stop();
+      if (controlsSecondary) controlsSecondary.stop();
     };
   }, [isMusicPlaying]);
 
@@ -382,6 +424,13 @@ const App: React.FC = () => {
     <div className="h-[100dvh] w-full relative selection:bg-neutral-900 selection:text-white overflow-hidden">
       
       
+      {/* Loading Screen (while audio preloads) */}
+      <AnimatePresence>
+        {showOpening && !audioLoaded && (
+          <LoadingScreen />
+        )}
+      </AnimatePresence>
+
       {/* Opening Screen (Only after audio loaded) */}
       <AnimatePresence>
         {showOpening && audioLoaded && (
@@ -407,13 +456,14 @@ const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main
-        className={`w-full h-full relative z-10 ${showOpening ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
+        className={`w-full h-full relative ${showOpening ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
+        style={{ zIndex: Z.CONTENT }}
       >
         <AnimatePresence mode="wait">
           {viewMode === "STACK" ? (
             <motion.div className="w-full h-full" key="stack-container">
               {/* Header for Stack Mode */}
-              <header className="absolute top-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none">
+              <header className="absolute top-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none" style={{ zIndex: Z.HEADER }}>
                 <div className="pointer-events-auto relative flex flex-col items-center justify-center">
                   <motion.h1
                     className="text-xs md:text-sm font-bold tracking-tight"
@@ -523,14 +573,14 @@ const App: React.FC = () => {
 
 
               {/* Footer for Stack Mode */}
-              <footer className="absolute bottom-0 left-0 right-0 z-30 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none">
+              <footer className="absolute bottom-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none" style={{ zIndex: Z.HEADER }}>
                 <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
                   animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.4 }}
                   transition={{ duration: 0.5 }}
                 >
-                  Stay hungry,Stay foolish
+                  Stay hungry, Stay foolish
                 </motion.p>
                 <motion.p
                   className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
