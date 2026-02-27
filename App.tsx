@@ -186,10 +186,60 @@ const App: React.FC = () => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [wasPlayingBeforeVideo, setWasPlayingBeforeVideo] = useState(false); // Audio Ducking State
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   // Responsive volume: mobile devices get lower volume for comfort
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const MUSIC_TARGET_VOLUME = isMobile ? 0.2 : 0.4;
   const MUSIC_FADE_IN_DURATION = 0.9;
+
+  const getCurrentAudioLevel = useCallback(() => {
+    if (gainNodeRef.current) return gainNodeRef.current.gain.value;
+    return audioRef.current?.volume ?? 0;
+  }, []);
+
+  const setAudioLevel = useCallback((level: number) => {
+    const clamped = Math.max(0, Math.min(1, level));
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = clamped;
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = clamped;
+    }
+  }, []);
+
+  const ensureWebAudioGraph = useCallback(async () => {
+    if (!audioRef.current || !isMobile || typeof window === 'undefined') return;
+    if (gainNodeRef.current && audioContextRef.current && sourceNodeRef.current) {
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume().catch(() => undefined);
+      }
+      return;
+    }
+
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    const source = ctx.createMediaElementSource(audioRef.current);
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+
+    // Keep element volume maxed; use GainNode for runtime fades on mobile.
+    audioRef.current.volume = 1;
+
+    audioContextRef.current = ctx;
+    sourceNodeRef.current = source;
+    gainNodeRef.current = gain;
+
+    if (ctx.state === 'suspended') {
+      await ctx.resume().catch(() => undefined);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     // Initialize Audio
@@ -198,6 +248,18 @@ const App: React.FC = () => {
     audioRef.current.volume = 0; // Initialize silent
 
     return () => {
+      if (sourceNodeRef.current) {
+        sourceNodeRef.current.disconnect();
+        sourceNodeRef.current = null;
+      }
+      if (gainNodeRef.current) {
+        gainNodeRef.current.disconnect();
+        gainNodeRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => undefined);
+        audioContextRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -211,11 +273,12 @@ const App: React.FC = () => {
       // Play comfortably silence (muted) to unlock capabilities
       // Volume 0 is not enough on iOS (hardware volume control)
       audioRef.current.muted = true;
+      ensureWebAudioGraph().catch(() => undefined);
       audioRef.current
         .play()
         .catch((e) => console.log("Audio Prime Failed:", e));
     }
-  }, []);
+  }, [ensureWebAudioGraph]);
 
   // BGM Persistence State
   const bgmState = useRef<{ isPlaying: boolean; currentTime: number }>({
@@ -252,7 +315,7 @@ const App: React.FC = () => {
 
         // Attempt Auto-Play
         audioRef.current.muted = false; // Ensure unmuted
-        audioRef.current.volume = MUSIC_TARGET_VOLUME;
+        setAudioLevel(0);
         audioRef.current
           .play()
           .then(() => {
@@ -277,7 +340,7 @@ const App: React.FC = () => {
         // Restore Play State
         if (bgmState.current.isPlaying) {
           audioRef.current.muted = false; // Ensure unmuted
-          audioRef.current.volume = MUSIC_TARGET_VOLUME;
+          setAudioLevel(0);
           audioRef.current
             .play()
             .then(() => {
@@ -307,7 +370,7 @@ const App: React.FC = () => {
         switchTrack("/musics/00bgm.mp3", "RETURN_HOME");
       }
     }
-  }, [viewMode, activeAlbum]);
+  }, [viewMode, activeAlbum, isMusicPlaying, MUSIC_TARGET_VOLUME, setAudioLevel]);
 
   // Handle Play/Pause Toggle
   useEffect(() => {
@@ -320,7 +383,7 @@ const App: React.FC = () => {
     if (isMusicPlaying) {
       audioRef.current.muted = false; // Ensure unmuted
 
-      const startVolume = audioRef.current.volume;
+      const startVolume = getCurrentAudioLevel();
       const targetVolume = MUSIC_TARGET_VOLUME;
 
       // Play audio
@@ -344,7 +407,7 @@ const App: React.FC = () => {
               duration: stageOneDuration,
               ease: "easeOut",
               onUpdate: (v) => {
-                if (audioRef.current) audioRef.current.volume = v;
+                setAudioLevel(v);
               },
             });
             await controlsPrimary.finished.catch(() => undefined);
@@ -354,7 +417,7 @@ const App: React.FC = () => {
               duration: stageTwoDuration,
               ease: "easeInOut",
               onUpdate: (v) => {
-                if (audioRef.current) audioRef.current.volume = v;
+                setAudioLevel(v);
               },
             });
           };
@@ -364,12 +427,12 @@ const App: React.FC = () => {
           controlsPrimary = animate(startVolume, targetVolume, {
             duration: MUSIC_FADE_IN_DURATION,
             onUpdate: (v) => {
-              if (audioRef.current) audioRef.current.volume = v;
+              setAudioLevel(v);
             },
           });
         }
       } else {
-        audioRef.current.volume = targetVolume;
+        setAudioLevel(targetVolume);
       }
     } else {
       audioRef.current.pause();
@@ -380,7 +443,7 @@ const App: React.FC = () => {
       if (controlsPrimary) controlsPrimary.stop();
       if (controlsSecondary) controlsSecondary.stop();
     };
-  }, [isMusicPlaying]);
+  }, [isMusicPlaying, MUSIC_TARGET_VOLUME, getCurrentAudioLevel, setAudioLevel]);
 
   const handleMusicToggle = () => {
     setIsMusicPlaying((prev) => !prev);
