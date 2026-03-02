@@ -22,6 +22,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
       }
   };
   const vinylRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLDivElement>(null);
   const [isExiting, setIsExiting] = useState(false);
   
   // Scroll-linked rotation - track the container's scroll position
@@ -79,32 +80,25 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
   const [isButtonVisible, setIsButtonVisible] = useState(true);
   
   useEffect(() => {
+    const MIN_GAP = 40; // px — minimum breathing room between vinyl and button
+
     const checkOverlap = () => {
-        const vh = window.innerHeight;
-        // Vinyl is centered (-5vh offset). 
-        // Available space below center = 50vh + 5vh = 55vh (roughly)
-        // Vinyl Radius = 27vmin (half of 54vmin)
-        
-        // Let's do pixel math for precision
-        const vinylSizePx = Math.min(window.innerWidth * 0.54, window.innerHeight * 0.54);
-        const vinylRadius = vinylSizePx / 2;
-        
-        // Vinyl Center Y (approximate based on CSS layouts)
-        // Container is h-[100dvh], centered. Vinyl has -translate-y-[5vh]
-        const centerY = (vh / 2) - (vh * 0.05);
-        
-        const vinylBottom = centerY + vinylRadius;
-        
-        // Button Top Position
-        // Button is absolute bottom-24 (96px)
-        // Button Height ~32px + Label/Padding ~ 20px
-        const buttonTop = vh - 130; // Safety threshold (96px + buffer)
-        
-        // If vinyl bottom is below button top (with 20px buffer), hide button
-        setIsButtonVisible(vinylBottom < buttonTop - 20); 
+      if (!vinylRef.current) return;
+
+      const vinylBottom = vinylRef.current.getBoundingClientRect().bottom;
+
+      if (buttonRef.current) {
+        // Button is in DOM: measure its actual top edge
+        const buttonTop = buttonRef.current.getBoundingClientRect().top;
+        setIsButtonVisible(buttonTop - vinylBottom >= MIN_GAP);
+      } else {
+        // Button is hidden: estimate its position so we know when to show it again
+        // bottom-24 = 96px, button total height ≈ 60px (label + switch)
+        const estimatedButtonTop = window.innerHeight - 96 - 60;
+        setIsButtonVisible(estimatedButtonTop - vinylBottom >= MIN_GAP);
+      }
     };
-    
-    checkOverlap();
+
     checkOverlap();
     window.addEventListener('resize', checkOverlap);
 
@@ -400,7 +394,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
           {/* Wrap in AnimatePresence to handle exit animation sync */}
           <AnimatePresence>
             {!isExiting && isButtonVisible && (
-              <SwitchButton onToggle={() => {
+              <SwitchButton containerRef={buttonRef} onToggle={() => {
                   handleInteraction(); // Prime Audio
                   if (containerRef.current) {
                       const target = window.innerHeight * 0.55;
@@ -427,7 +421,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 };
 
 // Sub-component for the Retro Switch to handle self-contained animation state
-const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onToggle, opacity }) => {
+const SwitchButton: React.FC<{ onToggle: () => void; opacity: any; containerRef?: React.RefObject<HTMLDivElement> }> = ({ onToggle, opacity, containerRef }) => {
   const [isOn, setIsOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -450,12 +444,13 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any }> = ({ onTogg
   };
 
   return (
-    <motion.div 
+    <motion.div
+      ref={containerRef}
       className="absolute bottom-24 inset-x-0 flex flex-col items-center justify-center pointer-events-auto"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.5 } }} // Exit animation
-      transition={{ delay: 0.2, duration: 1 }} // Appears alongside vinyl (almost)
+      exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeOut" } }}
+      transition={{ delay: 0.2, duration: 1 }}
       style={{ opacity }}
     >
         <button
