@@ -396,8 +396,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
               {albums[currentIndex].title}
           </motion.h2>
           
-          <motion.p 
-              className="font-chill text-[10px] md:text-xs lg:text-sm font-light tracking-widest uppercase mt-3"
+          <motion.p
+              className="font-chill text-[11px] md:text-[13px] lg:text-sm font-light tracking-[0.05em] mt-3"
               animate={{ color: albums[currentIndex].textColor }}
               style={{ opacity: 0.6 }} // Use opacity for hierarchy instead of grey color
               transition={{ duration: 0.5 }}
