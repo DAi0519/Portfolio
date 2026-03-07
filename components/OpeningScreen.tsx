@@ -190,7 +190,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 
   return (
     <motion.div 
-      className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#fbfbf9] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
+      className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#f3f3f1] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
       ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -459,7 +459,7 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any; containerRef?
         >
            {/* Scroll Hint */}
            {!isOn && (
-             <span className="text-[9px] font-bold text-neutral-300 tracking-[0.12em] mb-2 animate-pulse">
+             <span className="text-[10px] font-bold text-neutral-400 tracking-[0.12em] mb-2 animate-pulse">
                向下滑动或轻点开关进入
              </span>
            )}
