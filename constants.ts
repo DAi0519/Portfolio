@@ -9,7 +9,7 @@ export const Z = {
   IMMERSIVE: 50,
   MODAL:    60,
   ARTICLE:  70,
-  NOISE:   100,
+  NOISE:  9999,
 } as const;
 
 // Refined Palette
