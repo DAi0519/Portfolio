@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ALBUMS, Z } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
-import { AnimatePresence, motion, animate } from "framer-motion";
+import { AnimatePresence, motion, animate, useReducedMotion } from "framer-motion";
 
 import OpeningScreen from "./components/OpeningScreen";
 import Cheers from "./components/Cheers";
@@ -74,6 +74,7 @@ const App: React.FC = () => {
   });
 
   const activeAlbum = ALBUMS[currentIndex];
+  const prefersReducedMotion = useReducedMotion();
 
   const handleSelectAlbum = (index: number) => {
     setCurrentIndex(index);
@@ -370,7 +371,7 @@ const App: React.FC = () => {
         switchTrack("/musics/00bgm.mp3", "RETURN_HOME");
       }
     }
-  }, [viewMode, activeAlbum, isMusicPlaying, MUSIC_TARGET_VOLUME, setAudioLevel]);
+  }, [viewMode, activeAlbum, setAudioLevel]);
 
   // Handle Play/Pause Toggle
   useEffect(() => {
@@ -478,7 +479,7 @@ const App: React.FC = () => {
   // If distinct "Cheers" page logic is needed for background override:
   const isCheersPage = viewMode === "STACK" && currentIndex === ALBUMS.length;
   const bgProps = showOpening
-     ? { color: "transparent", backgroundColor: "#fbfbf9" } // Exact match for OpeningScreen
+     ? { color: "transparent", backgroundColor: "#F3F3F1" } // Root canvas token
      : isCheersPage 
      ? { color: "#E5E5E5", backgroundColor: "#FFFFFF" } // Pure White + Light Grey for Cheers
      : { color: displayAlbum.color, backgroundColor: displayAlbum.backgroundColor };
@@ -531,9 +532,9 @@ const App: React.FC = () => {
                   <motion.h1
                     className="text-xs md:text-sm font-bold tracking-tight"
                     animate={{ color: displayAlbum.textColor }}
-                    transition={{ duration: 0.5 }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                   >
-                    DAI<span style={{ opacity: 0.4 }}>.DESIGN</span>
+                    DAI<span style={{ opacity: 0.55 }}>.DESIGN</span>
                   </motion.h1>
                   {/* Dynamic Brand Accent Bar - Absolute to not affect text alignment */}
                   <div
@@ -553,23 +554,24 @@ const App: React.FC = () => {
                       {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
                         <motion.div
                           key={i}
-                          className="w-[1.5px]"
+                          className="w-[2px]"
                           animate={{
-                            height: isMusicPlaying
+                            height: isMusicPlaying && !prefersReducedMotion
                               ? ["20%", "70%", "30%", "60%", "20%"]
-                              : "25%", // Softer animation & Flat inactive state
+                              : isMusicPlaying ? "60%" : "25%",
                           }}
                           transition={
+                            prefersReducedMotion ? { duration: 0 } :
                             isMusicPlaying
                               ? {
                                   duration: 1.5,
                                   repeat: Infinity,
                                   repeatType: "mirror",
-                                  delay: i * 0.2, // Rippling delay
+                                  delay: i * 0.2,
                                   ease: "easeInOut",
                                 }
                               : {
-                                  duration: 0.5, // Smooth return to static
+                                  duration: 0.5,
                                 }
                           }
                           style={{ backgroundColor: displayAlbum.textColor }}
@@ -579,13 +581,13 @@ const App: React.FC = () => {
 
                     {/* Title */}
                     <motion.span
-                      className="text-[9px] font-bold tracking-widest uppercase leading-none mt-[1px]" // Unified Font (Sans Bold) & Size (9px)
+                      className="text-[10px] font-bold tracking-widest uppercase leading-none mt-[1px]"
                       animate={{ color: displayAlbum.textColor }}
-                      transition={{ duration: 0.5 }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                     >
-                      {viewMode === "DETAIL" && activeAlbum ?.musicFile // activeAlbum might be undefined if on Cheers page, but viewMode is STACK there
+                      {viewMode === "DETAIL" && activeAlbum?.musicFile
                         ? "Now Playing"
-                        : "Outer Wilds"}
+                        : "BGM"}
                     </motion.span>
                   </button>
                 </div>
@@ -638,18 +640,18 @@ const App: React.FC = () => {
               {/* Footer for Stack Mode */}
               <footer className="absolute bottom-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none" style={{ zIndex: Z.HEADER }}>
                 <motion.p
-                  className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
+                  className="text-[10px] font-bold uppercase tracking-widest"
                   animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.4 }}
-                  transition={{ duration: 0.5 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                 >
                   Stay hungry, Stay foolish
                 </motion.p>
                 <motion.p
-                  className="text-[9px] font-bold uppercase tracking-widest" // Unified Font
+                  className="text-[10px] font-bold uppercase tracking-widest"
                   animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.5 }}
-                  transition={{ duration: 0.5 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
                 >
                   {String(Math.min(currentIndex + 1, ALBUMS.length)).padStart(2, "0")} /{" "}
                   {String(ALBUMS.length).padStart(2, "0")}

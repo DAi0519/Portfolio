@@ -84,7 +84,7 @@ body {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 100;
   opacity: 0.08;
   background-image: var(--paper-texture);
   mix-blend-mode: multiply;

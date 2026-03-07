@@ -9,7 +9,7 @@ export const Z = {
   IMMERSIVE: 50,
   MODAL:    60,
   ARTICLE:  70,
-  NOISE:  9999,
+  NOISE:   100,
 } as const;
 
 // Refined Palette
@@ -36,7 +36,7 @@ export const ALBUMS: Album[] = [
     title: "WHO AM I",
     subtitle: "我在他人的目光与自己的选择之间，雕刻出我",
     color: COLORS.PURE_WHITE,
-    backgroundColor: "#EFF0F1", // Cool Grey Paper
+    backgroundColor: "#F3F3F1", // Root Canvas Token
     textColor: COLORS.INK_CHARCOAL,
     // Solid Pure White
     coverImage: "/covers/cover-intro.png",

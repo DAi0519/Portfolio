@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Album } from "../types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 interface AlbumStackProps {
   albums: Album[];
@@ -16,18 +16,24 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
   onSelect,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const titleMeasureRef = useRef<HTMLDivElement>(null);
+
+  const prefersReducedMotion = useReducedMotion();
+  const [measuredTitleHeight, setMeasuredTitleHeight] = useState(160);
 
   // Responsive Layout State with Systematic Metrics
   const [layout, setLayout] = useState({
       mode: 'DESKTOP' as 'MOBILE' | 'TABLET' | 'DESKTOP',
       width: window.innerWidth,
       height: window.innerHeight,
-      isShort: window.innerHeight < 600, // New flag for vertical crunch
-      // System Metrics
+      isShort: window.innerHeight < 600,
+      showTitle: true,
+      titleScale: 1,
       cardSize: 320,
       xSpacing: 200,
       stageTop: 120,
-      stageBottom: 260
+      stageBottom: 260,
+      titleTop: 520,
   });
 
   // Drag / Interaction State
@@ -36,6 +42,32 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
   const isPressed = useRef(false);
   const startX = useRef(0);
 
+  useLayoutEffect(() => {
+    const node = titleMeasureRef.current;
+    if (!node) return;
+
+    const updateHeight = () => {
+      const nextHeight = Math.ceil(node.getBoundingClientRect().height);
+      if (nextHeight > 0) {
+        setMeasuredTitleHeight((prev) => (Math.abs(prev - nextHeight) > 1 ? nextHeight : prev));
+      }
+    };
+
+    const rafId = window.requestAnimationFrame(updateHeight);
+    const observer = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => updateHeight())
+      : null;
+
+    observer?.observe(node);
+    window.addEventListener("resize", updateHeight);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      observer?.disconnect();
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, [currentIndex, albums]);
+
   useEffect(() => {
     const handleResize = () => {
         const w = window.innerWidth;
@@ -43,77 +75,95 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
 
         let mode: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
         if (w < 768) mode = 'MOBILE';
-        else if (w < 1280) mode = 'TABLET'; 
+        else if (w < 1280) mode = 'TABLET';
 
-        // 1. SYSTEM METRICS & CONSTANTS
-        // Desired visual gap between album cover and title group
-        const MIN_VISUAL_GAP = mode === 'MOBILE' ? 40 : 60;
-        
-        // Estimated height of the title group (Accent Bar + H2 + P + Margins)
-        // More precise estimates based on standard rendering:
-        const TITLE_GROUP_TOTAL_FOOTPRINT = mode === 'MOBILE' ? 140 : 160;
-        
-        // Pinned bottom position of the title group container
-        const TITLE_BOTTOM_OFFSET = mode === 'MOBILE' ? 128 : 96; // matches bottom-32 / bottom-24
+        // ─── Constants ───────────────────────────────────────────
+        const PREFERRED_GAP     = mode === 'MOBILE' ? 32  : 48;
+        const MAX_GAP           = mode === 'MOBILE' ? 60  : 100;
+        const fallbackTitleH    = mode === 'MOBILE' ? 140 : 160;
+        const baseTitleHeight   = Math.max(fallbackTitleH, measuredTitleHeight);
+        const MIN_TITLE_SCALE   = mode === 'MOBILE' ? 0.72 : 0.8;
+        const HEADER_CLEAR     = mode === 'MOBILE' ? 78  : 96;   // bottom edge of top bar safe zone
+        const FOOTER_CLEAR     = mode === 'MOBILE' ? 74  : 88;   // top edge of bottom bar safe zone
+        const TOP_BOTTOM_RATIO = mode === 'MOBILE' ? 1.12 : 1.1; // top whitespace > bottom whitespace
 
-        // 2. STAGE CALCULATIONS (NORMAL STATE)
-        const STAGE_TOP_NON_SHORT = mode === 'MOBILE' ? 100 : 120;
-        const STAGE_BOTTOM_NON_SHORT = mode === 'MOBILE' ? 240 : 260; // Space reserved for title
-        
-        const availableHeight = h - (STAGE_TOP_NON_SHORT + STAGE_BOTTOM_NON_SHORT);
-        
-        // 3. CARD SIZE CALCULATION
-        const widthBase = mode === 'MOBILE' 
+        // ─── Card size (width-driven, not stage-driven) ───────────
+        const widthBase = mode === 'MOBILE'
             ? Math.min(280, w * 0.55)
             : Math.min(480, Math.max(300, w * 0.22));
-            
-        // Relax minSize on extremely short screens to avoid overlap
-        const minSize = mode === 'MOBILE' ? 160 : 200;
-        const cardSize = Math.max(minSize, Math.min(widthBase, availableHeight * 0.95));
+        const minCardFloor = mode === 'MOBILE' ? 120 : mode === 'TABLET' ? 176 : 192;
+        const availableVertical = h - HEADER_CLEAR - FOOTER_CLEAR;
 
-        // 4. DYNAMIC BREAKPOINT LOGIC
-        // Calculate the actual gap if we were in "Normal" mode
-        // Stage is centered between Top and Bottom. 
-        // Card bottom position relative to viewport top:
-        const stageCenterY = STAGE_TOP_NON_SHORT + (availableHeight / 2);
-        const cardBottomY = stageCenterY + (cardSize / 2);
-        
-        // Title top position relative to viewport top:
-        const titleTopY = h - (TITLE_BOTTOM_OFFSET + TITLE_GROUP_TOTAL_FOOTPRINT);
-        
-        const actualGap = titleTopY - cardBottomY;
-        
-        // Decision: Should we hide the title?
-        // Use a more generous gap for Desktop (80px) and 50px for Mobile
-        const thresholdGap = mode === 'MOBILE' ? 35 : 80;
-        const isShort = actualGap < thresholdGap || h < 480;
+        // ─── Adaptive priority: shrink typography first, hide it second, shrink cover last ───
+        let showTitle = true;
+        let titleScale = 1;
+        let gap = PREFERRED_GAP;
+        let cardSize = widthBase;
 
-        // 5. FINAL LAYOUT ASSIGNMENT
-        const STAGE_TOP = isShort ? 80 : STAGE_TOP_NON_SHORT;
-        const STAGE_BOTTOM = isShort ? 60 : STAGE_BOTTOM_NON_SHORT;
-        
-        const finalAvailableHeight = h - (STAGE_TOP + STAGE_BOTTOM);
-        const finalCardSize = Math.max(isShort ? 120 : minSize, Math.min(widthBase, finalAvailableHeight * 0.95));
+        const titleSpaceAtFull = availableVertical - cardSize - gap;
+        if (titleSpaceAtFull < baseTitleHeight) {
+          const scaleCandidate = titleSpaceAtFull / baseTitleHeight;
+          if (scaleCandidate >= MIN_TITLE_SCALE) {
+            titleScale = scaleCandidate;
+          } else {
+            showTitle = false;
+            titleScale = 0;
+            gap = 0;
+          }
+        }
 
-        // Spacing
-        const xSpacing = mode === 'MOBILE' ? 85 : finalCardSize * 0.60;
+        if (!showTitle && availableVertical < cardSize) {
+          cardSize = Math.min(widthBase, availableVertical);
+        }
 
-        setLayout({ 
-            mode, 
-            width: w, 
-            height: h, 
-            isShort,
-            cardSize: finalCardSize, 
-            xSpacing,
-            stageTop: STAGE_TOP,
-            stageBottom: STAGE_BOTTOM
-        });
+        const isShort  = availableVertical < minCardFloor || h < 440;
+
+        if (isShort) {
+            const cardSize  = Math.max(120, Math.min(widthBase, h * 0.55));
+            const xSpacing  = mode === 'MOBILE' ? 85 : cardSize * 0.60;
+            setLayout({ mode, width: w, height: h, isShort, showTitle: false, titleScale: 0, cardSize, xSpacing,
+                stageTop: 80, stageBottom: 60, titleTop: h });
+            return;
+        }
+
+        if (!showTitle) {
+          cardSize = Math.max(minCardFloor, Math.min(cardSize, availableVertical));
+        }
+
+        const visibleTitleHeight = showTitle ? baseTitleHeight * titleScale : 0;
+        let remainingAfterUnit = Math.max(
+          0,
+          availableVertical - cardSize - visibleTitleHeight - gap,
+        );
+
+        if (showTitle && remainingAfterUnit > 0) {
+          const gapBoost = Math.min(MAX_GAP - gap, Math.round(remainingAfterUnit * 0.22));
+          gap += gapBoost;
+          remainingAfterUnit -= gapBoost;
+        }
+
+        // ─── Bias remaining whitespace so the top breathes more than the bottom ───
+        const unitH   = cardSize + gap + visibleTitleHeight;
+        const remainingWhitespace = Math.max(0, availableVertical - unitH);
+        const bottomWhitespace = Math.round(remainingWhitespace / (1 + TOP_BOTTOM_RATIO));
+        const topWhitespace = remainingWhitespace - bottomWhitespace;
+        const unitTop = HEADER_CLEAR + topWhitespace;
+
+        // Stage = card slot only (card is centered within it by flexbox)
+        const stageTop    = unitTop;
+        const stageBottom = h - unitTop - cardSize;
+        const titleTop    = unitTop + cardSize + gap;
+
+        const xSpacing = mode === 'MOBILE' ? 85 : cardSize * 0.60;
+
+        setLayout({ mode, width: w, height: h, isShort, showTitle, titleScale, cardSize, xSpacing,
+            stageTop, stageBottom, titleTop });
     };
     
     handleResize(); // Initial check
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [measuredTitleHeight]);
 
   const handleItemClick = (index: number) => {
     if (index === currentIndex) {
@@ -165,9 +215,6 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         clearTimeout(timeoutId);
     };
   }, [albums.length, currentIndex, onIndexChange]);
-
-  // Layout Logic Check
-  const isMobileOrTablet = layout.mode === 'MOBILE' || layout.mode === 'TABLET';
 
   return (
     <div 
@@ -277,10 +324,10 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                   opacity: 1, 
                   zIndex: 100 - Math.abs(distance),
                   }}
-                  transition={layout.mode === 'MOBILE' ? {
+                  transition={prefersReducedMotion ? { duration: 0 } : layout.mode === 'MOBILE' ? {
                       type: "spring",
-                      stiffness: 250, // Stiffer = Snappier, less bounce
-                      damping: 30,    // Higher damping = less oscillation
+                      stiffness: 250,
+                      damping: 30,
                       mass: 0.8
                   } : {
                       type: "spring",
@@ -364,43 +411,41 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       - Desktop: Absolute 'bottom-12' (Pinned to viewport bottom)
       - Short Screens: HIDDEN (as per user request for "Extremely Narrow/Landscape" view)
     */}
-    {!layout.isShort && currentIndex < albums.length && (
-    <div className={`
-        pointer-events-none px-6 z-50 text-center
-        ${isMobileOrTablet 
-           ? 'absolute bottom-32 left-0 right-0' // Now Absolute on Mobile too! "Stage" logic.
-           : 'absolute bottom-24 left-0 right-0'
-        }
-    `}>
+    {!layout.isShort && layout.showTitle && currentIndex < albums.length && (
+    <div
+      className="pointer-events-none px-6 z-50 text-center absolute left-0 right-0"
+      style={{ top: layout.titleTop }}
+    >
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}
-           initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+           initial={prefersReducedMotion ? false : { opacity: 0, y: 20, filter: 'blur(4px)' }}
            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-           exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
-           transition={{ duration: 0.4, ease: "easeOut" }}
+           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -20, filter: 'blur(4px)' }}
+           transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, ease: "easeOut" }}
            className="flex flex-col items-center"
+           style={{ transform: `scale(${layout.titleScale})`, transformOrigin: 'top center' }}
         >
           {/* Dynamic Color Accent Bar */}
-          <div 
+          <div
               className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
               style={{ backgroundColor: albums[currentIndex].color }}
           ></div>
 
-          <motion.h2 
+          <motion.h2
               className="font-black tracking-[-0.03em] leading-none uppercase mb-2"
               style={{ fontSize: 'clamp(1.8rem, 8vmin, 4.5rem)' }}
               animate={{ color: albums[currentIndex].textColor }}
-              transition={{ duration: 0.5 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
           >
               {albums[currentIndex].title}
           </motion.h2>
-          
+
           <motion.p
-              className="font-chill text-[11px] md:text-[13px] lg:text-sm font-light tracking-[0.05em] mt-3"
+              className="font-chill font-light tracking-[0.05em] mt-3"
               animate={{ color: albums[currentIndex].textColor }}
-              style={{ opacity: 0.6 }} // Use opacity for hierarchy instead of grey color
-              transition={{ duration: 0.5 }}
+              style={{ opacity: 0.85, fontSize: 'clamp(0.85rem, 2.2vmin, 1.1rem)' }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
           >
               {albums[currentIndex].subtitle}
           </motion.p>
@@ -408,6 +453,33 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       </AnimatePresence>
     </div>
     )}
+
+    <div
+      aria-hidden="true"
+      ref={titleMeasureRef}
+      className="pointer-events-none invisible absolute left-0 right-0 top-0 px-6 z-[-1] text-center"
+    >
+      <div className="flex flex-col items-center">
+        <div
+          className="w-1 h-8 mb-4 mx-auto"
+          style={{ backgroundColor: albums[Math.min(currentIndex, albums.length - 1)]?.color }}
+        ></div>
+
+        <div
+          className="font-black tracking-[-0.03em] leading-none uppercase mb-2"
+          style={{ fontSize: 'clamp(1.8rem, 8vmin, 4.5rem)' }}
+        >
+          {albums[Math.min(currentIndex, albums.length - 1)]?.title}
+        </div>
+
+        <div
+          className="font-chill font-light tracking-[0.05em] mt-3"
+          style={{ fontSize: 'clamp(0.85rem, 2.2vmin, 1.1rem)' }}
+        >
+          {albums[Math.min(currentIndex, albums.length - 1)]?.subtitle}
+        </div>
+      </div>
+    </div>
     
   </div>
   );
