@@ -119,7 +119,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         const isShort  = availableVertical < minCardFloor || h < 440;
 
         if (isShort) {
-            const cardSize  = Math.max(120, Math.min(widthBase, h * 0.55));
+            const stageHeight = Math.max(0, h - 80 - 60);
+            const cardSize  = Math.min(
+              Math.max(120, Math.min(widthBase, h * 0.55)),
+              stageHeight,
+            );
             const xSpacing  = mode === 'MOBILE' ? 85 : cardSize * 0.60;
             setLayout({ mode, width: w, height: h, isShort, showTitle: false, titleScale: 0, cardSize, xSpacing,
                 stageTop: 80, stageBottom: 60, titleTop: h });
