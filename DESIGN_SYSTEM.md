@@ -56,7 +56,7 @@ Strict adherence is required.
 
 ### Base
 
-- **Canvas:** `#F3F3F1` (Warm White / Gallery Plaster)
+- **Canvas:** `#FBFBF9` (Warm White / Gallery Plaster)
 - **Ink:** `#111111` (Off-Black) - For primary text.
 - **Divider:** `#E5E5E5` - Subtle structural lines.
 

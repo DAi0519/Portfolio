@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValueEvent, animate } from 'framer-motion';
+import { ROOT_CANVAS } from '../constants';
 
 interface OpeningScreenProps {
   onComplete: () => void;
@@ -190,7 +191,8 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 
   return (
     <motion.div 
-      className="fixed top-0 left-0 w-full h-[100dvh] z-[100] bg-[#f3f3f1] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
+      className="fixed top-0 left-0 w-full h-[100dvh] z-[100] overflow-y-auto overflow-x-hidden overscroll-y-none touch-pan-y"
+      style={{ backgroundColor: ROOT_CANVAS }}
       ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}

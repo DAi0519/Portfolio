@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { ALBUMS, Z } from "./constants";
+import { ALBUMS, ROOT_CANVAS, Z } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
 import { AnimatePresence, motion, animate, useReducedMotion } from "framer-motion";
@@ -524,7 +524,7 @@ const App: React.FC = () => {
   // If distinct "Cheers" page logic is needed for background override:
   const isCheersPage = viewMode === "STACK" && currentIndex === ALBUMS.length;
   const bgProps = showOpening
-     ? { color: "transparent", backgroundColor: "#F3F3F1" } // Root canvas token
+     ? { color: "transparent", backgroundColor: ROOT_CANVAS }
      : isCheersPage 
      ? { color: "#E5E5E5", backgroundColor: "#FFFFFF" } // Pure White + Light Grey for Cheers
      : { color: displayAlbum.color, backgroundColor: displayAlbum.backgroundColor };

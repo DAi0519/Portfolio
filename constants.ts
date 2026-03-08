@@ -12,6 +12,8 @@ export const Z = {
   NOISE:  9999,
 } as const;
 
+export const ROOT_CANVAS = "#FBFBF9";
+
 // Refined Palette
 const COLORS = {
   KLEIN_BLUE: "#002FA7",
@@ -36,7 +38,7 @@ export const ALBUMS: Album[] = [
     title: "WHO AM I",
     subtitle: "我在他人的目光与自己的选择之间，雕刻出我",
     color: COLORS.PURE_WHITE,
-    backgroundColor: "#F3F3F1", // Root Canvas Token
+    backgroundColor: ROOT_CANVAS,
     textColor: COLORS.INK_CHARCOAL,
     // Solid Pure White
     coverImage: "/covers/cover-intro.png",
