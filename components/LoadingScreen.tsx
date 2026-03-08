@@ -1,10 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { ROOT_CANVAS } from '../constants';
 
 const LoadingScreen: React.FC = () => {
   return (
     <motion.div 
-      className="fixed inset-0 z-[999] bg-[#fbfbf9] flex flex-col items-center justify-center pointer-events-none"
+      className="fixed inset-0 z-[999] flex flex-col items-center justify-center pointer-events-none"
+      style={{ backgroundColor: ROOT_CANVAS }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
