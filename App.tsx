@@ -186,10 +186,13 @@ const App: React.FC = () => {
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [wasPlayingBeforeVideo, setWasPlayingBeforeVideo] = useState(false); // Audio Ducking State
+  const [playbackCycle, setPlaybackCycle] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isMusicPlayingRef = useRef(isMusicPlaying);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const BGM_TRACK = "/musics/00bgm.mp3";
   // Responsive volume: mobile devices get lower volume for comfort
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const MUSIC_TARGET_VOLUME = isMobile ? 0.2 : 0.4;
@@ -209,6 +212,39 @@ const App: React.FC = () => {
     if (audioRef.current) {
       audioRef.current.volume = clamped;
     }
+  }, []);
+
+  const getAudioSourcePath = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio || typeof window === "undefined") return null;
+
+    const rawSrc = audio.currentSrc || audio.src || audio.getAttribute("src") || "";
+    if (!rawSrc) return null;
+
+    try {
+      return new URL(rawSrc, window.location.href).pathname;
+    } catch {
+      return rawSrc.startsWith("/") ? rawSrc : null;
+    }
+  }, []);
+
+  const restoreAudioTime = useCallback((audio: HTMLAudioElement, time: number) => {
+    if (time <= 0) return;
+
+    const seek = () => {
+      audio.currentTime = time;
+    };
+
+    if (audio.readyState >= 1) {
+      seek();
+      return;
+    }
+
+    const handleLoadedMetadata = () => {
+      seek();
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
   }, []);
 
   const ensureWebAudioGraph = useCallback(async () => {
@@ -243,8 +279,12 @@ const App: React.FC = () => {
   }, [isMobile]);
 
   useEffect(() => {
+    isMusicPlayingRef.current = isMusicPlaying;
+  }, [isMusicPlaying]);
+
+  useEffect(() => {
     // Initialize Audio
-    audioRef.current = new Audio("/musics/00bgm.mp3");
+    audioRef.current = new Audio(BGM_TRACK);
     audioRef.current.loop = false;
     audioRef.current.volume = 0; // Initialize silent
 
@@ -266,7 +306,7 @@ const App: React.FC = () => {
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [BGM_TRACK]);
 
   // Unlock AudioContext on first interaction
   const primeAudio = useCallback(() => {
@@ -297,13 +337,13 @@ const App: React.FC = () => {
     ) => {
       if (!audioRef.current) return;
 
-      const currentSrc = audioRef.current.getAttribute("src");
+      const currentSrc = getAudioSourcePath(audioRef.current);
 
       if (mode === "ENTER_ALBUM") {
         // LEAVING HOME: Save BGM State
-        if (currentSrc === "/musics/00bgm.mp3") {
+        if (currentSrc === BGM_TRACK) {
           bgmState.current = {
-            isPlaying: isMusicPlaying,
+            isPlaying: isMusicPlayingRef.current,
             currentTime: audioRef.current.currentTime,
           };
         }
@@ -320,7 +360,10 @@ const App: React.FC = () => {
         audioRef.current
           .play()
           .then(() => {
-            setIsMusicPlaying(true);
+            setPlaybackCycle((prev) => prev + 1);
+            if (!isMusicPlayingRef.current) {
+              setIsMusicPlaying(true);
+            }
           })
           .catch((e) => {
             console.log(
@@ -331,11 +374,10 @@ const App: React.FC = () => {
           });
       } else if (mode === "RETURN_HOME") {
         // RETURNING HOME: Switch back to BGM
-        if (currentSrc !== "/musics/00bgm.mp3") {
-          audioRef.current.src = "/musics/00bgm.mp3";
+        if (currentSrc !== BGM_TRACK) {
+          audioRef.current.src = BGM_TRACK;
           audioRef.current.load();
-          // Restore Progress
-          audioRef.current.currentTime = bgmState.current.currentTime;
+          restoreAudioTime(audioRef.current, bgmState.current.currentTime);
         }
 
         // Restore Play State
@@ -345,7 +387,10 @@ const App: React.FC = () => {
           audioRef.current
             .play()
             .then(() => {
-              setIsMusicPlaying(true);
+              setPlaybackCycle((prev) => prev + 1);
+              if (!isMusicPlayingRef.current) {
+                setIsMusicPlaying(true);
+              }
             })
             .catch((e) => {
               console.log("BGM Resume Failed:", e);
@@ -366,12 +411,12 @@ const App: React.FC = () => {
       // STACK MODE
       // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
       // This prevents stopping the music when just swiping through albums on the homepage.
-      const currentSrc = audioRef.current.getAttribute("src");
-      if (currentSrc !== "/musics/00bgm.mp3") {
-        switchTrack("/musics/00bgm.mp3", "RETURN_HOME");
+      const currentSrc = getAudioSourcePath(audioRef.current);
+      if (currentSrc !== BGM_TRACK) {
+        switchTrack(BGM_TRACK, "RETURN_HOME");
       }
     }
-  }, [viewMode, activeAlbum, setAudioLevel]);
+  }, [viewMode, activeAlbum, setAudioLevel, getAudioSourcePath, BGM_TRACK, restoreAudioTime]);
 
   // Handle Play/Pause Toggle
   useEffect(() => {
@@ -444,7 +489,7 @@ const App: React.FC = () => {
       if (controlsPrimary) controlsPrimary.stop();
       if (controlsSecondary) controlsSecondary.stop();
     };
-  }, [isMusicPlaying, MUSIC_TARGET_VOLUME, getCurrentAudioLevel, setAudioLevel]);
+  }, [isMusicPlaying, playbackCycle, MUSIC_TARGET_VOLUME, getCurrentAudioLevel, setAudioLevel]);
 
   const handleMusicToggle = () => {
     setIsMusicPlaying((prev) => !prev);

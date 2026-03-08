@@ -35,6 +35,10 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       stageBottom: 260,
       titleTop: 520,
   });
+  const subtitleFontSize =
+    layout.mode === "MOBILE"
+      ? "clamp(0.78rem, 2vmin, 0.98rem)"
+      : "clamp(0.85rem, 2.2vmin, 1.1rem)";
 
   // Drag / Interaction State
   const [dragX, setDragX] = useState(0);
@@ -76,16 +80,17 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         let mode: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
         if (w < 768) mode = 'MOBILE';
         else if (w < 1280) mode = 'TABLET';
+        const isNarrowMobile = mode === 'MOBILE' && w < 430;
 
         // ─── Constants ───────────────────────────────────────────
-        const PREFERRED_GAP     = mode === 'MOBILE' ? 32  : 48;
-        const MAX_GAP           = mode === 'MOBILE' ? 60  : 100;
-        const fallbackTitleH    = mode === 'MOBILE' ? 140 : 160;
+        const PREFERRED_GAP     = isNarrowMobile ? 24 : mode === 'MOBILE' ? 32 : 48;
+        const MAX_GAP           = isNarrowMobile ? 44 : mode === 'MOBILE' ? 60 : 100;
+        const fallbackTitleH    = isNarrowMobile ? 124 : mode === 'MOBILE' ? 140 : 160;
         const baseTitleHeight   = Math.max(fallbackTitleH, measuredTitleHeight);
-        const MIN_TITLE_SCALE   = mode === 'MOBILE' ? 0.72 : 0.8;
+        const MIN_TITLE_SCALE   = isNarrowMobile ? 0.76 : mode === 'MOBILE' ? 0.72 : 0.8;
         const HEADER_CLEAR     = mode === 'MOBILE' ? 78  : 96;   // bottom edge of top bar safe zone
         const FOOTER_CLEAR     = mode === 'MOBILE' ? 74  : 88;   // top edge of bottom bar safe zone
-        const TOP_BOTTOM_RATIO = mode === 'MOBILE' ? 1.12 : 1.1; // top whitespace > bottom whitespace
+        const TOP_BOTTOM_RATIO = isNarrowMobile ? 1.34 : mode === 'MOBILE' ? 1.12 : 1.1; // top whitespace > bottom whitespace
 
         // ─── Card size (width-driven, not stage-driven) ───────────
         const widthBase = mode === 'MOBILE'
@@ -448,7 +453,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
           <motion.p
               className="font-chill font-light tracking-[0.05em] mt-3"
               animate={{ color: albums[currentIndex].textColor }}
-              style={{ opacity: 0.85, fontSize: 'clamp(0.85rem, 2.2vmin, 1.1rem)' }}
+              style={{ opacity: 0.82, fontSize: subtitleFontSize }}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
           >
               {albums[currentIndex].subtitle}
@@ -478,7 +483,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
 
         <div
           className="font-chill font-light tracking-[0.05em] mt-3"
-          style={{ fontSize: 'clamp(0.85rem, 2.2vmin, 1.1rem)' }}
+          style={{ fontSize: subtitleFontSize }}
         >
           {albums[Math.min(currentIndex, albums.length - 1)]?.subtitle}
         </div>

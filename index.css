@@ -45,6 +45,20 @@
   --text-color: #111111;
   --klein-blue: #002fa7;
   --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
+  --paper-fibers-x: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.035) 0,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px,
+    transparent 32px
+  );
+  --paper-fibers-y: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.018) 0,
+    rgba(0, 0, 0, 0.018) 1px,
+    transparent 1px,
+    transparent 36px
+  );
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -85,9 +99,20 @@ body {
   height: 100vh;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.08;
-  background-image: var(--paper-texture);
+  opacity: 0.11;
+  background-image:
+    var(--paper-texture),
+    var(--paper-fibers-x),
+    var(--paper-fibers-y);
+  background-size: 220px 220px, 100% 100%, 100% 100%;
+  background-position: center center;
   mix-blend-mode: multiply;
+}
+
+@media (max-width: 767px) {
+  .bg-noise {
+    opacity: 0.08;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────

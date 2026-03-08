@@ -17,6 +17,36 @@ interface ImmersiveViewProps {
   onVideoEnd: () => void;   // Called when a project video ends/pauses
 }
 
+const withAlpha = (hex: string, alpha: number) => {
+  const normalized = hex.trim();
+
+  if (!normalized.startsWith('#')) {
+    return 'transparent';
+  }
+
+  const value = normalized.slice(1);
+  const expanded = value.length === 3
+    ? value
+        .split('')
+        .map((char) => `${char}${char}`)
+        .join('')
+    : value;
+
+  if (expanded.length !== 6) {
+    return 'transparent';
+  }
+
+  const r = Number.parseInt(expanded.slice(0, 2), 16);
+  const g = Number.parseInt(expanded.slice(2, 4), 16);
+  const b = Number.parseInt(expanded.slice(4, 6), 16);
+
+  if ([r, g, b].some((channel) => Number.isNaN(channel))) {
+    return 'transparent';
+  }
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 // Update Props Interface
 const SimpleMarkdown: React.FC<{ 
     content: string; 
@@ -1147,9 +1177,12 @@ const ProjectModal: React.FC<{
 // -----------------------------------------------------------------------------
 const ArticlePage: React.FC<{
   project: ProjectItem;
+  album: Album;
   color: string;
+  isMusicPlaying: boolean;
+  onMusicToggle: () => void;
   onClose: () => void;
-}> = ({ project, color, onClose }) => {
+}> = ({ project, album, color, isMusicPlaying, onMusicToggle, onClose }) => {
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
   const [isContentReady, setIsContentReady] = React.useState(false);
@@ -1241,6 +1274,12 @@ const ArticlePage: React.FC<{
       >
         <ArrowLeft size={18} />
       </button>
+
+      <MiniControl
+        album={album}
+        isPlaying={isMusicPlaying}
+        onClick={onMusicToggle}
+      />
 
       {/* Article Content */}
       <div className="max-w-3xl mx-auto px-6 py-6 md:py-24">
@@ -1417,6 +1456,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
   const [isDragging, setIsDragging] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const touchStartRef = useRef(0);
+  const pageTintStrong = withAlpha(albumData.color, 0.12);
+  const pageTintSoft = withAlpha(albumData.color, 0.05);
 
   const THRESHOLD = 100;
 
@@ -1480,8 +1521,8 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
     <>
       <motion.div 
         ref={containerRef}
-        className="fixed inset-0 text-[#111] overflow-hidden flex flex-col"
-        style={{ zIndex: Z.IMMERSIVE }}
+        className="fixed inset-0 isolate text-[#111] overflow-hidden flex flex-col"
+        style={{ zIndex: Z.IMMERSIVE, backgroundColor: albumData.backgroundColor }}
         initial={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
         exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
@@ -1490,6 +1531,27 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
             ease: [0.2, 0.8, 0.2, 1] 
         }}
       >
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            background: `
+              linear-gradient(180deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.5) 18%, rgba(255,255,255,0.18) 40%, transparent 70%),
+              radial-gradient(circle at 18% 24%, ${pageTintStrong} 0%, ${pageTintSoft} 26%, transparent 58%),
+              radial-gradient(circle at 78% 12%, rgba(255,255,255,0.4) 0%, transparent 36%),
+              radial-gradient(circle at 50% 100%, rgba(0,0,0,0.05) 0%, transparent 42%)
+            `,
+          }}
+        />
+
+        <div
+          className="absolute inset-0 z-0 pointer-events-none opacity-35 mix-blend-soft-light"
+          style={{
+            backgroundImage: `
+              repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 30px),
+              repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 34px)
+            `,
+          }}
+        />
         
         {/* Mobile Back Button - Pinned */}
         <button 
@@ -1537,7 +1599,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         {/* SCROLL CONTAINER WRAPPER */}
         <div 
             ref={scrollContainerRef}
-            className={`w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative transition-transform ease-[cubic-bezier(0.25,1,0.5,1)] ${isDragging ? 'duration-0' : 'duration-500'}`}
+            className={`w-full h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden relative z-10 transition-transform ease-[cubic-bezier(0.25,1,0.5,1)] ${isDragging ? 'duration-0' : 'duration-500'}`}
             style={{ transform: `translateY(${pullY}px)` }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -1761,7 +1823,10 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         {selectedArticle && (
           <ArticlePage
             project={selectedArticle}
+            album={albumData}
             color={albumData.color}
+            isMusicPlaying={isMusicPlaying}
+            onMusicToggle={onMusicToggle}
             onClose={() => setSelectedArticle(null)}
             key="article"
           />
