@@ -568,9 +568,16 @@ const App: React.FC = () => {
         className={`w-full h-full relative ${showOpening ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
         style={{ zIndex: Z.CONTENT }}
       >
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {viewMode === "STACK" ? (
-            <motion.div className="w-full h-full" key="stack-container">
+            <motion.div 
+              className="w-full h-full" 
+              key="stack-container"
+              initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+              transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+            >
               {/* Header for Stack Mode */}
               <header className="absolute top-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none" style={{ zIndex: Z.HEADER }}>
                 <div className="pointer-events-auto relative flex flex-col items-center justify-center">

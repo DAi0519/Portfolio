@@ -1523,9 +1523,9 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
         ref={containerRef}
         className="fixed inset-0 isolate text-[#111] overflow-hidden flex flex-col"
         style={{ zIndex: Z.IMMERSIVE, backgroundColor: albumData.backgroundColor }}
-        initial={{ opacity: 0, scale: 1.1, filter: 'blur(20px)' }}
+        initial={{ opacity: 0, scale: 1.05, filter: 'blur(20px)' }}
         animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+        exit={{ opacity: 0, scale: 1, filter: 'blur(30px)' }}
         transition={{ 
             duration: 0.7, 
             ease: [0.2, 0.8, 0.2, 1] 
