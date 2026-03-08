@@ -81,6 +81,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         if (w < 768) mode = 'MOBILE';
         else if (w < 1280) mode = 'TABLET';
         const isNarrowMobile = mode === 'MOBILE' && w < 430;
+        const isDesktop = mode === 'DESKTOP';
 
         // ─── Constants ───────────────────────────────────────────
         const PREFERRED_GAP     = isNarrowMobile ? 24 : mode === 'MOBILE' ? 32 : 48;
@@ -90,7 +91,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         const MIN_TITLE_SCALE   = isNarrowMobile ? 0.76 : mode === 'MOBILE' ? 0.72 : 0.8;
         const HEADER_CLEAR     = mode === 'MOBILE' ? 78  : 96;   // bottom edge of top bar safe zone
         const FOOTER_CLEAR     = mode === 'MOBILE' ? 74  : 88;   // top edge of bottom bar safe zone
-        const TOP_BOTTOM_RATIO = isNarrowMobile ? 1.34 : mode === 'MOBILE' ? 1.12 : 1.1; // top whitespace > bottom whitespace
+        const TOP_BOTTOM_RATIO = isNarrowMobile ? 1.34 : mode === 'MOBILE' ? 1.12 : isDesktop ? 1.18 : 1.1; // top whitespace > bottom whitespace
 
         // ─── Card size (width-driven, not stage-driven) ───────────
         const widthBase = mode === 'MOBILE'
