@@ -431,7 +431,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     */}
     {!layout.isShort && layout.showTitle && currentIndex < albums.length && (
     <div
-      className="pointer-events-none px-6 z-50 text-center absolute left-0 right-0"
+      className="pointer-events-none px-6 z-[200] text-center absolute left-0 right-0"
       style={{ top: layout.titleTop }}
     >
       <AnimatePresence mode="wait">
@@ -455,11 +455,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
           {/* Dynamic Color Accent Bar */}
           <div
               className="w-1 h-8 mb-4 mx-auto transition-colors duration-500"
-              style={{ backgroundColor: albums[currentIndex].color }}
+              style={{ backgroundColor: albums[currentIndex].color, boxShadow: albums[currentIndex].color === '#FFFFFF' ? '0 0 8px rgba(0,0,0,0.12)' : 'none' }}
           ></div>
 
           <motion.h2
-              className="font-black tracking-[-0.03em] leading-none uppercase mb-2"
+              className="font-chill font-medium leading-none mb-2"
               style={{ fontSize: 'clamp(1.8rem, 8vmin, 4.5rem)' }}
               animate={{ color: albums[currentIndex].textColor }}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
@@ -492,7 +492,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         ></div>
 
         <div
-          className="font-black tracking-[-0.03em] leading-none uppercase mb-2"
+          className="font-chill font-medium leading-none mb-2"
           style={{ fontSize: 'clamp(1.8rem, 8vmin, 4.5rem)' }}
         >
           {albums[Math.min(currentIndex, albums.length - 1)]?.title}

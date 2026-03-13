@@ -47,6 +47,15 @@ const withAlpha = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+const oppoSansProjectMetaAlbumIds = new Set<string>([
+  AlbumType.CODING,
+  AlbumType.VIDEO,
+  AlbumType.PHOTO,
+]);
+
+const usesProjectMetaOppoSans = (albumId: string) =>
+  oppoSansProjectMetaAlbumIds.has(albumId);
+
 // Update Props Interface
 const SimpleMarkdown: React.FC<{ 
     content: string; 
@@ -551,10 +560,10 @@ const VideoGridItem: React.FC<{
             </div>
             
             <div>
-                <h3 className="text-sm font-chill font-extralight text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
                     {track.title}
                 </h3>
-                <p className="text-[10px] font-mono text-neutral-400 mt-1 line-clamp-1">
+                <p className="text-[10px] font-sans text-neutral-400 mt-1 line-clamp-1">
                     {track.description}
                 </p>
             </div>
@@ -745,7 +754,7 @@ const CodingGridItem: React.FC<{
             <div className="w-full">
                 {/* Title Row with Date */}
                 <div className="flex justify-between items-baseline mb-2">
-                    <h3 className="text-base font-chill font-medium text-neutral-900 leading-tight group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-base font-sans font-medium text-neutral-900 leading-tight group-hover:text-blue-600 transition-colors">
                         {track.title}
                     </h3>
                     <span className="text-[10px] font-mono text-neutral-400 text-right tabular-nums shrink-0 ml-4">
@@ -753,7 +762,7 @@ const CodingGridItem: React.FC<{
                     </span>
                 </div>
                 {/* Description - Full Width */}
-                <p className="text-sm text-neutral-500 font-chill font-extralight line-clamp-2 leading-relaxed">
+                <p className="text-sm text-neutral-500 font-sans font-normal line-clamp-2 leading-relaxed">
                     {track.description}
                 </p>
             </div>
@@ -921,6 +930,7 @@ const ProjectModal: React.FC<{
   const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
   const dragControls = useDragControls();
   const isWriting = albumId === AlbumType.WRITING;
+  const shouldUseOppoSans = usesProjectMetaOppoSans(albumId);
   const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
   
   // Optimization: Defer heaviest content rendering slightly to allow animation start
@@ -1103,7 +1113,7 @@ const ProjectModal: React.FC<{
 
                         {/* Title */}
                         {project.title && project.title.toLowerCase() !== 'untitled' && (
-                            <h2 className="text-2xl md:text-3xl font-chill font-medium text-neutral-900 mb-4 tracking-tight leading-tight">
+                            <h2 className={`text-2xl md:text-3xl text-neutral-900 mb-4 tracking-tight leading-tight ${shouldUseOppoSans ? 'font-sans font-medium' : 'font-chill font-medium'}`}>
                                 {project.title}
                             </h2>
                         )}
@@ -1112,7 +1122,7 @@ const ProjectModal: React.FC<{
                         <div className="w-12 h-0.5 mb-8 opacity-20" style={{ backgroundColor: safeColor }}></div>
                         
                         {/* Description */}
-                        <div className="prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600">
+                        <div className={`prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600 ${shouldUseOppoSans ? 'font-sans' : ''}`}>
                             {hasDidacticContent ? (
                                 <div>
                                     {isContentReady ? (
@@ -1132,9 +1142,9 @@ const ProjectModal: React.FC<{
                                     )}
                                 </div>
                             ) : (
-                                 <p className="leading-relaxed font-chill font-extralight">
+                                 <p className={`leading-relaxed ${shouldUseOppoSans ? 'font-sans font-normal' : 'font-chill font-extralight'}`}>
                                     {project.description}
-                                </p>
+                                 </p>
                             )}
                         </div>
 
@@ -1670,7 +1680,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                   FLUID TYPOGRAPHY: 
                                   Using clamp() to ensure the title scales with the viewport width.
                               */}
-                              <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-black tracking-tighter leading-[0.9] text-neutral-900 mb-8 uppercase text-left font-sans">
+                              <h1 className="text-[clamp(2.5rem,5.5vw,4.5rem)] font-chill font-medium leading-[0.9] text-neutral-900 mb-8 text-left">
                                   {albumData.title}
                               </h1>
 
