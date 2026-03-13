@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ALBUMS, ROOT_CANVAS, Z } from "./constants";
 import AlbumStack from "./components/AlbumStack";
 import { ImmersiveView } from "./components/ImmersiveView";
@@ -12,15 +12,43 @@ import CinematicBackground from "./components/CinematicBackground";
 import { useCheers } from "./hooks/useCheers";
 
 import { useAudioPreloader } from "./hooks/useAudioPreloader";
+import { useCriticalFonts } from "./hooks/useCriticalFonts";
 import LoadingScreen from "./components/LoadingScreen";
 
+const INTRO_SFX = "/musics/vinyl_start.mp3";
+const BGM_TRACK = "/musics/00bgm.mp3";
+
 const App: React.FC = () => {
-  // Preload Audio Assets
-  const audioAssets = [
-    '/musics/vinyl_start.mp3',
-    '/musics/00bgm.mp3'
-  ];
-  const { loaded: audioLoaded } = useAudioPreloader(audioAssets);
+  const isEdge = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+
+    const brands =
+      (navigator as Navigator & {
+        userAgentData?: { brands?: Array<{ brand: string; version: string }> };
+      }).userAgentData?.brands ?? [];
+    if (brands.some((brand) => /Microsoft Edge/i.test(brand.brand))) {
+      return true;
+    }
+
+    return /\bEdg\//i.test(navigator.userAgent);
+  }, []);
+  const criticalAudioAssets = useMemo(() => [INTRO_SFX, BGM_TRACK], []);
+  const criticalFontDescriptors = useMemo(
+    () => [
+      {
+        descriptor: '1em "OPPOSans"',
+        text: "DAI.DESIGN BGM Stay hungry, Stay foolish",
+      },
+      {
+        descriptor: '200 1em "ChillDuanHeiSong"',
+        text: "我将一切谱成乐章，刻下去是旅程，放出来是回声。Without music, life would be a mistake.",
+      },
+    ],
+    [],
+  );
+  const { ready: criticalAudioReady, assets: preloadedAudioAssets } =
+    useAudioPreloader(criticalAudioAssets);
+  const { ready: criticalFontsReady } = useCriticalFonts(criticalFontDescriptors);
 
   // Global Cheers State (Prefetched)
   const { count: cheersCount, increment: incrementCheers } = useCheers();
@@ -73,7 +101,7 @@ const App: React.FC = () => {
     return true;
   });
 
-  const activeAlbum = ALBUMS[currentIndex];
+  const activeAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
   const prefersReducedMotion = useReducedMotion();
 
   const handleSelectAlbum = (index: number) => {
@@ -186,13 +214,14 @@ const App: React.FC = () => {
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [wasPlayingBeforeVideo, setWasPlayingBeforeVideo] = useState(false); // Audio Ducking State
-  const [playbackCycle, setPlaybackCycle] = useState(0);
+  const [activeTrackPath, setActiveTrackPath] = useState(BGM_TRACK);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMusicPlayingRef = useRef(isMusicPlaying);
+  const activeTrackPathRef = useRef(activeTrackPath);
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const BGM_TRACK = "/musics/00bgm.mp3";
+  const pendingRestoreTimeRef = useRef<number | null>(null);
   // Responsive volume: mobile devices get lower volume for comfort
   const isMobile = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const MUSIC_TARGET_VOLUME = isMobile ? 0.2 : 0.4;
@@ -214,18 +243,25 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const getAudioSourcePath = useCallback((audio: HTMLAudioElement | null) => {
-    if (!audio || typeof window === "undefined") return null;
+  const resolveAudioSrc = useCallback(
+    (trackPath: string) => preloadedAudioAssets[trackPath] ?? trackPath,
+    [preloadedAudioAssets],
+  );
 
-    const rawSrc = audio.currentSrc || audio.src || audio.getAttribute("src") || "";
-    if (!rawSrc) return null;
+  const ensureAudioSource = useCallback(
+    (trackPath: string) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (audio.dataset.trackPath === trackPath) return;
 
-    try {
-      return new URL(rawSrc, window.location.href).pathname;
-    } catch {
-      return rawSrc.startsWith("/") ? rawSrc : null;
-    }
-  }, []);
+      audio.pause();
+      audio.src = resolveAudioSrc(trackPath);
+      audio.dataset.trackPath = trackPath;
+      audio.load();
+      setAudioLevel(0);
+    },
+    [resolveAudioSrc, setAudioLevel],
+  );
 
   const restoreAudioTime = useCallback((audio: HTMLAudioElement, time: number) => {
     if (time <= 0) return;
@@ -283,9 +319,14 @@ const App: React.FC = () => {
   }, [isMusicPlaying]);
 
   useEffect(() => {
+    activeTrackPathRef.current = activeTrackPath;
+  }, [activeTrackPath]);
+
+  useEffect(() => {
     // Initialize Audio
-    audioRef.current = new Audio(BGM_TRACK);
+    audioRef.current = new Audio();
     audioRef.current.loop = false;
+    audioRef.current.preload = "auto";
     audioRef.current.volume = 0; // Initialize silent
 
     return () => {
@@ -306,20 +347,21 @@ const App: React.FC = () => {
         audioRef.current = null;
       }
     };
-  }, [BGM_TRACK]);
+  }, []);
 
   // Unlock AudioContext on first interaction
   const primeAudio = useCallback(() => {
     if (audioRef.current) {
+      ensureAudioSource(activeTrackPathRef.current);
       // Play comfortably silence (muted) to unlock capabilities
       // Volume 0 is not enough on iOS (hardware volume control)
       audioRef.current.muted = true;
       ensureWebAudioGraph().catch(() => undefined);
       audioRef.current
         .play()
-        .catch((e) => console.log("Audio Prime Failed:", e));
+        .catch(() => undefined);
     }
-  }, [ensureWebAudioGraph]);
+  }, [ensureAudioSource, ensureWebAudioGraph]);
 
   // BGM Persistence State
   const bgmState = useRef<{ isPlaying: boolean; currentTime: number }>({
@@ -331,165 +373,145 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!audioRef.current) return;
 
-    const switchTrack = async (
-      newSrc: string,
-      mode: "ENTER_ALBUM" | "RETURN_HOME",
-    ) => {
-      if (!audioRef.current) return;
-
-      const currentSrc = getAudioSourcePath(audioRef.current);
-
-      if (mode === "ENTER_ALBUM") {
-        // LEAVING HOME: Save BGM State
-        if (currentSrc === BGM_TRACK) {
-          bgmState.current = {
-            isPlaying: isMusicPlayingRef.current,
-            currentTime: audioRef.current.currentTime,
-          };
-        }
-
-        // Switch to Album Music
-        if (currentSrc !== newSrc) {
-          audioRef.current.src = newSrc;
-          audioRef.current.load();
-        }
-
-        // Attempt Auto-Play
-        audioRef.current.muted = false; // Ensure unmuted
-        setAudioLevel(0);
-        audioRef.current
-          .play()
-          .then(() => {
-            setPlaybackCycle((prev) => prev + 1);
-            if (!isMusicPlayingRef.current) {
-              setIsMusicPlaying(true);
-            }
-          })
-          .catch((e) => {
-            console.log(
-              "Album auto-play blocked (user interaction required):",
-              e,
-            );
-            setIsMusicPlaying(false);
-          });
-      } else if (mode === "RETURN_HOME") {
-        // RETURNING HOME: Switch back to BGM
-        if (currentSrc !== BGM_TRACK) {
-          audioRef.current.src = BGM_TRACK;
-          audioRef.current.load();
-          restoreAudioTime(audioRef.current, bgmState.current.currentTime);
-        }
-
-        // Restore Play State
-        if (bgmState.current.isPlaying) {
-          audioRef.current.muted = false; // Ensure unmuted
-          setAudioLevel(0);
-          audioRef.current
-            .play()
-            .then(() => {
-              setPlaybackCycle((prev) => prev + 1);
-              if (!isMusicPlayingRef.current) {
-                setIsMusicPlaying(true);
-              }
-            })
-            .catch((e) => {
-              console.log("BGM Resume Failed:", e);
-              setIsMusicPlaying(false);
-            });
-        } else {
-          setIsMusicPlaying(false);
-          audioRef.current.pause();
-        }
-      }
-    };
-
     if (viewMode === "DETAIL") {
-      // ENTERING ALBUM
-      const albumMusic = activeAlbum.musicFile || "/musics/00bgm.mp3";
-      switchTrack(albumMusic, "ENTER_ALBUM");
-    } else {
-      // STACK MODE
-      // Logic Optimization: Only switch/restore if we are NOT already playing the BGM.
-      // This prevents stopping the music when just swiping through albums on the homepage.
-      const currentSrc = getAudioSourcePath(audioRef.current);
-      if (currentSrc !== BGM_TRACK) {
-        switchTrack(BGM_TRACK, "RETURN_HOME");
+      if (activeTrackPathRef.current === BGM_TRACK) {
+        bgmState.current = {
+          isPlaying: isMusicPlayingRef.current,
+          currentTime: audioRef.current.currentTime,
+        };
       }
+      pendingRestoreTimeRef.current = null;
+
+      const albumMusic = activeAlbum.musicFile || BGM_TRACK;
+      setActiveTrackPath((currentTrack) =>
+        currentTrack === albumMusic ? currentTrack : albumMusic,
+      );
+      setIsMusicPlaying(true);
+      return;
     }
-  }, [viewMode, activeAlbum, setAudioLevel, getAudioSourcePath, BGM_TRACK, restoreAudioTime]);
+
+    if (activeTrackPathRef.current !== BGM_TRACK) {
+      pendingRestoreTimeRef.current = bgmState.current.isPlaying
+        ? bgmState.current.currentTime
+        : null;
+      setActiveTrackPath(BGM_TRACK);
+      setIsMusicPlaying(bgmState.current.isPlaying);
+    }
+  }, [activeAlbum.musicFile, viewMode]);
 
   // Handle Play/Pause Toggle
   useEffect(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    let controlsPrimary: any;
-    let controlsSecondary: any;
+    let controlsPrimary: ReturnType<typeof animate> | undefined;
+    let controlsSecondary: ReturnType<typeof animate> | undefined;
     let isCancelled = false;
 
-    if (isMusicPlaying) {
-      audioRef.current.muted = false; // Ensure unmuted
+    const stopAnimations = () => {
+      controlsPrimary?.stop();
+      controlsSecondary?.stop();
+    };
+
+    const waitForAnimation = async (controls?: ReturnType<typeof animate>) => {
+      if (!controls) return;
+      const maybeFinished = (controls as { finished?: Promise<unknown> }).finished;
+      if (maybeFinished && typeof maybeFinished.then === "function") {
+        await maybeFinished.catch(() => undefined);
+      }
+    };
+
+    const playCurrentTrack = async () => {
+      ensureAudioSource(activeTrackPath);
+      if (!audioRef.current) return;
+
+      audioRef.current.muted = false;
+      await ensureWebAudioGraph().catch(() => undefined);
+
+      const pendingRestoreTime = pendingRestoreTimeRef.current;
+      if (pendingRestoreTime !== null) {
+        restoreAudioTime(audioRef.current, pendingRestoreTime);
+        pendingRestoreTimeRef.current = null;
+      }
 
       const startVolume = getCurrentAudioLevel();
       const targetVolume = MUSIC_TARGET_VOLUME;
 
-      // Play audio
-      const playPromise = audioRef.current.play();
-      if (playPromise) {
-        playPromise.catch((e) => console.log("Autoplay prevented:", e));
-      }
-
-      // Two-stage fade-in: softly introduce, then settle at target volume.
-      if (Math.abs(startVolume - targetVolume) > 0.01) {
-        if (startVolume < targetVolume) {
-          const introVolume = Math.min(targetVolume, 0.12);
-          const stageOneDuration = Math.max(0.25, MUSIC_FADE_IN_DURATION * 0.35);
-          const stageTwoDuration = Math.max(
-            0.25,
-            MUSIC_FADE_IN_DURATION - stageOneDuration,
-          );
-
-          const runTwoStageFade = async () => {
-            controlsPrimary = animate(startVolume, introVolume, {
-              duration: stageOneDuration,
-              ease: "easeOut",
-              onUpdate: (v) => {
-                setAudioLevel(v);
-              },
-            });
-            await controlsPrimary.finished.catch(() => undefined);
-            if (isCancelled) return;
-
-            controlsSecondary = animate(introVolume, targetVolume, {
-              duration: stageTwoDuration,
-              ease: "easeInOut",
-              onUpdate: (v) => {
-                setAudioLevel(v);
-              },
-            });
-          };
-
-          runTwoStageFade();
-        } else {
-          controlsPrimary = animate(startVolume, targetVolume, {
-            duration: MUSIC_FADE_IN_DURATION,
-            onUpdate: (v) => {
-              setAudioLevel(v);
-            },
-          });
+      try {
+        await audioRef.current.play();
+      } catch (error) {
+        if (!(error instanceof DOMException) || error.name !== "NotAllowedError") {
+          console.warn("Audio playback failed:", error);
         }
-      } else {
-        setAudioLevel(targetVolume);
+        setIsMusicPlaying(false);
+        return;
       }
+
+      if (Math.abs(startVolume - targetVolume) <= 0.01) {
+        setAudioLevel(targetVolume);
+        return;
+      }
+
+      if (startVolume < targetVolume) {
+        const introVolume = Math.min(targetVolume, 0.12);
+        const stageOneDuration = Math.max(0.25, MUSIC_FADE_IN_DURATION * 0.35);
+        const stageTwoDuration = Math.max(
+          0.25,
+          MUSIC_FADE_IN_DURATION - stageOneDuration,
+        );
+
+        controlsPrimary = animate(startVolume, introVolume, {
+          duration: stageOneDuration,
+          ease: "easeOut",
+          onUpdate: (value) => {
+            setAudioLevel(value);
+          },
+        });
+        await waitForAnimation(controlsPrimary);
+
+        if (isCancelled) return;
+
+        controlsSecondary = animate(introVolume, targetVolume, {
+          duration: stageTwoDuration,
+          ease: "easeInOut",
+          onUpdate: (value) => {
+            setAudioLevel(value);
+          },
+        });
+        return;
+      }
+
+      controlsPrimary = animate(startVolume, targetVolume, {
+        duration: MUSIC_FADE_IN_DURATION,
+        ease: "easeInOut",
+        onUpdate: (value) => {
+          setAudioLevel(value);
+        },
+      });
+    };
+
+    if (isMusicPlaying) {
+      void playCurrentTrack();
     } else {
-      audioRef.current.pause();
+      stopAnimations();
+      audio.pause();
     }
 
     return () => {
       isCancelled = true;
-      if (controlsPrimary) controlsPrimary.stop();
-      if (controlsSecondary) controlsSecondary.stop();
+      stopAnimations();
     };
-  }, [isMusicPlaying, playbackCycle, MUSIC_TARGET_VOLUME, getCurrentAudioLevel, setAudioLevel]);
+  }, [
+    activeTrackPath,
+    ensureAudioSource,
+    ensureWebAudioGraph,
+    getCurrentAudioLevel,
+    isMusicPlaying,
+    MUSIC_FADE_IN_DURATION,
+    MUSIC_TARGET_VOLUME,
+    restoreAudioTime,
+    setAudioLevel,
+  ]);
 
   const handleMusicToggle = () => {
     setIsMusicPlaying((prev) => !prev);
@@ -519,6 +541,8 @@ const App: React.FC = () => {
   // Determine active album for decorations (headers/footers)
   // If we are on the Cheers page (index = length), use the last album's style
   const displayAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
+  const isInitialExperienceReady =
+    criticalFontsReady && (!showOpening || criticalAudioReady);
 
   // Background Colors Logic
   // If distinct "Cheers" page logic is needed for background override:
@@ -535,43 +559,45 @@ const App: React.FC = () => {
       
       {/* Loading Screen (while audio preloads) */}
       <AnimatePresence>
-        {showOpening && !audioLoaded && (
+        {!isInitialExperienceReady && (
           <LoadingScreen />
         )}
       </AnimatePresence>
 
-      {/* Opening Screen (Only after audio loaded) */}
+      {/* Opening Screen (Only after critical fonts/audio are ready) */}
       <AnimatePresence>
-        {showOpening && audioLoaded && (
+        {showOpening && isInitialExperienceReady && (
           <OpeningScreen
             onStart={primeAudio}
-          onComplete={() => {
-            setShowOpening(false);
-            // No longer using session storage to block future visits
-            // sessionStorage.setItem('hasVisited', 'true');
+            switchSoundSrc={resolveAudioSrc(INTRO_SFX)}
+            onComplete={() => {
+              setShowOpening(false);
+              // No longer using session storage to block future visits
+              // sessionStorage.setItem('hasVisited', 'true');
 
-            // Auto-play BGM on entry (User interaction has occurred in OpeningScreen)
-            setIsMusicPlaying(true);
-          }}
-        />
-      )}
+              // Auto-play BGM on entry (User interaction has occurred in OpeningScreen)
+              setIsMusicPlaying(true);
+            }}
+          />
+        )}
       </AnimatePresence>
 
       {/* Background Layer */}
-      <CinematicBackground
-        color={bgProps.color}
-        backgroundColor={bgProps.backgroundColor}
-      />
+          <CinematicBackground
+            color={bgProps.color}
+            backgroundColor={bgProps.backgroundColor}
+            edgeLite={isEdge}
+          />
 
       {/* Main Content Area */}
       <main
-        className={`w-full h-full relative ${showOpening ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
+        className={`w-full h-full relative ${showOpening || !isInitialExperienceReady ? "opacity-0" : "opacity-100 transition-opacity duration-1000"}`}
         style={{ zIndex: Z.CONTENT }}
       >
         <AnimatePresence>
           {viewMode === "STACK" ? (
             <motion.div 
-              className="w-full h-full" 
+              className="w-full h-full"
               key="stack-container"
               initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
@@ -661,6 +687,7 @@ const App: React.FC = () => {
                       <AlbumStack
                           albums={ALBUMS}
                           currentIndex={Math.min(currentIndex, ALBUMS.length - 1)} // Clamp index for stack logic so it doesn't go out of bounds visually
+                          maxIndex={ALBUMS.length}
                           onIndexChange={handleIndexChange}
                           onSelect={handleSelectAlbum}
                       />

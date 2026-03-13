@@ -1,92 +1,161 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-export const useAudioPreloader = (urls: string[]) => {
-  const [loaded, setLoaded] = useState(false);
-  const [progress, setProgress] = useState(0);
+type AudioPreloadStatus = "loading" | "ready" | "degraded" | "error";
+
+interface AudioPreloadState {
+  assets: Record<string, string>;
+  failed: string[];
+  progress: number;
+  ready: boolean;
+  status: AudioPreloadStatus;
+}
+
+const objectUrlCache = new Map<string, string>();
+const preloadPromiseCache = new Map<string, Promise<string>>();
+
+const preloadAudioAsset = async (url: string): Promise<string> => {
+  const cachedObjectUrl = objectUrlCache.get(url);
+  if (cachedObjectUrl) {
+    return cachedObjectUrl;
+  }
+
+  const cachedPromise = preloadPromiseCache.get(url);
+  if (cachedPromise) {
+    return cachedPromise;
+  }
+
+  const promise = fetch(url, { cache: "force-cache" })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to preload audio: ${url} (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      objectUrlCache.set(url, objectUrl);
+      return objectUrl;
+    })
+    .catch((error) => {
+      preloadPromiseCache.delete(url);
+      throw error;
+    });
+
+  preloadPromiseCache.set(url, promise);
+  return promise;
+};
+
+export const useAudioPreloader = (
+  urls: string[],
+  timeoutMs = 4000,
+): AudioPreloadState => {
+  const serializedUrls = useMemo(() => JSON.stringify(urls), [urls]);
+  const [state, setState] = useState<AudioPreloadState>({
+    assets: {},
+    failed: [],
+    progress: urls.length === 0 ? 100 : 0,
+    ready: urls.length === 0,
+    status: urls.length === 0 ? "ready" : "loading",
+  });
 
   useEffect(() => {
-    let mounted = true;
-    let loadedCount = 0;
-    const total = urls.length;
+    const requestedUrls = JSON.parse(serializedUrls) as string[];
 
-    if (total === 0) {
-      setLoaded(true);
+    if (requestedUrls.length === 0) {
+      setState({
+        assets: {},
+        failed: [],
+        progress: 100,
+        ready: true,
+        status: "ready",
+      });
       return;
     }
 
-    const checkAllLoaded = () => {
-      if (!mounted) return;
-      // If we have "loaded" enough to consider it done.
-      // We don't want to be 100% strict if one fails or times out.
-      if (loadedCount >= total) {
-        setLoaded(true);
-      }
-    };
+    let active = true;
+    let settledCount = 0;
+    let failureCount = 0;
+    const pendingUrls = new Set(requestedUrls);
+    const nextAssets: Record<string, string> = {};
+    const failedUrls = new Set<string>();
 
-    const incrementProgress = () => {
-      if (!mounted) return;
-      loadedCount++;
-      setProgress((loadedCount / total) * 100);
-      checkAllLoaded();
-    };
-
-    // Global Timeout Fallback
-    // If audio takes too long (e.g. mobile Safari blocking download until interaction),
-    // we just let the user in.
-    const timeoutId = setTimeout(() => {
-        if (mounted && !loaded) {
-            console.warn('Audio preload timed out - proceeding anyway');
-            setLoaded(true); 
-            // In a real scenario, we might want to cancel pending loads, 
-            // but for simple Audio elements we just leave them be.
+    setState({
+      assets: requestedUrls.reduce<Record<string, string>>((acc, url) => {
+        const cached = objectUrlCache.get(url);
+        if (cached) {
+          acc[url] = cached;
         }
-    }, 4000); // 4 seconds max wait
+        return acc;
+      }, {}),
+      failed: [],
+      progress: 0,
+      ready: false,
+      status: "loading",
+    });
 
-    const audioElements: HTMLAudioElement[] = [];
+    const updateState = (statusOverride?: AudioPreloadStatus) => {
+      if (!active) return;
 
-    urls.forEach(url => {
-        const audio = new Audio();
-        audio.src = url;
-        audio.preload = 'auto'; // Important for mobile to *try* to download
-        audioElements.push(audio);
-        
-        // Track completion status for this specific file
-        let isFileDone = false;
+      const progress = Math.round((settledCount / requestedUrls.length) * 100);
+      const status =
+        statusOverride ??
+        (failureCount === requestedUrls.length ? "error" : "ready");
 
-        const onDone = () => {
-           if (isFileDone) return;
-           isFileDone = true;
-           incrementProgress();
-           cleanup();
-        };
+      setState({
+        assets: { ...nextAssets },
+        failed: Array.from(failedUrls),
+        progress: settledCount === requestedUrls.length ? 100 : progress,
+        ready: status !== "loading",
+        status,
+      });
+    };
 
-        const cleanup = () => {
-            audio.removeEventListener('canplaythrough', onDone);
-            audio.removeEventListener('load', onDone);
-            audio.removeEventListener('error', onDone);
-            // On mobile, sometimes 'loadeddata' is the best we get without interaction
-            audio.removeEventListener('loadeddata', onDone); 
-        };
+    const timeoutId = window.setTimeout(() => {
+      if (!active || settledCount === requestedUrls.length) return;
 
-        // Multiple success criteria
-        audio.addEventListener('canplaythrough', onDone, { once: true });
-        audio.addEventListener('load', onDone, { once: true });
-        audio.addEventListener('loadeddata', onDone, { once: true });
-        audio.addEventListener('error', onDone, { once: true }); // Count errors as 'done' so we don't hang
+      console.warn("Critical audio preload timed out - proceeding with fallback URLs");
+      updateState("degraded");
+    }, timeoutMs);
 
-        // Trigger load
-        audio.load();
+    requestedUrls.forEach((url) => {
+      preloadAudioAsset(url)
+        .then((objectUrl) => {
+          if (!active) return;
+          nextAssets[url] = objectUrl;
+        })
+        .catch((error) => {
+          if (!active) return;
+          console.warn(`Audio preload failed for ${url}`, error);
+          failedUrls.add(url);
+          failureCount += 1;
+        })
+        .finally(() => {
+          if (!active) return;
+
+          settledCount += 1;
+          pendingUrls.delete(url);
+
+          if (settledCount === requestedUrls.length) {
+            window.clearTimeout(timeoutId);
+            updateState();
+            return;
+          }
+
+          const progress = Math.round((settledCount / requestedUrls.length) * 100);
+          setState((previous) => ({
+            assets: { ...previous.assets, ...nextAssets },
+            failed: Array.from(failedUrls),
+            progress,
+            ready: previous.ready,
+            status: previous.status,
+          }));
+        });
     });
 
     return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-      audioElements.forEach(audio => {
-          audio.src = ''; // Cancel requests if unmounting
-          audio.load();
-      });
+      active = false;
+      window.clearTimeout(timeoutId);
     };
-  }, [JSON.stringify(urls)]); 
+  }, [serializedUrls, timeoutMs]);
 
-  return { loaded, progress };
+  return state;
 };
