@@ -5,13 +5,18 @@ import { ROOT_CANVAS } from '../constants';
 interface OpeningScreenProps {
   onComplete: () => void;
   onStart?: () => void;
+  switchSoundSrc?: string;
 }
 
 // The intro text - split for symmetric placement
 const TEXT_LINE_1 = "我将一切谱成乐章，刻下去是旅程，放出来是回声。";
 const TEXT_LINE_2 = "Without music, life would be a mistake.";
 
-const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) => {
+const OpeningScreen: React.FC<OpeningScreenProps> = ({
+  onComplete,
+  onStart,
+  switchSoundSrc = "/musics/vinyl_start.mp3",
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Audio priming triggered once
@@ -324,7 +329,9 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 
                   {/* Layer 3: Static Reflection (Fixed Light Source) */}
                   {/* Sits ON TOP of the spinning disc but does not rotate with it */}
-                  <div className="absolute inset-0 rounded-full vinyl-shine mix-blend-overlay opacity-30 rotate-[30deg] pointer-events-none"></div>
+                  <div
+                    className="absolute inset-0 rounded-full vinyl-shine mix-blend-overlay opacity-30 rotate-[30deg] pointer-events-none"
+                  ></div>
 
                 </motion.div>
               )}
@@ -413,7 +420,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
                           }
                       });
                   }
-              }} opacity={opacity} />
+              }} opacity={opacity} soundSrc={switchSoundSrc} />
             )}
           </AnimatePresence>
         </div>
@@ -423,7 +430,12 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({ onComplete, onStart }) =>
 };
 
 // Sub-component for the Retro Switch to handle self-contained animation state
-const SwitchButton: React.FC<{ onToggle: () => void; opacity: any; containerRef?: React.RefObject<HTMLDivElement> }> = ({ onToggle, opacity, containerRef }) => {
+const SwitchButton: React.FC<{
+  onToggle: () => void;
+  opacity: any;
+  containerRef?: React.RefObject<HTMLDivElement>;
+  soundSrc?: string;
+}> = ({ onToggle, opacity, containerRef, soundSrc = "/musics/vinyl_start.mp3" }) => {
   const [isOn, setIsOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -432,8 +444,10 @@ const SwitchButton: React.FC<{ onToggle: () => void; opacity: any; containerRef?
     
     // Play Sound Effect
     if (!audioRef.current) {
-        audioRef.current = new Audio('/musics/vinyl_start.mp3');
+        audioRef.current = new Audio(soundSrc);
         audioRef.current.volume = 0.5; // Softer switch click
+    } else if (audioRef.current.src !== soundSrc) {
+        audioRef.current.src = soundSrc;
     }
     audioRef.current.play().catch(e => console.log("SFX Play failed", e));
 

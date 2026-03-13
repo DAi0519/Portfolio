@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 interface AlbumStackProps {
   albums: Album[];
   currentIndex: number;
+  maxIndex: number;
   onIndexChange: (index: number) => void;
   onSelect: (index: number) => void;
 }
@@ -12,6 +13,7 @@ interface AlbumStackProps {
 const AlbumStack: React.FC<AlbumStackProps> = ({
   albums,
   currentIndex,
+  maxIndex,
   onIndexChange,
   onSelect,
 }) => {
@@ -204,7 +206,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
             isScrolling = true;
             
             if (e.deltaY > 0 || e.deltaX > 0) {
-                if (currentIndex < albums.length) {
+                if (currentIndex < maxIndex) {
                     onIndexChange(currentIndex + 1);
                 }
             } else {
@@ -224,7 +226,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         container.removeEventListener('wheel', handleWheel);
         clearTimeout(timeoutId);
     };
-  }, [albums.length, currentIndex, onIndexChange]);
+  }, [currentIndex, maxIndex, onIndexChange]);
 
   return (
     <div 
@@ -269,7 +271,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
             if (dragX > THRESHOLD && currentIndex > 0) {
                 // Dragged Right -> Previous
                 onIndexChange(currentIndex - 1);
-            } else if (dragX < -THRESHOLD && currentIndex < albums.length) {
+            } else if (dragX < -THRESHOLD && currentIndex < maxIndex) {
                 // Dragged Left -> Next
                 onIndexChange(currentIndex + 1);
             }
@@ -375,7 +377,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                           ${isActive ? 'grayscale-0 contrast-100' : 'grayscale-[0.5] contrast-[0.9]'}
                           `}
                       />
-                      
+
                       {/* Atmospheric Depth Layer */}
                       <div 
                       className={`
@@ -385,7 +387,9 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                       />
 
                       {/* Gloss / Plastic Wrap Sheen */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10" />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10"
+                      />
                       
 
                   </div>
@@ -399,7 +403,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                           rounded-[100%]
                           transition-all duration-700 ease-in-out
                           pointer-events-none
-                          ${layout.mode === 'MOBILE' ? 'mix-blend-normal blur-[20px] opacity-40' : 'mix-blend-multiply blur-[45px]'}
+                          ${
+                            layout.mode === 'MOBILE'
+                              ? 'mix-blend-normal blur-[20px] opacity-40'
+                              : 'mix-blend-multiply blur-[45px]'
+                          }
                       `}
                       style={{ 
                           backgroundColor: album.color,
@@ -429,9 +437,17 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
       <AnimatePresence mode="wait">
         <motion.div
            key={currentIndex}
-           initial={prefersReducedMotion ? false : { opacity: 0, y: 20, filter: 'blur(4px)' }}
+           initial={
+             prefersReducedMotion
+               ? false
+               : { opacity: 0, y: 20, filter: 'blur(4px)' }
+           }
            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -20, filter: 'blur(4px)' }}
+           exit={
+             prefersReducedMotion
+               ? { opacity: 0 }
+               : { opacity: 0, y: -20, filter: 'blur(4px)' }
+           }
            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, ease: "easeOut" }}
            className="flex flex-col items-center"
            style={{ transform: `scale(${layout.titleScale})`, transformOrigin: 'top center' }}

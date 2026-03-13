@@ -10,10 +10,9 @@
     <link rel="icon" type="image/png" href="/signature.png" />
     <link rel="shortcut icon" href="/signature.png" />
     <link rel="apple-touch-icon" href="/signature.png" />
-    <!-- Preload critical fonts to prevent FOIT (Flash of Invisible Text) -->
-    <link rel="preload" href="/fonts/ChillDuanHeiSongExtraLight.otf" as="font" type="font/opentype" crossorigin />
-    <link rel="preload" href="/fonts/ChillDuanHeiSongMedium.otf" as="font" type="font/opentype" crossorigin />
-    <link rel="preload" href="/fonts/OPPOSans.ttf" as="font" type="font/truetype" crossorigin />
+    <!-- Preload only the fonts needed by the opening experience. -->
+    <link rel="preload" href="/fonts/ChillDuanHeiSongExtraLight.otf" as="font" crossorigin />
+    <link rel="preload" href="/fonts/OPPOSans.ttf" as="font" crossorigin />
   </head>
   <body>
     <div class="bg-noise"></div>
