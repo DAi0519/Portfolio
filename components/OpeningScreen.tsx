@@ -439,17 +439,25 @@ const SwitchButton: React.FC<{
   const [isOn, setIsOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Preload audio on mount so it's ready to play instantly on click
+  useEffect(() => {
+    const audio = new Audio(soundSrc);
+    audio.volume = 0.5;
+    audio.preload = "auto";
+    audioRef.current = audio;
+    return () => {
+      audioRef.current = null;
+    };
+  }, [soundSrc]);
+
   const handleClick = () => {
     if (isOn) return; // Prevent double-click
-    
+
     // Play Sound Effect
-    if (!audioRef.current) {
-        audioRef.current = new Audio(soundSrc);
-        audioRef.current.volume = 0.5; // Softer switch click
-    } else if (audioRef.current.src !== soundSrc) {
-        audioRef.current.src = soundSrc;
+    if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(e => console.log("SFX Play failed", e));
     }
-    audioRef.current.play().catch(e => console.log("SFX Play failed", e));
 
     setIsOn(true);
     

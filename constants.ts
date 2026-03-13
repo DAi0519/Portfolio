@@ -69,7 +69,7 @@ The North Face / Timberland / 李宁 / 安踏
   },
   {
     id: AlbumType.CODING,
-    title: "VIBE 造物",
+    title: "Vibe 造物集",
     subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
