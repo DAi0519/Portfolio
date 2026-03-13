@@ -35,7 +35,7 @@ const solidColor = (hex: string) => {
 export const ALBUMS: Album[] = [
   {
     id: AlbumType.INTRO,
-    title: "WHO AM I",
+    title: "自序",
     subtitle: "我在他人的目光与自己的选择之间，雕刻出我",
     color: COLORS.PURE_WHITE,
     backgroundColor: ROOT_CANVAS,
@@ -69,7 +69,7 @@ The North Face / Timberland / 李宁 / 安踏
   },
   {
     id: AlbumType.CODING,
-    title: "Vibe coding",
+    title: "VIBE 造物",
     subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
@@ -81,7 +81,7 @@ The North Face / Timberland / 李宁 / 安踏
   },
   {
     id: AlbumType.VIDEO,
-    title: "MOVING IMAGES",
+    title: "流影",
     subtitle: "江流天地外，山色有无中",
     color: COLORS.FILM_ORANGE,
     backgroundColor: "#FAF2EF", // Warm Paper
@@ -93,7 +93,7 @@ The North Face / Timberland / 李宁 / 安踏
   },
   {
     id: AlbumType.PHOTO,
-    title: "VISUALS",
+    title: "浮光",
     subtitle: "浮光跃金，静影沉璧",
     color: COLORS.DEVELOPING_CYAN,
     backgroundColor: "#F0F7F7", // Pale Cyan Tint
@@ -105,7 +105,7 @@ The North Face / Timberland / 李宁 / 安踏
   },
   {
     id: AlbumType.WRITING,
-    title: "THINK PIECES",
+    title: "闲言",
     subtitle: "我们生活在一个充满奇迹的时代，习以为常却使我们盲目",
     color: COLORS.INK_CHARCOAL,
     backgroundColor: "#F2F2F2", // Neutral Grey
