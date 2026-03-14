@@ -464,7 +464,7 @@ const SwitchButton: React.FC<{
     // Delay actual navigation slightly to let the "Click" animation feel satisfying
     setTimeout(() => {
         onToggle();
-    }, 150); // Reduced delay for snappier feel
+    }, 250); // Increased delay to ensure slide completes
   };
 
   return (
@@ -506,7 +506,6 @@ const SwitchButton: React.FC<{
               {/* The Sliding Knob */}
               <motion.div 
                  className="relative w-1/2 h-full bg-[#fcfcfc] rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.1),inset_0_1px_0_#fff] border border-[#e0e0e0] z-10"
-                 layout
                  transition={{ 
                     type: "spring", 
                     stiffness: 500, 

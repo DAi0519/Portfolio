@@ -629,7 +629,7 @@ const App: React.FC = () => {
                   >
                     {/* Spectrum Visualizer */}
                     <div className="flex items-end gap-[2px] h-3">
-                      {[0.4, 0.8, 0.5, 0.9].map((h, i) => (
+                      {[0.4, 0.8, 0.5, 0.9, 0.6].map((h, i) => (
                         <motion.div
                           key={i}
                           className="w-[2px]"
