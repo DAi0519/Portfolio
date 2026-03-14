@@ -306,7 +306,12 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
               
               // Render range logic
               const renderRange = layout.mode === 'MOBILE' ? 1 : 2;
-              if (Math.abs(distance) > renderRange) return null; 
+              
+              // Calculate visibility independent of unmounting to permit smooth CSS transitions.
+              const isVisible = Math.abs(distance) <= renderRange;
+
+              // Retain items 1 extra index outside of the visible range to allow smooth opacity fade transitions.
+              if (Math.abs(distance) > renderRange + 1) return null; 
 
               // UX/Physics Constants
               // USE SYSTEMATIC METRICS
@@ -332,10 +337,12 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                   y: 0,
                   z: isActive ? 0 : Math.abs(distance) * Z_DEPTH,
                   rotateY: distance * ROTATION + (dragX / 20), // Subtle rotation on drag
-                  scale: isActive ? 1.1 : 1 - Math.abs(distance) * 0.1, 
-                  opacity: 1, 
+                  scale: isActive ? 1.1 : Math.max(0, 1 - Math.abs(distance) * 0.1), 
+                  opacity: isVisible ? 1 : 0, 
+                  pointerEvents: isVisible ? "auto" : "none",
                   zIndex: 100 - Math.abs(distance),
                   }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                   transition={prefersReducedMotion ? { duration: 0 } : layout.mode === 'MOBILE' ? {
                       type: "spring",
                       stiffness: 250,
