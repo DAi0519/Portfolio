@@ -1,10 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface CinematicBackgroundProps {
   color: string; // The active theme color (e.g., Klein Blue)
   backgroundColor: string; // The base paper tint
   edgeLite?: boolean;
+  mobileLite?: boolean;
 }
 
 const withAlpha = (hex: string, alpha: number) => {
@@ -44,6 +44,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
   color,
   backgroundColor,
   edgeLite = false,
+  mobileLite = false,
 }) => {
   const accentStrong = withAlpha(color, 0.18);
   const accentSoft = withAlpha(color, 0.08);
@@ -58,12 +59,38 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
     ? "absolute inset-[-8%] opacity-48 blur-0 mix-blend-soft-light"
     : "absolute inset-[-12%] opacity-60 blur-[2px] mix-blend-soft-light";
 
+  if (mobileLite) {
+    return (
+      <div
+        className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+        style={{ backgroundColor }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `
+              linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.16) 26%, rgba(255,255,255,0) 58%),
+              radial-gradient(circle at 28% 18%, ${accentSoft} 0%, transparent 34%),
+              radial-gradient(circle at 76% 82%, ${accentWhisper} 0%, transparent 28%)
+            `,
+          }}
+        />
+
+        <div
+          className="absolute inset-0 opacity-45"
+          style={{
+            background:
+              "linear-gradient(140deg, rgba(255,255,255,0.08) 0%, transparent 42%, rgba(0,0,0,0.04) 100%)",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
-    <motion.div 
-      className="absolute inset-0 z-0 overflow-hidden pointer-events-none transform-gpu will-change-[background-color]"
-      initial={false}
-      animate={{ backgroundColor }}
-      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} // Slower, heavier ease
+    <div
+      className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+      style={{ backgroundColor }}
     >
       <div
         className="absolute inset-0"
@@ -75,29 +102,15 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
         }}
       />
 
-      <motion.div
+      <div
         className={primaryBlobClassName}
-        animate={{ x: 0, y: 0, scale: 1 }}
-        transition={{
-          duration: 26,
-          repeat: Infinity,
-          repeatType: 'mirror',
-          ease: 'easeInOut',
-        }}
         style={{
           background: `radial-gradient(circle at 38% 34%, ${accentStrong} 0%, ${accentSoft} 28%, transparent 72%)`,
         }}
       />
 
-      <motion.div
+      <div
         className={secondaryBlobClassName}
-        animate={{ x: 0, y: 0, scale: 1 }}
-        transition={{
-          duration: 30,
-          repeat: Infinity,
-          repeatType: 'mirror',
-          ease: 'easeInOut',
-        }}
         style={{
           background: `radial-gradient(circle at 45% 45%, ${accentSoft} 0%, ${accentWhisper} 32%, transparent 72%)`,
         }}
@@ -113,15 +126,8 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
         }}
       />
 
-      <motion.div
+      <div
         className={sheenClassName}
-        animate={{ x: 0, y: 0 }}
-        transition={{
-          duration: 32,
-          repeat: Infinity,
-          repeatType: 'mirror',
-          ease: 'easeInOut',
-        }}
         style={{
           background: `linear-gradient(
             125deg,
@@ -152,7 +158,7 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
           `,
         }}
       />
-    </motion.div>
+    </div>
   );
 };
 

@@ -41,6 +41,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     layout.mode === "MOBILE"
       ? "clamp(0.78rem, 2vmin, 0.98rem)"
       : "clamp(0.85rem, 2.2vmin, 1.1rem)";
+  const lightweightEffects = prefersReducedMotion || layout.mode === "MOBILE";
 
   // Drag / Interaction State
   const [dragX, setDragX] = useState(0);
@@ -368,11 +369,15 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                       }}
                       className={`
                           relative z-20
-                          rounded-[2px] overflow-hidden group
+                          rounded-[4px] overflow-hidden group
                           transition-all duration-500 ease-out
-                          ${isActive 
-                              ? 'shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)]' 
-                              : 'shadow-2xl'} 
+                          ${lightweightEffects
+                              ? (isActive
+                                  ? 'shadow-[0_14px_28px_-14px_rgba(0,0,0,0.22),0_3px_10px_-4px_rgba(0,0,0,0.1)]'
+                                  : 'shadow-[0_6px_16px_-10px_rgba(0,0,0,0.14),0_2px_6px_-3px_rgba(0,0,0,0.08)]')
+                              : (isActive
+                                  ? 'shadow-[0_20px_60px_-16px_rgba(0,0,0,0.3),0_4px_16px_-4px_rgba(0,0,0,0.1)]'
+                                  : 'shadow-[0_8px_24px_-4px_rgba(0,0,0,0.12),0_4px_8px_-2px_rgba(0,0,0,0.06)]')}
                       `}
                   >
                       {/* Image */}
@@ -393,11 +398,9 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                       `} 
                       />
 
-                      {/* Gloss / Plastic Wrap Sheen */}
-                      <div
-                        className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20 pointer-events-none mix-blend-overlay z-10"
-                      />
-                      
+                      {/* High-End Texture: Subtle Inner Edge & Matte Finish */}
+                      {/* This ring simulates the physical edge of a record sleeve or a premium screen card */}
+                      <div className="absolute inset-0 rounded-[4px] ring-1 ring-inset ring-black/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] pointer-events-none z-10" />
 
                   </div>
 
@@ -410,15 +413,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
                           rounded-[100%]
                           transition-all duration-700 ease-in-out
                           pointer-events-none
-                          ${
-                            layout.mode === 'MOBILE'
-                              ? 'mix-blend-normal blur-[20px] opacity-40'
-                              : 'mix-blend-multiply blur-[45px]'
-                          }
+                          ${lightweightEffects ? 'opacity-0' : 'mix-blend-multiply blur-[45px]'}
                       `}
                       style={{ 
                           backgroundColor: album.color,
-                          opacity: isActive ? (layout.mode === 'MOBILE' ? 0.4 : 0.6) : 0,
+                          opacity: isActive ? (lightweightEffects ? 0 : 0.6) : 0,
                           transform: isActive ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.8)'
                       }}
                   />

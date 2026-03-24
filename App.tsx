@@ -17,6 +17,8 @@ import LoadingScreen from "./components/LoadingScreen";
 
 const INTRO_SFX = "/musics/vinyl_start.mp3";
 const BGM_TRACK = "/musics/00bgm.mp3";
+const MOBILE_LIGHTWEIGHT_MEDIA_QUERY =
+  "(max-width: 767px), ((pointer: coarse) and (max-width: 1024px))";
 
 const App: React.FC = () => {
   const isEdge = useMemo(() => {
@@ -103,6 +105,10 @@ const App: React.FC = () => {
 
   const activeAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
   const prefersReducedMotion = useReducedMotion();
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(MOBILE_LIGHTWEIGHT_MEDIA_QUERY).matches;
+  });
 
   const handleSelectAlbum = (index: number) => {
     setCurrentIndex(index);
@@ -116,6 +122,22 @@ const App: React.FC = () => {
   const handleIndexChange = (index: number) => {
     setCurrentIndex(index);
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia(MOBILE_LIGHTWEIGHT_MEDIA_QUERY);
+    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    updateViewport();
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateViewport);
+      return () => mediaQuery.removeEventListener("change", updateViewport);
+    }
+
+    mediaQuery.addListener(updateViewport);
+    return () => mediaQuery.removeListener(updateViewport);
+  }, []);
 
   // Keyboard navigation for global shortcuts
   useEffect(() => {
@@ -543,6 +565,7 @@ const App: React.FC = () => {
   const displayAlbum = ALBUMS[Math.min(currentIndex, ALBUMS.length - 1)];
   const isInitialExperienceReady =
     criticalFontsReady && (!showOpening || criticalAudioReady);
+  const useLightweightTransitions = prefersReducedMotion || isMobileViewport;
 
   // Background Colors Logic
   // If distinct "Cheers" page logic is needed for background override:
@@ -587,6 +610,7 @@ const App: React.FC = () => {
             color={bgProps.color}
             backgroundColor={bgProps.backgroundColor}
             edgeLite={isEdge}
+            mobileLite={isMobileViewport}
           />
 
       {/* Main Content Area */}
@@ -599,9 +623,9 @@ const App: React.FC = () => {
             <motion.div 
               className="w-full h-full"
               key="stack-container"
-              initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+              initial={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+              animate={useLightweightTransitions ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
               transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
             >
               {/* Header for Stack Mode */}
@@ -678,8 +702,8 @@ const App: React.FC = () => {
                       className="absolute inset-0 w-full h-full"
                       animate={{ 
                           opacity: currentIndex < ALBUMS.length ? 1 : 0,
-                          scale: currentIndex < ALBUMS.length ? 1 : 0.95,
-                          filter: currentIndex < ALBUMS.length ? "blur(0px)" : "blur(10px)",
+                          scale: useLightweightTransitions ? 1 : currentIndex < ALBUMS.length ? 1 : 0.95,
+                          filter: useLightweightTransitions ? "none" : currentIndex < ALBUMS.length ? "blur(0px)" : "blur(10px)",
                           pointerEvents: currentIndex < ALBUMS.length ? "auto" : "none"
                       }}
                       transition={{ duration: 0.5 }}
@@ -699,9 +723,9 @@ const App: React.FC = () => {
                           <motion.div
                               key="cheers"
                               className="absolute inset-0 z-20 w-full h-full"
-                              initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
-                              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                              exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                              initial={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                              animate={useLightweightTransitions ? { opacity: 1 } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
+                              exit={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: "blur(10px)" }}
                               transition={{ duration: 0.5 }}
                           >
                               <Cheers 

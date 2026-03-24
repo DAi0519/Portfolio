@@ -109,9 +109,9 @@ body {
   mix-blend-mode: multiply;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), ((pointer: coarse) and (max-width: 1024px)) {
   .bg-noise {
-    opacity: 0.08;
+    display: none;
   }
 }
 
