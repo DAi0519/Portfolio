@@ -2,32 +2,44 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# DAI.DESIGN — Vinyl Portfolio
 
-This contains everything you need to run your app locally.
+> *"Without music, life would be a mistake."*
 
-View your app in AI Studio: https://ai.studio/apps/drive/1h4aGneasGibQNtd7jXpQagsyw-WRy0Bg
+一个以**黑胶唱片**为概念的沉浸式个人作品集。
 
-## 🚀 Deployment (Vercel)
+每一张唱片是一个创作维度。翻动它，进入一个世界。
 
-1.  **Framework Preset**: Vite
-2.  **Environment Variables**:
-    You MUST add the following environment variables in Vercel Project Settings for the app to work correctly:
-    - `VITE_SUPABASE_URL`: (From your Supabase Project Settings)
-    - `VITE_SUPABASE_ANON_KEY`: (From your Supabase Project Settings)
-    - `GEMINI_API_KEY`: (Optional, for future AI features)
+---
 
-> [!IMPORTANT]
-> If these variables are missing, the app will load in **Offline Mode** (showing only static data) and warn in the console, but it will not crash.
+## 概念
 
-## 🛠 Tech Stack
+作品集不是简历，它是一张专辑。
 
-## Run Locally
+五张唱片，五种频率——编程的深蓝、影像的橙红、摄影的青色、文字的炭黑，以及开头那一片纯白的自我。浏览时有背景音乐，有开场仪式，有翻面的手感。它应该被体验，而不只是被看。
 
-**Prerequisites:** Node.js
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 专辑
+
+| 专辑 | 内容 |
+|------|------|
+| **WHO AM I** | 自我介绍 |
+| **Vibe.Code** | 编程与开发项目 |
+| **Cinematics** | 影像与视频作品 |
+| **Exposures** | 摄影 |
+| **Think Piece** | 文章与思考 |
+
+---
+
+## 技术
+
+**前端** — React + TypeScript，Framer Motion 驱动动效与物理感，Tailwind CSS 负责样式。
+
+**后端** — 内容存储于 Notion，通过脚本同步至 Supabase，前端从 Supabase 读取数据。
+
+```bash
+npm install
+npm run dev      # 本地开发
+npm run sync     # 同步 Notion 内容
+```
