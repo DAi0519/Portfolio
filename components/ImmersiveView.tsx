@@ -189,12 +189,21 @@ const SimpleMarkdown: React.FC<{
       return (
           <div key={key} className={`grid ${gridCols} gap-4 my-8`}>
               {images.map((img, idx) => (
-                  <div key={idx} className="relative group overflow-hidden rounded-sm bg-neutral-100 cursor-zoom-in" onClick={() => onImageClick?.(img.url)}>
-                      <ImageWithLoader
-                          src={img.url} 
-                          alt={img.alt}
-                          className="w-full h-full object-cover"
-                      />
+                  <div key={idx} className="group cursor-zoom-in flex flex-col" onClick={() => onImageClick?.(img.url)}>
+                      <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 mb-3">
+                          <ImageWithLoader
+                              src={img.url} 
+                              alt={img.alt}
+                              className="w-full h-full object-cover"
+                          />
+                      </div>
+                      {img.alt && img.alt.trim() !== '' && img.alt.toLowerCase() !== 'image' && (
+                          <div>
+                              <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                                  {img.alt}
+                              </h3>
+                          </div>
+                      )}
                   </div>
               ))}
           </div>
@@ -229,13 +238,23 @@ const SimpleMarkdown: React.FC<{
       // UPDATE: In WRITING mode, images fall here.
       const imageMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
       if (imageMatch) {
+           const altText = imageMatch[1];
            return (
-              <div key={i} className="w-full my-8 cursor-zoom-in" onClick={() => onImageClick?.(imageMatch[2])}>
-                <ImageWithLoader
-                    src={imageMatch[2]} 
-                    alt={imageMatch[1]} 
-                    className="w-full h-auto rounded-sm shadow-sm"
-                />
+              <div key={i} className="w-full my-8 cursor-zoom-in group" onClick={() => onImageClick?.(imageMatch[2])}>
+                <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 shadow-sm mb-3">
+                    <ImageWithLoader
+                        src={imageMatch[2]} 
+                        alt={altText} 
+                        className="w-full h-auto"
+                    />
+                </div>
+                {altText && altText.trim() !== '' && altText.toLowerCase() !== 'image' && (
+                    <div>
+                        <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                            {altText}
+                        </h3>
+                    </div>
+                )}
               </div>
           );
       }
@@ -579,6 +598,7 @@ const PhotoGridItem: React.FC<{
     delay: number;
 }> = ({ track, onClick, delay }) => {
     const fallback = track.imageUrl ? { type: 'image', value: track.imageUrl } : getFallbackCover(track);
+    const hasValidTitle = track.title && track.title.trim() !== '' && track.title.toLowerCase() !== 'untitled';
 
     return (
         <motion.div
@@ -586,21 +606,36 @@ const PhotoGridItem: React.FC<{
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.15 }}
-            className="group cursor-pointer relative overflow-hidden rounded-sm bg-neutral-100"
+            className="group cursor-pointer mb-5 w-full flex flex-col"
         >
-            {fallback.type === 'image' ? (
-                <ImageWithLoader 
-                    src={fallback.value} 
-                    alt={track.title}
-                    containerClassName="w-full h-auto"
-                    data-hint="true"
-                    className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-[1.02]"
-                />
-            ) : (
-                <div 
-                    className="w-full aspect-square transition-transform duration-1000 group-hover:scale-[1.02]"
-                    style={{ background: fallback.value }}
-                />
+            <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 mb-3">
+                {fallback.type === 'image' ? (
+                    <ImageWithLoader 
+                        src={fallback.value} 
+                        alt={track.title}
+                        containerClassName="w-full h-auto"
+                        data-hint="true"
+                        className="w-full h-auto object-cover transition-transform duration-1000 group-hover:scale-[1.02]"
+                    />
+                ) : (
+                    <div 
+                        className="w-full aspect-square transition-transform duration-1000 group-hover:scale-[1.02]"
+                        style={{ background: fallback.value }}
+                    />
+                )}
+            </div>
+            
+            {hasValidTitle && (
+                <div>
+                    <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
+                        {track.title}
+                    </h3>
+                    {track.description && (
+                        <p className="text-[10px] font-sans text-neutral-400 mt-1 line-clamp-1">
+                            {track.description}
+                        </p>
+                    )}
+                </div>
             )}
         </motion.div>
     );
