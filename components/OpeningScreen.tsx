@@ -56,9 +56,6 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({
   // Scale stays at 1 during the manual scroll phase
   // The shrinking happens entirely in the exit animation now
   
-  // Opacity fade out at the very end to avoid clipping
-  const opacity = useTransform(scrollYProgress, [0.9, 1], [1, 0]);
-
   // Trigger exit when ROTATION reaches the target (visual sync)
   // We monitor the sprung 'rotate' value, not the raw scroll
   useMotionValueEvent(rotate, "change", (latest) => {
@@ -420,7 +417,7 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({
                           }
                       });
                   }
-              }} opacity={opacity} soundSrc={switchSoundSrc} />
+              }} soundSrc={switchSoundSrc} />
             )}
           </AnimatePresence>
         </div>
@@ -432,10 +429,9 @@ const OpeningScreen: React.FC<OpeningScreenProps> = ({
 // Sub-component for the Retro Switch to handle self-contained animation state
 const SwitchButton: React.FC<{
   onToggle: () => void;
-  opacity: any;
   containerRef?: React.RefObject<HTMLDivElement>;
   soundSrc?: string;
-}> = ({ onToggle, opacity, containerRef, soundSrc = "/musics/vinyl_start.mp3" }) => {
+}> = ({ onToggle, containerRef, soundSrc = "/musics/vinyl_start.mp3" }) => {
   const [isOn, setIsOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -475,7 +471,6 @@ const SwitchButton: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.6, ease: "easeOut" } }}
       transition={{ delay: 0.2, duration: 1 }}
-      style={{ opacity }}
     >
         <button
           onClick={handleClick}
