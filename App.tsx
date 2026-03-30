@@ -20,6 +20,49 @@ const BGM_TRACK = "/musics/00bgm.mp3";
 const MOBILE_LIGHTWEIGHT_MEDIA_QUERY =
   "(max-width: 767px), ((pointer: coarse) and (max-width: 1024px))";
 
+/* ─────────────────────────────────────────────────────────
+ * MUSIC ICON STORYBOARD
+ *
+ * Read top-to-bottom. Each loop starts when playback is active.
+ *
+ *    0ms   glyph rests with a soft halo
+ *  900ms   glyph lifts and gently breathes outward
+ * 1800ms   halo blooms behind the glyph like a quiet pulse
+ * 2800ms   both settle back to baseline and repeat
+ * ───────────────────────────────────────────────────────── */
+
+const MUSIC_ICON_TIMING = {
+  loop: 2.8, // full playback loop in seconds
+  tint: 0.5, // color transition duration
+  slash: 0.2, // disabled slash fade/scale timing
+};
+
+const MUSIC_ICON = {
+  glyph: {
+    idleOpacity: 0.74,
+    activeOpacity: 0.98,
+    activeScale: 1.03,
+    liftY: -0.55,
+  },
+  echo: {
+    idleOpacity: 0,
+    activeOpacity: 0.12,
+    activeScale: 1.08,
+    blurScale: 1.16,
+  },
+  slash: {
+    opacity: 0.82,
+    width: 15,
+    height: 1.25,
+    rotate: 36,
+    offsetX: 0.5,
+    offsetY: -0.5,
+  },
+} as const;
+
+const MUSIC_ICON_PATH =
+  "M5.381 14.869Q4.5 13.988 4.5 12.75t.881-2.119T7.5 9.75q.431 0 .797.103t.703.31V2.25h4.5v3h-3v7.5q0 1.238-.881 2.119T7.5 15.75t-2.119-.881";
+
 const App: React.FC = () => {
   const isEdge = useMemo(() => {
     if (typeof navigator === "undefined") return false;
@@ -649,48 +692,114 @@ const App: React.FC = () => {
                   {/* Music Control - Top Right */}
                   <button
                     onClick={handleMusicToggle}
-                    className={`flex items-center gap-3 transition-all duration-500 group cursor-pointer ${isMusicPlaying ? "opacity-100" : "opacity-40 hover:opacity-80"}`}
+                    aria-label={isMusicPlaying ? "Pause background music" : "Play background music"}
+                    className={`relative flex h-10 w-10 items-center justify-center transition-all duration-500 group cursor-pointer ${isMusicPlaying ? "opacity-100" : "opacity-40 hover:opacity-80"}`}
                   >
-                    {/* Spectrum Visualizer */}
-                    <div className="flex items-end gap-[2px] h-3">
-                      {[0.4, 0.8, 0.5, 0.9, 0.6].map((h, i) => (
-                        <motion.div
-                          key={i}
-                          className="w-[2px]"
-                          animate={{
-                            height: isMusicPlaying && !prefersReducedMotion
-                              ? ["20%", "70%", "30%", "60%", "20%"]
-                              : isMusicPlaying ? "60%" : "25%",
-                          }}
-                          transition={
-                            prefersReducedMotion ? { duration: 0 } :
-                            isMusicPlaying
-                              ? {
-                                  duration: 1.5,
-                                  repeat: Infinity,
-                                  repeatType: "mirror",
-                                  delay: i * 0.2,
-                                  ease: "easeInOut",
-                                }
-                              : {
-                                  duration: 0.5,
-                                }
-                          }
-                          style={{ backgroundColor: displayAlbum.textColor }}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Title */}
-                    <motion.span
-                      className="text-[10px] font-bold tracking-widest uppercase leading-none mt-[1px]"
-                      animate={{ color: displayAlbum.textColor }}
-                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
+                    <motion.svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="absolute"
+                      animate={{
+                        color: displayAlbum.textColor,
+                        opacity:
+                          isMusicPlaying && !prefersReducedMotion
+                            ? [MUSIC_ICON.echo.idleOpacity, MUSIC_ICON.echo.activeOpacity, 0.08, MUSIC_ICON.echo.idleOpacity]
+                            : 0,
+                        scale:
+                          isMusicPlaying && !prefersReducedMotion
+                            ? [1, MUSIC_ICON.echo.activeScale, MUSIC_ICON.echo.blurScale, 1]
+                            : 1,
+                      }}
+                      transition={
+                        prefersReducedMotion
+                          ? { duration: 0 }
+                          : {
+                              color: { duration: MUSIC_ICON_TIMING.tint },
+                              opacity: {
+                                duration: MUSIC_ICON_TIMING.loop,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                              },
+                              scale: {
+                                duration: MUSIC_ICON_TIMING.loop,
+                                repeat: Infinity,
+                                ease: [0.22, 1, 0.36, 1],
+                              },
+                            }
+                      }
+                      style={{ color: displayAlbum.textColor }}
                     >
-                      {viewMode === "DETAIL" && activeAlbum?.musicFile
-                        ? "Now Playing"
-                        : "BGM"}
-                    </motion.span>
+                      <path d={MUSIC_ICON_PATH} fill="currentColor" />
+                    </motion.svg>
+
+                    <motion.div
+                      className="relative z-[1] flex items-center justify-center"
+                      animate={{
+                        opacity: isMusicPlaying ? MUSIC_ICON.glyph.activeOpacity : MUSIC_ICON.glyph.idleOpacity,
+                        scale:
+                          isMusicPlaying && !prefersReducedMotion
+                            ? [1, MUSIC_ICON.glyph.activeScale, 1]
+                            : 1,
+                        y:
+                          isMusicPlaying && !prefersReducedMotion
+                            ? [0, MUSIC_ICON.glyph.liftY, 0]
+                            : 0,
+                      }}
+                      transition={
+                        prefersReducedMotion
+                          ? { duration: 0 }
+                          : {
+                              opacity: { duration: 0.3 },
+                              scale: { duration: MUSIC_ICON_TIMING.loop, repeat: Infinity, ease: [0.22, 1, 0.36, 1] },
+                              y: { duration: MUSIC_ICON_TIMING.loop, repeat: Infinity, ease: [0.22, 1, 0.36, 1] },
+                            }
+                      }
+                    >
+                      <motion.svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 18 18"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        animate={{ color: displayAlbum.textColor }}
+                        transition={prefersReducedMotion ? { duration: 0 } : { duration: MUSIC_ICON_TIMING.tint }}
+                        style={{ color: displayAlbum.textColor }}
+                      >
+                        <path d={MUSIC_ICON_PATH} fill="currentColor" />
+                      </motion.svg>
+                    </motion.div>
+
+                    <motion.div
+                      className="absolute rounded-full"
+                      animate={{
+                        backgroundColor: displayAlbum.textColor,
+                        opacity: isMusicPlaying ? 0 : MUSIC_ICON.slash.opacity,
+                        scaleX: isMusicPlaying ? 0.72 : 1,
+                        scaleY: isMusicPlaying ? 0.9 : 1,
+                        rotate: MUSIC_ICON.slash.rotate,
+                        x: isMusicPlaying ? 0 : MUSIC_ICON.slash.offsetX,
+                        y: isMusicPlaying ? 0 : MUSIC_ICON.slash.offsetY,
+                      }}
+                      style={{
+                        width: MUSIC_ICON.slash.width,
+                        height: MUSIC_ICON.slash.height,
+                      }}
+                      transition={
+                        prefersReducedMotion
+                          ? { duration: 0 }
+                          : {
+                              backgroundColor: { duration: MUSIC_ICON_TIMING.tint },
+                              opacity: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                              scaleX: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                              scaleY: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                              x: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                              y: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                            }
+                      }
+                    />
                   </button>
                 </div>
               </header>
