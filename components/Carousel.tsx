@@ -7,6 +7,7 @@ interface CarouselProps {
   images: { url: string; alt?: string; type?: 'image' | 'video'; poster?: string }[];
   onClose?: () => void;
   onImageClick?: (url: string, type: 'image' | 'video') => void;
+  enableImageExpand?: boolean;
   // Video sync props
   projectId?: string;
   playingVideoId?: string | null;
@@ -15,10 +16,26 @@ interface CarouselProps {
   onVideoEnd?: (videoId: string) => void;
 }
 
+/* ─────────────────────────────────────────────────────────
+ * VIEWER BREATHING ROOM
+ *
+ *    0ms   viewer appears with ambient blur background
+ *   16ms   image stage reserves top and bottom air
+ *   16ms   artwork rests between close control and pager
+ * ───────────────────────────────────────────────────────── */
+
+const VIEWER_STAGE = {
+  frameClassName: 'px-6 pt-16 pb-24 md:px-12 md:pt-24 md:pb-28', // more obvious breathing room above and below the art
+  leftArrowClassName: 'left-6 md:left-10',                       // aligns arrows with padded stage
+  rightArrowClassName: 'right-6 md:right-10',                    // aligns arrows with padded stage
+  pagerOffsetClassName: 'bottom-5 md:bottom-8',                 // keeps dots comfortably below the artwork
+};
+
 export const Carousel: React.FC<CarouselProps> = ({ 
   images, 
   onClose, 
   onImageClick,
+  enableImageExpand = true,
   projectId,
   playingVideoId,
   activeVideoRef,
@@ -195,7 +212,7 @@ export const Carousel: React.FC<CarouselProps> = ({
                 paginate(-1);
               }
             }}
-            className="absolute w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
+            className={`absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing ${VIEWER_STAGE.frameClassName}`}
           >
              {images[index].type === 'video' ? (
                   <div className="relative w-full h-full flex items-center justify-center bg-black">
@@ -231,8 +248,9 @@ export const Carousel: React.FC<CarouselProps> = ({
                   </div>
              ) : (
                 <div 
-                   className="w-full h-full flex items-center justify-center cursor-zoom-in"
+                   className={`w-full h-full flex items-center justify-center ${enableImageExpand ? 'cursor-zoom-in' : 'cursor-default'}`}
                    onClick={(e) => {
+                       if (!enableImageExpand) return;
                        e.stopPropagation();
                        onImageClick?.(images[index].url, 'image');
                    }}
@@ -242,29 +260,7 @@ export const Carousel: React.FC<CarouselProps> = ({
                       alt={images[index].alt || ''}
                       data-hint="true"
                       containerClassName="w-full h-full flex items-center justify-center"
-                      className="shadow-2xl rounded-sm transition-opacity duration-500"
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                      onImageLoad={(img) => {
-                        // Logic from before
-                        const container = img.parentElement?.parentElement; // ImageWithLoader div -> div -> motion.div
-                        if (!container) return;
-                        
-                        const isLandscape = img.naturalWidth > img.naturalHeight;
-                        
-                        if (isLandscape) {
-                          img.style.width = '100%';
-                          img.style.height = 'auto';
-                          img.style.maxHeight = 'none';
-                        } else {
-                          img.style.width = 'auto';
-                          img.style.height = '100%';
-                          img.style.maxWidth = '100%';
-                        }
-                      }}
+                      className="block w-auto h-auto max-w-full max-h-full object-contain shadow-2xl rounded-sm transition-opacity duration-500"
                       draggable={false}
                     />
                 </div>
@@ -278,21 +274,21 @@ export const Carousel: React.FC<CarouselProps> = ({
       
       {/* Navigation Arrows (Desktop) */}
       <button 
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all z-10 hidden md:flex"
+        className={`absolute ${VIEWER_STAGE.leftArrowClassName} top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all z-10 hidden md:flex`}
         onClick={() => paginate(-1)}
       >
         <ChevronLeft size={24} />
       </button>
       
       <button 
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all z-10 hidden md:flex"
+        className={`absolute ${VIEWER_STAGE.rightArrowClassName} top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all z-10 hidden md:flex`}
         onClick={() => paginate(1)}
       >
         <ChevronRight size={24} />
       </button>
 
       {/* Bottom Interface - Indicators Only */}
-      <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-4 z-10 px-6">
+      <div className={`absolute ${VIEWER_STAGE.pagerOffsetClassName} left-0 right-0 flex flex-col items-center gap-4 z-10 px-6`}>
           
           {/* Indicators */}
           <div className="flex items-center gap-2">

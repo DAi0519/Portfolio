@@ -56,6 +56,18 @@ const oppoSansProjectMetaAlbumIds = new Set<string>([
 const usesProjectMetaOppoSans = (albumId: string) =>
   oppoSansProjectMetaAlbumIds.has(albumId);
 
+const sortTracksByNewest = (tracks: ProjectItem[]) =>
+  [...tracks].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+const getProjectPreviewImageUrl = (track: ProjectItem) => {
+  if (track.imageUrl) return track.imageUrl;
+
+  const contentImageMatch = track.content?.match(/!\[.*?\]\((.*?)\)/);
+  return contentImageMatch?.[1] || null;
+};
+
 // Update Props Interface
 const SimpleMarkdown: React.FC<{ 
     content: string; 
@@ -63,7 +75,7 @@ const SimpleMarkdown: React.FC<{
     albumId: string;
     onImageClick?: (url: string) => void;
 }> = ({ content, color, albumId, onImageClick }) => {
-  const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+  const safeColor = (color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF') ? (albumId === AlbumType.PHOTO ? '#FFFFFF' : '#1A1A1A') : color;
   
   // --- Inline Format Parser (handles **bold**, *italic*, ~~strikethrough~~, [links](url)) ---
   // Memoize the parser to avoid re-calculating on every render
@@ -594,19 +606,19 @@ const PhotoGridItem: React.FC<{
     track: ProjectItem;
     index: number;
     color: string;
-    onClick: () => void;
+    onSelect: (track: ProjectItem) => void;
     delay: number;
-}> = ({ track, onClick, delay }) => {
+}> = React.memo(({ track, onSelect, delay }) => {
     const fallback = track.imageUrl ? { type: 'image', value: track.imageUrl } : getFallbackCover(track);
     const hasValidTitle = track.title && track.title.trim() !== '' && track.title.toLowerCase() !== 'untitled';
 
     return (
         <motion.div
-            onClick={onClick}
+            onClick={() => onSelect(track)}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: delay / 1000, duration: 0.8, type: "spring", bounce: 0.15 }}
-            className="group cursor-pointer mb-5 w-full flex flex-col"
+            className="group cursor-pointer w-full flex flex-col will-change-transform"
         >
             <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 mb-3">
                 {fallback.type === 'image' ? (
@@ -639,48 +651,25 @@ const PhotoGridItem: React.FC<{
             )}
         </motion.div>
     );
-};
+});
+PhotoGridItem.displayName = 'PhotoGridItem';
 
 // MASONRY LAYOUT HELPER
 const MasonryLayout: React.FC<{
     tracks: ProjectItem[];
     renderItem: (track: ProjectItem, index: number) => React.ReactNode;
-}> = ({ tracks, renderItem }) => {
-    const [columns, setColumns] = React.useState(2);
-
-    React.useEffect(() => {
-        const updateColumns = () => {
-
-            setColumns(window.innerWidth >= 768 ? 3 : 1);
-        };
-        
-        updateColumns();
-        window.addEventListener('resize', updateColumns);
-        return () => window.removeEventListener('resize', updateColumns);
-    }, []);
-
-    const cols = React.useMemo(() => {
-        const buckets = Array.from({ length: columns }, () => [] as { track: ProjectItem, index: number }[]);
-        tracks.forEach((track, i) => {
-            buckets[i % columns].push({ track, index: i });
-        });
-        return buckets;
-    }, [tracks, columns]);
-
+}> = React.memo(({ tracks, renderItem }) => {
     return (
-        <div className="flex gap-3 items-start pb-20">
-            {cols.map((colItems, colIndex) => (
-                <div key={colIndex} className="flex flex-col gap-3 flex-1">
-                    {colItems.map(({ track, index }) => (
-                         <div key={track.id} className="w-full">
-                             {renderItem(track, index)}
-                         </div>
-                    ))}
+        <div className="columns-1 md:columns-2 lg:columns-3 gap-3 pb-20">
+            {tracks.map((track, index) => (
+                <div key={track.id} className="mb-3 break-inside-avoid">
+                    {renderItem(track, index)}
                 </div>
             ))}
         </div>
     );
-};
+});
+MasonryLayout.displayName = 'MasonryLayout';
 
 
 const CodingGridItem: React.FC<{
@@ -815,12 +804,16 @@ const Lightbox: React.FC<{
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl"
+        className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-3 md:p-8 backdrop-blur-xl"
         onClick={onClose}
     >
         {/* Close Button - Minimalist */}
         <button 
-            className="absolute top-8 right-8 p-4 flex items-center justify-center text-white/70 hover:text-white transition-colors z-50 focus:outline-none"
+            onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+            }}
+            className="absolute top-4 right-4 md:top-6 md:right-6 p-3 md:p-4 flex items-center justify-center text-white/70 hover:text-white transition-colors z-50 focus:outline-none"
         >
             <X size={32} strokeWidth={1.5} />
         </button>
@@ -830,7 +823,7 @@ const Lightbox: React.FC<{
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full h-full flex items-center justify-center p-4 md:p-10 pointer-events-none"
+            className="relative flex w-full h-full items-center justify-center pointer-events-none"
         >
             {type === 'video' ? (
                 <video 
@@ -840,15 +833,23 @@ const Lightbox: React.FC<{
                     autoPlay 
                     playsInline
                     onClick={(e) => e.stopPropagation()}
-                    className="max-w-full max-h-full rounded-sm shadow-2xl pointer-events-auto"
+                    style={{
+                        maxWidth: 'calc(100vw - 1.5rem)',
+                        maxHeight: 'calc(100dvh - 1.5rem)',
+                    }}
+                    className="block w-auto h-auto rounded-sm shadow-2xl pointer-events-auto md:max-w-[calc(100vw-4rem)] md:max-h-[calc(100dvh-4rem)]"
                 />
             ) : (
-                <div className="relative max-w-full max-h-full pointer-events-auto">
+                <div className="relative flex items-center justify-center pointer-events-auto">
                     <img 
                         src={url} 
                         alt="Full View" 
                         onClick={(e) => e.stopPropagation()}
-                        className="max-w-full max-h-full object-contain rounded-sm shadow-2xl" 
+                        style={{
+                            maxWidth: 'calc(100vw - 1.5rem)',
+                            maxHeight: 'calc(100dvh - 1.5rem)',
+                        }}
+                        className="block w-auto h-auto object-contain rounded-sm shadow-2xl md:max-w-[calc(100vw-4rem)] md:max-h-[calc(100dvh-4rem)]" 
                     />
                     {/* Protection Overlay for Lightbox */}
                     <div 
@@ -861,6 +862,40 @@ const Lightbox: React.FC<{
         </motion.div>
     </motion.div>
   );
+};
+
+/* ─────────────────────────────────────────────────────────
+ * MODAL OPEN STORYBOARD
+ *
+ * Read top-to-bottom. Each `at` value is ms after card click.
+ *
+ *    0ms   backdrop starts fading in
+ *   36ms   modal shell settles into place
+ *   72ms   photo visual mounts
+ *  110ms   rich content mounts
+ * ───────────────────────────────────────────────────────── */
+
+const MODAL_TIMING = {
+  shellSettle: 36,   // modal shell settles almost immediately
+  visualsReady: 110, // non-photo rich content mounts shortly after
+};
+
+const MODAL_BACKDROP = {
+  hiddenOpacity: 0,
+  visibleOpacity: 1,
+  transition: { duration: 0.2, ease: 'easeOut' as const },
+};
+
+const MODAL_SHELL = {
+  hiddenOpacity: 0.72,
+  visibleOpacity: 1,
+  hiddenScale: 0.985,
+  visibleScale: 1,
+  hiddenDesktopY: 28,
+  hiddenMobileY: '100%',
+  exitY: 18,
+  spring: { type: 'spring' as const, stiffness: 340, damping: 34, mass: 0.9 },
+  exitTransition: { duration: 0.16, ease: 'easeOut' as const },
 };
 
 // --- Image Extraction Helper ---
@@ -962,20 +997,36 @@ const ProjectModal: React.FC<{
   albumId: string;
   onClose: () => void;
 }> = ({ project, color, albumId, onClose }) => {
-  const safeColor = color === '#FFFFFF' ? '#1A1A1A' : color;
+  const safeColor = (color.toUpperCase() === '#FFFFFF' || color.toUpperCase() === '#FFF') ? (albumId === AlbumType.PHOTO ? '#FFFFFF' : '#1A1A1A') : color;
+  const isPhotoViewer = albumId === AlbumType.PHOTO;
   const dragControls = useDragControls();
   const isWriting = albumId === AlbumType.WRITING;
   const shouldUseOppoSans = usesProjectMetaOppoSans(albumId);
   const [visibleImage, setVisibleImage] = React.useState<{ url: string; type: 'image' | 'video' } | null>(null);
+  const [isDesktopViewport, setIsDesktopViewport] = React.useState(false);
   
-  // Optimization: Defer heaviest content rendering slightly to allow animation start
-  const [isContentReady, setIsContentReady] = React.useState(false);
+  const [stage, setStage] = React.useState(0);
   
   React.useEffect(() => {
-      // Just a tick to let the main thread clear the click event and start the modal animation
-      const timer = setTimeout(() => setIsContentReady(true), 10);
-      return () => clearTimeout(timer);
+      const mediaQuery = window.matchMedia('(min-width: 768px)');
+      const syncViewport = () => setIsDesktopViewport(mediaQuery.matches);
+
+      syncViewport();
+      mediaQuery.addEventListener('change', syncViewport);
+
+      return () => mediaQuery.removeEventListener('change', syncViewport);
   }, []);
+
+  React.useEffect(() => {
+      setStage(0);
+      const shellTimer = window.setTimeout(() => setStage(1), MODAL_TIMING.shellSettle);
+      const visualsTimer = window.setTimeout(() => setStage(2), MODAL_TIMING.visualsReady);
+
+      return () => {
+          window.clearTimeout(shellTimer);
+          window.clearTimeout(visualsTimer);
+      };
+  }, [project.id]);
 
   // Extract images for Carousel (SKIP for Writing)
   const { images, cleanContent } = React.useMemo(() => {
@@ -987,49 +1038,55 @@ const ProjectModal: React.FC<{
   }, [project.content, project.imageUrl, isWriting]);
 
   const hasDidacticContent = cleanContent.length > 5;
+  const isContentReady = stage >= 2;
+  const isVisualReady = albumId === AlbumType.PHOTO ? stage >= 1 : isContentReady;
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-end md:justify-center p-0 md:p-6 lg:p-12" style={{ zIndex: Z.MODAL }}>
+    <div className={`fixed inset-0 flex flex-col items-center ${isPhotoViewer ? 'justify-center p-0' : 'justify-end p-0 md:justify-center md:p-6 lg:p-12'}`} style={{ zIndex: Z.MODAL }}>
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: MODAL_BACKDROP.hiddenOpacity }}
+        animate={{ opacity: MODAL_BACKDROP.visibleOpacity }}
+        exit={{ opacity: MODAL_BACKDROP.hiddenOpacity }}
+        transition={MODAL_BACKDROP.transition}
         onClick={onClose}
-        className="absolute inset-0 bg-neutral-100/95" // Removed backdrop-blur-xl for performance
+        className={`absolute inset-0 ${isPhotoViewer ? 'bg-black' : 'bg-neutral-100/95'}`}
       />
 
       <motion.div 
-        drag="y"
+        drag={isPhotoViewer ? false : "y"}
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0, bottom: 1 }}
         onDragEnd={(e, info: PanInfo) => {
+           if (isPhotoViewer) return;
            if (info.offset.y > 100 || info.velocity.y > 300) {
                onClose();
            }
         }}
         variants={{
-            hidden: { y: "100%", opacity: 0.5, scale: 0.96 },
+            hidden: isPhotoViewer
+              ? { opacity: MODAL_SHELL.hiddenOpacity, scale: 1.01 }
+              : { y: isDesktopViewport ? MODAL_SHELL.hiddenDesktopY : MODAL_SHELL.hiddenMobileY, opacity: MODAL_SHELL.hiddenOpacity, scale: MODAL_SHELL.hiddenScale },
             visible: { 
-                y: 0, opacity: 1, scale: 1,
-                transition: { type: "spring", damping: 42, stiffness: 300, mass: 1 } 
+                y: 0, opacity: MODAL_SHELL.visibleOpacity, scale: MODAL_SHELL.visibleScale,
+                transition: MODAL_SHELL.spring,
             },
             exit: { 
-                y: "20%", opacity: 0, scale: 0.98,
-                transition: { duration: 0.15, ease: "easeOut" } 
+                y: isPhotoViewer ? 0 : MODAL_SHELL.exitY, opacity: 0, scale: isPhotoViewer ? 1.005 : MODAL_SHELL.hiddenScale,
+                transition: MODAL_SHELL.exitTransition,
             }
         }}
         initial="hidden"
         animate="visible"
         exit="exit"
-        className="relative w-full md:w-[90vw] md:max-w-[1400px] bg-white shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col h-[92dvh] md:h-[90vh]"
+        className={`relative overflow-hidden flex flex-col will-change-transform ${isPhotoViewer ? 'w-full h-full bg-black' : `w-full md:w-[90vw] md:max-w-[1400px] shadow-2xl rounded-t-2xl md:rounded-2xl h-[92dvh] md:h-[90vh] ${albumId === AlbumType.PHOTO ? 'bg-[#050505]' : 'bg-white'}`}`}
       >
          
          {/* Mobile Pull Handle */}
          <div 
             onPointerDown={(e) => dragControls.start(e)} 
-            className="md:hidden w-full flex justify-center py-6 absolute top-0 z-30 cursor-grab active:cursor-grabbing touch-none"
+            className={`md:hidden w-full justify-center py-6 absolute top-0 z-30 cursor-grab active:cursor-grabbing touch-none ${isPhotoViewer ? 'hidden' : 'flex'}`}
          >
              <div className="w-12 h-1.5 bg-neutral-300/50 rounded-full backdrop-blur-md shadow-sm"></div>
          </div>
@@ -1037,7 +1094,7 @@ const ProjectModal: React.FC<{
          {/* Close Button */}
          <button 
            onClick={onClose}
-           className="hidden md:flex absolute top-6 right-6 z-20 w-10 h-10 items-center justify-center transition-all group focus:outline-none mix-blend-difference"
+           className={`absolute z-20 w-10 h-10 items-center justify-center transition-all group focus:outline-none mix-blend-difference ${isPhotoViewer ? 'flex top-4 right-4 md:top-6 md:right-6' : 'hidden md:flex top-6 right-6'}`}
          >
            <X size={24} className="text-white transition-opacity hover:opacity-70" />
          </button>
@@ -1111,108 +1168,112 @@ const ProjectModal: React.FC<{
              </div>
          ) : (
              /* STANDARD LAYOUT (Photo/Coding) */
-             <div className="flex flex-col h-full">
+             <div className="flex flex-col h-full relative">
                  
                  {/* 1. CAROUSEL AREA */}
                  <div 
-                    className="w-full flex-1 min-h-[50vh] bg-neutral-100 relative group touch-none"
-                    onPointerDown={(e) => dragControls.start(e)}
+                    className={`w-full relative group touch-none ${albumId === AlbumType.PHOTO ? 'absolute inset-0 h-full z-0 bg-black' : 'flex-1 min-h-[50vh] bg-neutral-100'}`}
+                    onPointerDown={isPhotoViewer ? undefined : (e) => dragControls.start(e)}
                  >
                     {images.length > 0 ? (
                         <div className="w-full h-full">
-                             {isContentReady && (
+                             {isVisualReady && (
                                 <Carousel 
                                    images={images} 
-                                   onImageClick={(url, type) => setVisibleImage({ url, type })}
+                                   onImageClick={isPhotoViewer ? undefined : (url, type) => setVisibleImage({ url, type })}
+                                   enableImageExpand={!isPhotoViewer}
                                 />
                              )}
                         </div>
                     ) : (
-                       <div className="w-full h-full flex items-center justify-center text-neutral-300 bg-neutral-50">
+                       <div className="w-full h-full flex items-center justify-center text-neutral-500 bg-neutral-900">
                            <span className="text-xs font-mono uppercase tracking-widest">No Visuals</span>
                        </div>
                     )}
                  </div>
 
                  {/* 2. CONTENT AREA */}
-                 <div className="w-full max-h-[40vh] bg-white border-t border-neutral-100 overflow-y-auto overscroll-contain">
-                    <div className="max-w-4xl mx-auto px-6 py-8 md:px-10 md:py-10">
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-3 mb-6">
-                            {project.tags.map(tag => (
-                                <span key={tag} className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-400 border border-neutral-200 px-2 py-1 rounded-sm">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
+                 {albumId === AlbumType.PHOTO ? null : (
+                     <div className="w-full max-h-[40vh] bg-white border-t border-neutral-100 overflow-y-auto overscroll-contain relative z-20">
+                        <div className="max-w-4xl mx-auto px-6 py-8 md:px-10 md:py-10">
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-3 mb-6">
+                                {project.tags.map(tag => (
+                                    <span key={tag} className="text-[10px] uppercase font-bold tracking-[0.15em] text-neutral-400 border border-neutral-200 px-2 py-1 rounded-sm">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
 
-                        {/* Title */}
-                        {project.title && project.title.toLowerCase() !== 'untitled' && (
-                            <h2 className={`text-2xl md:text-3xl text-neutral-900 mb-4 tracking-tight leading-tight ${shouldUseOppoSans ? 'font-sans font-medium' : 'font-chill font-medium'}`}>
-                                {project.title}
-                            </h2>
-                        )}
+                            {/* Title */}
+                            {project.title && project.title.toLowerCase() !== 'untitled' && (
+                                <h2 className={`text-2xl md:text-3xl text-neutral-900 mb-4 tracking-tight leading-tight ${shouldUseOppoSans ? 'font-sans font-medium' : 'font-chill font-medium'}`}>
+                                    {project.title}
+                                </h2>
+                            )}
 
-                        {/* Divider */}
-                        <div className="w-12 h-0.5 mb-8 opacity-20" style={{ backgroundColor: safeColor }}></div>
-                        
-                        {/* Description */}
-                        <div className={`prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600 ${shouldUseOppoSans ? 'font-sans' : ''}`}>
-                            {hasDidacticContent ? (
-                                <div>
-                                    {isContentReady ? (
-                                        <SimpleMarkdown 
-                                            content={cleanContent} 
-                                            color={safeColor} 
-                                            albumId={albumId} 
-                                            onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
-                                        />
-                                    ) : (
-                                        // Placeholder skeleton to prevent layout shift if needed
-                                        <div className="space-y-4">
-                                            <div className="h-4 bg-neutral-100 rounded w-3/4"></div>
-                                            <div className="h-4 bg-neutral-100 rounded w-full"></div>
-                                            <div className="h-4 bg-neutral-100 rounded w-5/6"></div>
-                                        </div>
-                                    )}
+                            {/* Divider */}
+                            <div className="w-12 h-0.5 mb-8 opacity-20" style={{ backgroundColor: safeColor }}></div>
+                            
+                            {/* Description */}
+                            <div className={`prose prose-neutral prose-sm md:prose-base max-w-none text-neutral-600 ${shouldUseOppoSans ? 'font-sans' : ''}`}>
+                                {hasDidacticContent ? (
+                                    <div>
+                                        {isContentReady ? (
+                                            <SimpleMarkdown 
+                                                content={cleanContent} 
+                                                color={safeColor} 
+                                                albumId={albumId} 
+                                                onImageClick={(url) => setVisibleImage({ url, type: 'image' })}
+                                            />
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="h-4 bg-neutral-100 rounded w-3/4"></div>
+                                                <div className="h-4 bg-neutral-100 rounded w-full"></div>
+                                                <div className="h-4 bg-neutral-100 rounded w-5/6"></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                     <p className={`leading-relaxed ${shouldUseOppoSans ? 'font-sans font-normal' : 'font-chill font-extralight'}`}>
+                                        {project.description}
+                                     </p>
+                                )}
+                            </div>
+
+                            {/* Link */}
+                            {project.link && (
+                                <div className="mt-10 pt-6 border-t border-neutral-100">
+                                     <a 
+                                       href={project.link}
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+                                       style={{ color: safeColor }}
+                                     >
+                                       Visit Project <ExternalLink size={12} />
+                                     </a>
                                 </div>
-                            ) : (
-                                 <p className={`leading-relaxed ${shouldUseOppoSans ? 'font-sans font-normal' : 'font-chill font-extralight'}`}>
-                                    {project.description}
-                                 </p>
                             )}
                         </div>
-
-                        {/* Link */}
-                        {project.link && (
-                            <div className="mt-10 pt-6 border-t border-neutral-100">
-                                 <a 
-                                   href={project.link}
-                                   target="_blank"
-                                   rel="noopener noreferrer"
-                                   className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
-                                   style={{ color: safeColor }}
-                                 >
-                                   Visit Project <ExternalLink size={12} />
-                                 </a>
-                            </div>
-                        )}
-                    </div>
-                 </div>
+                     </div>
+                 )}
              </div>
          )}
       </motion.div>
       
       {/* FULL SCREEN LIGHTBOX */}
-      <AnimatePresence>
-        {visibleImage && (
-            <Lightbox 
-                url={visibleImage.url} 
-                type={visibleImage.type} 
-                onClose={() => setVisibleImage(null)} 
-            />
-        )}
-      </AnimatePresence>
+      {!isPhotoViewer && (
+        <AnimatePresence>
+          {visibleImage && (
+              <Lightbox 
+                  url={visibleImage.url} 
+                  type={visibleImage.type} 
+                  onClose={() => setVisibleImage(null)} 
+              />
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 };
@@ -1427,10 +1488,14 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
   const [selectedArticle, setSelectedArticle] = useState<ProjectItem | null>(null); // Full-page for Writing
   const [backHovered, setBackHovered] = useState(false);
   const [showMiniControl, setShowMiniControl] = useState(false); // Mini Vinyl State
+  const [isMobilePhotoLayout, setIsMobilePhotoLayout] = useState(false);
 
   // Dynamic Data State
   const [albumData, setAlbumData] = useState<Album>(initialAlbum);
   const [loading, setLoading] = useState(true);
+  const handleSelectProject = React.useCallback((track: ProjectItem) => {
+    setSelectedProject(track);
+  }, []);
 
   // Scroll Detection for Mini Vinyl
   useEffect(() => {
@@ -1448,6 +1513,32 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
 
     return () => observer.disconnect();
   }, [showVinyl]); // Re-run when vinyl appears
+
+  const renderPhotoItem = React.useCallback((track: ProjectItem, index: number) => (
+    <PhotoGridItem
+      key={track.id}
+      track={track}
+      index={index}
+      color={albumData.color}
+      onSelect={handleSelectProject}
+      delay={400 + (index * 80)}
+    />
+  ), [albumData.color, handleSelectProject]);
+
+  const tracksSortedByNewest = React.useMemo(
+    () => sortTracksByNewest(albumData.tracks),
+    [albumData.tracks]
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncViewport = () => setIsMobilePhotoLayout(mediaQuery.matches);
+
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
 
   // Vertical Screen Check for Title Visibility
   const [isShort, setIsShort] = useState(false);
@@ -1781,7 +1872,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                     // VIDEO GRID - MASONRY
                                     // columns-1 md:columns-2
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 pl-8 md:pl-10">
-                                        {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
+                                        {tracksSortedByNewest.map((track, index) => (
                                             <VideoGridItem
                                                 key={track.id}
                                                 track={track}
@@ -1797,24 +1888,25 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
                                 ) : albumData.id === AlbumType.PHOTO ? (
                                     // PHOTO GRID - MASONRY LAYOUT
                                     <div className="pt-4 pl-8 md:pl-10 pr-0 md:pr-0">
-                                        <MasonryLayout 
-                                            tracks={albumData.tracks}
-                                            renderItem={(track, index) => (
-                                                <PhotoGridItem
-                                                    key={track.id}
-                                                    track={track}
-                                                    index={index}
-                                                    color={albumData.color}
-                                                    onClick={() => setSelectedProject(track)}
-                                                    delay={400 + (index * 80)}
-                                                />
-                                            )}
-                                        />
+                                        {isMobilePhotoLayout ? (
+                                            <div className="grid grid-cols-1 gap-y-3 pb-20">
+                                                {tracksSortedByNewest.map((track, index) => (
+                                                    <div key={track.id} className="w-full">
+                                                        {renderPhotoItem(track, index)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <MasonryLayout 
+                                                tracks={albumData.tracks}
+                                                renderItem={renderPhotoItem}
+                                            />
+                                        )}
                                     </div>
                                 ) : albumData.id === AlbumType.CODING ? (
                                     // CODING GRID - SINGLE COLUMN
                                     <div className="grid grid-cols-1 gap-y-6 pt-4 pl-8 md:pl-10">
-                                         {[...albumData.tracks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((track, index) => (
+                                         {tracksSortedByNewest.map((track, index) => (
                                             <CodingGridItem
                                                 key={track.id}
                                                 track={track}
