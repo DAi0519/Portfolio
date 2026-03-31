@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 
 // Map AlbumType to Supabase Table Names
 const TABLE_MAP: Record<string, string> = {
+  [AlbumType.INTRO]: 'projects_intro',
   [AlbumType.CODING]: 'projects_coding',
   [AlbumType.VIDEO]: 'projects_video',
   [AlbumType.PHOTO]: 'projects_photo',
@@ -24,7 +25,6 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
   // 2. Identify Table
   const tableName = TABLE_MAP[albumId];
   if (!tableName) {
-    // If no table mapped (e.g. INTRO), return static data
     return albumMeta;
   }
 
@@ -52,6 +52,16 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
     imageUrl: p.image_url || undefined, // Map snake_case DB column to camelCase
     content: p.content || undefined,
   }));
+
+  if (albumId === AlbumType.INTRO) {
+    const introSource = tracks[0];
+
+    return {
+      ...albumMeta,
+      introContent: introSource?.content || introSource?.description || albumMeta.introContent,
+      tracks,
+    };
+  }
 
   return {
     ...albumMeta,

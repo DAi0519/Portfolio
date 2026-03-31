@@ -97,6 +97,7 @@ const preserveToggleBlocks = (blocks: any[]): any[] => {
 // Album/Category Mapping
 // Maps Notion "Album" select option -> Supabase Table Name
 const ALBUM_TABLE_MAP: Record<string, string> = {
+  'INTRO': 'projects_intro',
   'CODING': 'projects_coding',
   'VIDEO': 'projects_video',
   'PHOTO': 'projects_photo',
