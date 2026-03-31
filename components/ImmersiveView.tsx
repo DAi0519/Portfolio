@@ -80,11 +80,54 @@ const SimpleMarkdown: React.FC<{
   // --- Inline Format Parser (handles **bold**, *italic*, ~~strikethrough~~, [links](url)) ---
   // Memoize the parser to avoid re-calculating on every render
   const memoizedData = React.useMemo(() => {
+    const getNotionInlineClasses = (color?: string) => {
+      switch (color) {
+        case 'gray_background':
+          return 'bg-neutral-200 text-neutral-900';
+        case 'brown_background':
+          return 'bg-amber-100 text-amber-950';
+        case 'orange_background':
+          return 'bg-orange-100 text-orange-950';
+        case 'yellow_background':
+          return 'bg-yellow-100 text-yellow-950';
+        case 'green_background':
+          return 'bg-emerald-100 text-emerald-950';
+        case 'blue_background':
+          return 'bg-sky-100 text-sky-950';
+        case 'purple_background':
+          return 'bg-violet-100 text-violet-950';
+        case 'pink_background':
+          return 'bg-pink-100 text-pink-950';
+        case 'red_background':
+          return 'bg-rose-100 text-rose-950';
+        case 'gray':
+          return 'text-neutral-500';
+        case 'brown':
+          return 'text-amber-800';
+        case 'orange':
+          return 'text-orange-700';
+        case 'yellow':
+          return 'text-yellow-700';
+        case 'green':
+          return 'text-emerald-700';
+        case 'blue':
+          return 'text-sky-700';
+        case 'purple':
+          return 'text-violet-700';
+        case 'pink':
+          return 'text-pink-700';
+        case 'red':
+          return 'text-rose-700';
+        default:
+          return '';
+      }
+    };
+
     const parseInlineFormats = (text: string): React.ReactNode[] => {
       const result: React.ReactNode[] = [];
       // Combined regex: order matters - check longer patterns first
-      // ~~strikethrough~~, **bold**, *italic*, [text](url)
-      const regex = /(~~(.+?)~~|\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
+      // mark/span/u, ~~strikethrough~~, **bold**, *italic*, [text](url)
+      const regex = /(<mark data-notion-color="([^"]+)">([\s\S]+?)<\/mark>|<span data-notion-color="([^"]+)">([\s\S]+?)<\/span>|<u>([\s\S]+?)<\/u>|~~(.+?)~~|\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)]+)\))/g;
       
       let lastIndex = 0;
       let match;
@@ -98,28 +141,49 @@ const SimpleMarkdown: React.FC<{
         
         const fullMatch = match[0];
         
-        if (fullMatch.startsWith('~~')) {
-          result.push(<del key={keyIdx++} className="text-neutral-400 line-through">{match[2]}</del>);
+        if (fullMatch.startsWith('<mark')) {
+          result.push(
+            <mark
+              key={keyIdx++}
+              className={`box-decoration-clone rounded-[0.18em] px-[0.18em] py-[0.04em] ${getNotionInlineClasses(match[2])}`}
+            >
+              {parseInlineFormats(match[3])}
+            </mark>
+          );
+        } else if (fullMatch.startsWith('<span')) {
+          result.push(
+            <span key={keyIdx++} className={getNotionInlineClasses(match[4])}>
+              {parseInlineFormats(match[5])}
+            </span>
+          );
+        } else if (fullMatch.startsWith('<u>')) {
+          result.push(
+            <u key={keyIdx++} className="underline underline-offset-2">
+              {parseInlineFormats(match[6])}
+            </u>
+          );
+        } else if (fullMatch.startsWith('~~')) {
+          result.push(<del key={keyIdx++} className="text-neutral-400 line-through">{parseInlineFormats(match[7])}</del>);
         } else if (fullMatch.startsWith('**')) {
-          result.push(<strong key={keyIdx++} className="font-semibold text-neutral-900">{match[3]}</strong>);
+          result.push(<strong key={keyIdx++} className="font-semibold text-neutral-900">{parseInlineFormats(match[8])}</strong>);
         } else if (fullMatch.startsWith('*')) {
-          result.push(<em key={keyIdx++} className="italic">{match[4]}</em>);
+          result.push(<em key={keyIdx++} className="italic">{parseInlineFormats(match[9])}</em>);
         } else if (fullMatch.startsWith('[')) {
-          const isMailto = match[6].startsWith('mailto:');
+          const isMailto = match[11].startsWith('mailto:');
           result.push(
             <a 
               key={keyIdx++} 
-              href={match[6]} 
+              href={match[11]} 
               target={isMailto ? undefined : "_blank"} 
               rel={isMailto ? undefined : "noopener noreferrer"}
               onClick={isMailto ? (e) => {
                   e.preventDefault();
-                  console.log('Mailto clicked:', match[6]);
-                  window.location.href = match[6];
+                  console.log('Mailto clicked:', match[11]);
+                  window.location.href = match[11];
               } : undefined}
               className="underline underline-offset-2 hover:text-neutral-600 transition-colors cursor-pointer"
             >
-              {match[5]}
+              {parseInlineFormats(match[10])}
             </a>
           );
         }
@@ -136,10 +200,11 @@ const SimpleMarkdown: React.FC<{
   
     // --- Tokenize content into segments (lines, tables, or galleries) ---
     const lines = content.split('\n');
-    const segs: { type: 'line' | 'table' | 'gallery'; lines: string[] }[] = [];
+    const segs: { type: 'line' | 'table' | 'gallery' | 'details'; lines: string[] }[] = [];
     
     let currentTableLines: string[] = [];
     let currentGalleryLines: string[] = [];
+    let currentDetailsLines: string[] = [];
   
     // Helper to flush buffers
     const flushBuffers = () => {
@@ -151,12 +216,25 @@ const SimpleMarkdown: React.FC<{
            segs.push({ type: 'gallery', lines: [...currentGalleryLines] });
            currentGalleryLines = [];
        }
+       if (currentDetailsLines.length > 0) {
+           segs.push({ type: 'details', lines: [...currentDetailsLines] });
+           currentDetailsLines = [];
+       }
     };
   
     lines.forEach(line => {
         const trimmed = line.trim();
         const isWriting = albumId === AlbumType.WRITING; 
         const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); 
+
+        if (currentDetailsLines.length > 0 || trimmed.startsWith('<details')) {
+            if (currentTableLines.length > 0 || currentGalleryLines.length > 0) flushBuffers();
+            currentDetailsLines.push(line);
+            if (trimmed.includes('</details>')) {
+                flushBuffers();
+            }
+            return;
+        }
   
         if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
             if (currentGalleryLines.length > 0) flushBuffers();
@@ -202,20 +280,13 @@ const SimpleMarkdown: React.FC<{
           <div key={key} className={`grid ${gridCols} gap-4 my-8`}>
               {images.map((img, idx) => (
                   <div key={idx} className="group cursor-zoom-in flex flex-col" onClick={() => onImageClick?.(img.url)}>
-                      <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 mb-3">
+                      <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100">
                           <ImageWithLoader
                               src={img.url} 
                               alt={img.alt}
                               className="w-full h-full object-cover"
                           />
                       </div>
-                      {img.alt && img.alt.trim() !== '' && img.alt.toLowerCase() !== 'image' && (
-                          <div>
-                              <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
-                                  {img.alt}
-                              </h3>
-                          </div>
-                      )}
                   </div>
               ))}
           </div>
@@ -253,20 +324,13 @@ const SimpleMarkdown: React.FC<{
            const altText = imageMatch[1];
            return (
               <div key={i} className="w-full my-8 cursor-zoom-in group" onClick={() => onImageClick?.(imageMatch[2])}>
-                <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100 shadow-sm mb-3">
+                <div className="relative w-full overflow-hidden rounded-sm bg-neutral-100">
                     <ImageWithLoader
                         src={imageMatch[2]} 
                         alt={altText} 
                         className="w-full h-auto"
                     />
                 </div>
-                {altText && altText.trim() !== '' && altText.toLowerCase() !== 'image' && (
-                    <div>
-                        <h3 className="text-sm font-sans font-medium text-neutral-900 uppercase tracking-wide group-hover:text-black transition-colors">
-                            {altText}
-                        </h3>
-                    </div>
-                )}
               </div>
           );
       }
@@ -315,8 +379,11 @@ const SimpleMarkdown: React.FC<{
 
       if (trimmed.startsWith('> ')) {
            return (
-                <blockquote key={i} className="pl-0 border-l-0 my-4 font-chill font-extralight text-xl md:text-2xl text-neutral-800 leading-snug text-center px-4">
-                   "{parseInlineFormats(trimmed.replace('> ', ''))}"
+                <blockquote
+                  key={i}
+                  className="my-7 border-l border-neutral-300 pl-5 md:pl-6 font-chill font-extralight text-[1.02rem] md:text-[1.12rem] text-neutral-700 leading-[1.95] tracking-[0.01em]"
+                >
+                   {parseInlineFormats(trimmed.replace('> ', ''))}
                 </blockquote>
            );
       }
@@ -382,6 +449,35 @@ const SimpleMarkdown: React.FC<{
       );
   };
 
+  const renderDetails = (detailLines: string[], key: number) => {
+      const raw = detailLines.join('\n').trim();
+      const summaryMatch = raw.match(/<summary>([\s\S]*?)<\/summary>/i);
+      const summary = summaryMatch?.[1].trim() || '展开内容';
+      const body = raw
+        .replace(/^<details[^>]*>\s*/i, '')
+        .replace(/<\/details>\s*$/i, '')
+        .replace(/<summary>[\s\S]*?<\/summary>/i, '')
+        .trim();
+
+      return (
+          <details key={key} className="my-8 rounded-sm border border-neutral-200 bg-neutral-50/40 px-4 py-3 md:px-5">
+              <summary className="cursor-pointer list-item font-chill font-medium text-base md:text-lg text-neutral-900 leading-relaxed marker:text-neutral-400">
+                  {parseInlineFormats(summary)}
+              </summary>
+              {body ? (
+                  <div className="mt-4">
+                      <SimpleMarkdown
+                        content={body}
+                        color={safeColor}
+                        albumId={albumId}
+                        onImageClick={onImageClick}
+                      />
+                  </div>
+              ) : null}
+          </details>
+      );
+  };
+
   return (
     <div className="prose prose-neutral max-w-none pl-0 md:pl-0">
       {segments.map((segment, segIdx) => {
@@ -390,6 +486,9 @@ const SimpleMarkdown: React.FC<{
           }
           if (segment.type === 'gallery') {
               return renderGallery(segment.lines, segIdx);
+          }
+          if (segment.type === 'details') {
+              return renderDetails(segment.lines, segIdx);
           }
           return segment.lines.map((line, lineIdx) => renderLine(line, segIdx * 1000 + lineIdx));
       })}

@@ -43,6 +43,57 @@ const notion = new Client({ auth: NOTION_API_KEY });
 const n2m = new NotionToMarkdown({ notionClient: notion });
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+const preserveNotionInlineStyles = (text: string, annotations: any) => {
+  if (text.match(/^\s*$/)) return text;
+
+  const leadingSpaceMatch = text.match(/^(\s*)/);
+  const trailingSpaceMatch = text.match(/(\s*)$/);
+  const leadingSpace = leadingSpaceMatch ? leadingSpaceMatch[0] : '';
+  const trailingSpace = trailingSpaceMatch ? trailingSpaceMatch[0] : '';
+
+  let styled = text.trim();
+
+  if (styled !== '') {
+    if (annotations.code) styled = `\`${styled}\``;
+    if (annotations.bold) styled = `**${styled}**`;
+    if (annotations.italic) styled = `*${styled}*`;
+    if (annotations.strikethrough) styled = `~~${styled}~~`;
+    if (annotations.underline) styled = `<u>${styled}</u>`;
+
+    if (annotations.color && annotations.color !== 'default') {
+      if (annotations.color.endsWith('_background')) {
+        styled = `<mark data-notion-color="${annotations.color}">${styled}</mark>`;
+      } else {
+        styled = `<span data-notion-color="${annotations.color}">${styled}</span>`;
+      }
+    }
+  }
+
+  return leadingSpace + styled + trailingSpace;
+};
+
+(n2m as any).annotatePlainText = preserveNotionInlineStyles;
+
+const preserveToggleBlocks = (blocks: any[]): any[] => {
+  return blocks.map((block) => {
+    if (block.children?.length) {
+      block.children = preserveToggleBlocks(block.children);
+    }
+
+    // notion-to-md drops toggle blocks that have no children when converting to string.
+    // Convert them into explicit details markup so they survive the markdown pipeline.
+    if (block.type === 'toggle' && (!block.children || block.children.length === 0)) {
+      const summary = (block.parent || '').trim();
+      block.type = 'paragraph';
+      block.parent = summary
+        ? `<details>\n<summary>${summary}</summary>\n</details>`
+        : '';
+    }
+
+    return block;
+  });
+};
+
 // Album/Category Mapping
 // Maps Notion "Album" select option -> Supabase Table Name
 const ALBUM_TABLE_MAP: Record<string, string> = {
@@ -162,7 +213,7 @@ async function sync() {
       }
 
       // Content (Markdown)
-      const mdBlocks = await n2m.pageToMarkdown(pageId);
+      const mdBlocks = preserveToggleBlocks(await n2m.pageToMarkdown(pageId));
       const mdString = n2m.toMarkdownString(mdBlocks);
       
       let processedContent = mdString.parent || '';
