@@ -11,6 +11,27 @@ const TABLE_MAP: Record<string, string> = {
   [AlbumType.WRITING]: 'projects_writing',
 };
 
+const normalizeExternalUrl = (value?: string | null) => {
+  if (!value) return undefined;
+
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  if (trimmed.startsWith('/') || trimmed.startsWith('#') || trimmed.startsWith('?')) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
+};
+
 /**
  * Fetch a single album by ID, including its projects (tracks) from Supabase.
  */
@@ -48,7 +69,7 @@ export const getAlbumWithProjects = async (albumId: string): Promise<Album | nul
     date: p.date,
     description: p.description || '',
     tags: p.tags || [],
-    link: p.link || undefined,
+    link: normalizeExternalUrl(p.link),
     imageUrl: p.image_url || undefined, // Map snake_case DB column to camelCase
     content: p.content || undefined,
   }));
