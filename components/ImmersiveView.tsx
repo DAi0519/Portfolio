@@ -68,6 +68,19 @@ const getProjectPreviewImageUrl = (track: ProjectItem) => {
   return contentImageMatch?.[1] || null;
 };
 
+const getPlainSectionTitle = (text: string) =>
+  text
+    .replace(/<mark data-notion-color="[^"]+">([\s\S]*?)<\/mark>/gi, '$1')
+    .replace(/<span data-notion-color="[^"]+">([\s\S]*?)<\/span>/gi, '$1')
+    .replace(/<\/?u>/gi, '')
+    .replace(/~~([\s\S]*?)~~/g, '$1')
+    .replace(/\*\*([\s\S]*?)\*\*/g, '$1')
+    .replace(/\*([\s\S]*?)\*/g, '$1')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 // Update Props Interface
 const SimpleMarkdown: React.FC<{ 
     content: string; 
@@ -338,37 +351,40 @@ const SimpleMarkdown: React.FC<{
 
       // H1 Heading
       if (trimmed.startsWith('# ') && !trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
+        const headingContent = trimmed.replace('# ', '');
         return (
           <h1 
             key={i} 
             className="article-section-header text-2xl md:text-3xl font-chill font-medium mt-10 mb-6 text-neutral-900 tracking-tight leading-tight"
-            data-section-title={trimmed.replace('# ', '')}
+            data-section-title={getPlainSectionTitle(headingContent)}
           >
-            {parseInlineFormats(trimmed.replace('# ', ''))}
+            {parseInlineFormats(headingContent)}
           </h1>
         );
       }
 
       if (trimmed.startsWith('### ')) {
+        const headingContent = trimmed.replace('### ', '');
         return (
           <h3 
             key={i} 
             className="article-section-header text-xs font-chill font-medium uppercase tracking-[0.25em] mt-8 mb-3 text-neutral-400 pb-1"
-            data-section-title={trimmed.replace('### ', '')}
+            data-section-title={getPlainSectionTitle(headingContent)}
           >
-            {parseInlineFormats(trimmed.replace('### ', ''))}
+            {parseInlineFormats(headingContent)}
           </h3>
         );
       }
 
       if (trimmed.startsWith('## ')) {
+           const headingContent = trimmed.replace('## ', '');
            return (
              <h2 
                key={i} 
                className="article-section-header text-xl md:text-2xl font-chill font-medium mt-10 mb-4 text-neutral-900 tracking-tight leading-tight"
-               data-section-title={trimmed.replace('## ', '')}
+               data-section-title={getPlainSectionTitle(headingContent)}
              >
-               {parseInlineFormats(trimmed.replace('## ', ''))}
+               {parseInlineFormats(headingContent)}
              </h2>
            );
       }
