@@ -1674,10 +1674,7 @@ export const ImmersiveView: React.FC<ImmersiveViewProps> = ({ album: initialAlbu
       try {
         const data = await getAlbumWithProjects(initialAlbum.id);
         if (data) {
-          setAlbumData({
-            ...initialAlbum,
-            tracks: data.tracks
-          });
+          setAlbumData(data);
         }
       } catch (error) {
         console.error("Failed to load album data", error);
