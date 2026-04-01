@@ -1,4 +1,4 @@
-import { runNotionSync } from '../../lib/notion-sync.ts';
+import { runNotionSync } from '../../lib/notion-sync';
 
 export const config = {
   maxDuration: 300,
