@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_MP3KpisPSigVhiwPepfmgrfsfwc2",
+  "orgId": "team_cshKZhij9VJ3RioB5hKXkRTJ",
+  "projectName": "portfolio",
+  "settings": {
+    "createdAt": 1768402474512,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}

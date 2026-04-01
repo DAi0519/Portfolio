@@ -478,7 +478,7 @@ const SwitchButton: React.FC<{
         >
            {/* Scroll Hint */}
            {!isOn && (
-             <span className="text-[10px] font-bold text-neutral-400 tracking-[0.12em] mb-2 animate-pulse">
+             <span className="text-[12px] font-normal text-neutral-400 tracking-[0.12em] mb-2 animate-pulse">
                向下滑动或轻点开关进入
              </span>
            )}
@@ -486,16 +486,18 @@ const SwitchButton: React.FC<{
            <div className="relative w-16 h-8 bg-[#e8e8e6] rounded-[2px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.15),0_1px_0_#fff] border border-[#d4d4d2] flex items-center p-[2px] overflow-hidden">
               
               {/* Internal Track Elements */}
-              <div className="absolute inset-0 flex justify-between items-center px-3">
+              <div className="absolute inset-0 grid grid-cols-2 items-center">
                   {/* Left Side: Active Status (Revealed when ON) */}
-                  <div className={`flex items-center gap-1.5 transition-opacity duration-300 ${isOn ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className={`flex items-center justify-center transition-opacity duration-300 ${isOn ? 'opacity-100' : 'opacity-0'}`}>
                       <div className="w-1.5 h-1.5 rounded-full bg-[#002FA7] shadow-[0_0_5px_#002FA7] animate-pulse"></div>
                   </div>
 
                   {/* Right Side: Target Label (Covered when ON) */}
-                  <span className={`text-[9px] font-bold text-neutral-400 uppercase tracking-widest transition-opacity duration-300 ${isOn ? 'opacity-0' : 'opacity-100'}`}>
-                    ON
-                  </span>
+                  <div className="flex items-center justify-center">
+                    <span className={`text-[9px] font-bold text-neutral-400 uppercase tracking-widest transition-opacity duration-300 ${isOn ? 'opacity-0' : 'opacity-100'}`}>
+                      ON
+                    </span>
+                  </div>
               </div>
 
               {/* The Sliding Knob */}
