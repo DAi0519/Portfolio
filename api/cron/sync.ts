@@ -1,4 +1,4 @@
-import { runNotionSync } from '../../lib/notion-sync.js';
+import { runNotionSyncRuntime } from '../../lib/notion-sync-runtime.js';
 
 export const config = {
   maxDuration: 300,
@@ -12,7 +12,7 @@ export default async function handler(request: any, response: any) {
   }
 
   try {
-    const result = await runNotionSync();
+    const result = await runNotionSyncRuntime();
     return response.status(200).json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
