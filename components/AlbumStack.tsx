@@ -40,6 +40,10 @@ const STACK_LAYOUT = {
     footerClearMobile: 36,
     footerClearDesktop: 44,
     shortScreenHeight: 440,
+    centerBiasNarrowMobile: 14,
+    centerBiasMobile: 20,
+    centerBiasTablet: 12,
+    centerBiasDesktop: 8,
   },
   card: {
     activeScale: 1.1,
@@ -119,6 +123,8 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
     layout.mode === "MOBILE"
       ? "clamp(0.78rem, 2vmin, 0.98rem)"
       : "clamp(0.85rem, 2.2vmin, 1.1rem)";
+  const titleBottomGapClass = layout.mode === "DESKTOP" ? "mb-4" : "mb-2";
+  const subtitleTopGapClass = layout.mode === "DESKTOP" ? "mt-5" : "mt-3";
   const lightweightEffects = prefersReducedMotion || layout.mode === "MOBILE";
   const activeAlbum = albums[Math.min(currentIndex, albums.length - 1)];
   const activeCardWidth = layout.cardSize * STACK_LAYOUT.card.activeScale;
@@ -226,6 +232,13 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
           : isDesktop
             ? STACK_LAYOUT.topBottomRatio.desktop
             : STACK_LAYOUT.topBottomRatio.tablet;
+      const centerBias = isNarrowMobile
+        ? STACK_LAYOUT.stage.centerBiasNarrowMobile
+        : mode === "MOBILE"
+          ? STACK_LAYOUT.stage.centerBiasMobile
+          : isDesktop
+            ? STACK_LAYOUT.stage.centerBiasDesktop
+            : STACK_LAYOUT.stage.centerBiasTablet;
 
       const widthBase =
         mode === "MOBILE"
@@ -322,7 +335,11 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
         remainingWhitespace / (1 + topBottomRatio),
       );
       const topWhitespace = remainingWhitespace - bottomWhitespace;
-      const unitTop = headerClear + topWhitespace;
+      const maxUnitTop = height - footerClear - unitHeight;
+      const unitTop = Math.min(
+        headerClear + topWhitespace + centerBias,
+        maxUnitTop,
+      );
       const xSpacing =
         mode === "MOBILE"
           ? STACK_LAYOUT.spacing.xSpacingMobile
@@ -583,7 +600,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
               <div className="min-w-0 flex-1">
                 {isFullInfo && (
                   <motion.h2
-                    className="mb-2 font-chill font-medium leading-none"
+                    className={`${titleBottomGapClass} font-chill font-medium leading-none`}
                     style={{ fontSize: "clamp(1.8rem, 8vmin, 4.5rem)" }}
                     animate={{ color: activeAlbum.textColor }}
                     transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
@@ -594,7 +611,7 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
 
                 <motion.p
                   className={`font-chill font-light tracking-[0.05em] whitespace-pre-line ${
-                    isFullInfo ? "mt-3" : ""
+                    isFullInfo ? subtitleTopGapClass : ""
                   }`}
                   animate={{ color: activeAlbum.textColor }}
                   style={{ opacity: 0.82, fontSize: subtitleFontSize }}
@@ -628,14 +645,14 @@ const AlbumStack: React.FC<AlbumStackProps> = ({
 
           <div className="min-w-0 flex-1">
             <div
-              className="mb-2 font-chill font-medium leading-none"
+              className={`${titleBottomGapClass} font-chill font-medium leading-none`}
               style={{ fontSize: "clamp(1.8rem, 8vmin, 4.5rem)" }}
             >
               {activeAlbum?.title}
             </div>
 
             <div
-              className="mt-3 font-chill font-light tracking-[0.05em] whitespace-pre-line"
+              className={`${subtitleTopGapClass} font-chill font-light tracking-[0.05em] whitespace-pre-line`}
               style={{ fontSize: subtitleFontSize }}
             >
               {activeAlbum?.subtitle}

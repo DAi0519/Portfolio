@@ -47,7 +47,7 @@ export const ALBUMS: Album[] = [
   },
   {
     id: AlbumType.CODING,
-    title: "Vibe 造物",
+    title: "VIBE 造物",
     subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
