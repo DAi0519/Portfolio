@@ -47,7 +47,7 @@ export const ALBUMS: Album[] = [
   },
   {
     id: AlbumType.CODING,
-    title: "Vibe 造物集",
+    title: "Vibe 造物",
     subtitle: "机杼万端，唯约束成章",
     color: COLORS.KLEIN_BLUE,
     backgroundColor: "#F0F4FC", // Very Pale Blue Tint
@@ -84,7 +84,7 @@ export const ALBUMS: Album[] = [
   {
     id: AlbumType.WRITING,
     title: "闲言",
-    subtitle: "我们生活在一个充满奇迹的时代，习以为常却使我们盲目",
+    subtitle: "我们生活在一个充满奇迹的时代，\n习以为常却使我们盲目",
     color: COLORS.INK_CHARCOAL,
     backgroundColor: "#F2F2F2", // Neutral Grey
     textColor: "#111111", // Deep Black

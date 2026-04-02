@@ -19,36 +19,30 @@ const INTRO_SFX = "/musics/vinyl_start.mp3";
 const BGM_TRACK = "/musics/00bgm.mp3";
 const MOBILE_LIGHTWEIGHT_MEDIA_QUERY =
   "(max-width: 767px), ((pointer: coarse) and (max-width: 1024px))";
+const seconds = (ms: number) => ms / 1000;
 
 /* ─────────────────────────────────────────────────────────
- * MUSIC ICON STORYBOARD
+ * STACK HOME STORYBOARD
  *
- * Read top-to-bottom. Each loop starts when playback is active.
+ * Read top-to-bottom. The cover leads; chrome stays quiet.
  *
- *    0ms   glyph rests with a soft halo
- *  900ms   glyph lifts and gently breathes outward
- * 1800ms   halo blooms behind the glyph like a quiet pulse
- * 2800ms   both settle back to baseline and repeat
+ *    0ms   stack container fades in and sharpens
+ *  120ms   album info settles beneath the active cover
+ *  720ms   first-time hint fades in if needed
+ *    tap   music toggle gives a quick state change, no idle loop
  * ───────────────────────────────────────────────────────── */
 
-const MUSIC_ICON_TIMING = {
-  loop: 2.8, // full playback loop in seconds
-  tint: 0.5, // color transition duration
-  slash: 0.2, // disabled slash fade/scale timing
-};
+const STACK_HOME_TIMING = {
+  stackEnter: 700, // stack container fade and sharpen
+  chromeTint: 500, // header chrome color retint
+  musicToggle: 180, // music button state change
+} as const;
 
 const MUSIC_ICON = {
   glyph: {
-    idleOpacity: 0.74,
-    activeOpacity: 0.98,
+    idleOpacity: 0.58,
+    activeOpacity: 0.96,
     activeScale: 1.03,
-    liftY: -0.55,
-  },
-  echo: {
-    idleOpacity: 0,
-    activeOpacity: 0.12,
-    activeScale: 1.08,
-    blurScale: 1.16,
   },
   slash: {
     opacity: 0.82,
@@ -669,31 +663,50 @@ const App: React.FC = () => {
               initial={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
               animate={useLightweightTransitions ? { opacity: 1 } : { opacity: 1, scale: 1, filter: 'blur(0px)' }}
               exit={useLightweightTransitions ? { opacity: 0 } : { opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-              transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+              transition={{ duration: seconds(STACK_HOME_TIMING.stackEnter), ease: [0.2, 0.8, 0.2, 1] }}
             >
               {/* Header for Stack Mode */}
-              <header className="absolute top-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-center pointer-events-none" style={{ zIndex: Z.HEADER }}>
-                <div className="pointer-events-auto relative flex flex-col items-center justify-center">
-                  <motion.h1
-                    className="text-xs md:text-sm font-bold tracking-tight"
-                    animate={{ color: displayAlbum.textColor }}
-                    transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
-                  >
-                    DAI<span style={{ opacity: 0.55 }}>.DESIGN</span>
-                  </motion.h1>
-                  {/* Dynamic Brand Accent Bar - Absolute to not affect text alignment */}
-                  <div
-                    className="absolute top-full left-0 w-8 h-0.5 mt-2 transition-colors duration-500"
-                    style={{ backgroundColor: displayAlbum.color }}
-                  ></div>
+              <header className="absolute top-0 left-0 right-0 px-6 py-6 md:p-8 flex items-center justify-between pointer-events-none" style={{ zIndex: Z.HEADER }}>
+                <div className="pointer-events-auto relative flex items-center">
+                  <div className="relative flex flex-col items-start justify-center">
+                    <motion.h1
+                      className="text-xs md:text-sm font-bold tracking-tight"
+                      animate={{ color: displayAlbum.textColor }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: seconds(STACK_HOME_TIMING.chromeTint) }}
+                    >
+                      DAI<span style={{ opacity: 0.55 }}>.DESIGN</span>
+                    </motion.h1>
+                    <div
+                      className="absolute top-full left-0 w-8 h-0.5 mt-2 transition-colors duration-500"
+                      style={{ backgroundColor: displayAlbum.color }}
+                    ></div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-end pointer-events-auto">
-                  {/* Music Control - Top Right */}
-                  <button
+                <div className="pointer-events-auto flex items-center justify-end">
+                  <motion.button
                     onClick={handleMusicToggle}
                     aria-label={isMusicPlaying ? "Pause background music" : "Play background music"}
-                    className={`relative flex h-10 w-10 items-center justify-center transition-all duration-500 group cursor-pointer ${isMusicPlaying ? "opacity-100" : "opacity-40 hover:opacity-80"}`}
+                    className="relative flex h-8 w-8 md:h-9 md:w-9 items-center justify-center cursor-pointer"
+                    animate={{
+                      opacity: isMusicPlaying ? 1 : 0.62,
+                    }}
+                    whileHover={prefersReducedMotion ? undefined : { scale: 1.04, opacity: 0.92 }}
+                    whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+                    transition={
+                      prefersReducedMotion
+                        ? { duration: 0 }
+                        : {
+                            opacity: {
+                              duration: seconds(STACK_HOME_TIMING.musicToggle),
+                            },
+                            scale: {
+                              type: "spring",
+                              stiffness: 420,
+                              damping: 28,
+                            },
+                          }
+                    }
                   >
                     <motion.svg
                       width="20"
@@ -701,32 +714,28 @@ const App: React.FC = () => {
                       viewBox="0 0 18 18"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      className="absolute"
+                      className="relative z-[1]"
                       animate={{
                         color: displayAlbum.textColor,
-                        opacity:
-                          isMusicPlaying && !prefersReducedMotion
-                            ? [MUSIC_ICON.echo.idleOpacity, MUSIC_ICON.echo.activeOpacity, 0.08, MUSIC_ICON.echo.idleOpacity]
-                            : 0,
-                        scale:
-                          isMusicPlaying && !prefersReducedMotion
-                            ? [1, MUSIC_ICON.echo.activeScale, MUSIC_ICON.echo.blurScale, 1]
-                            : 1,
+                        opacity: isMusicPlaying
+                          ? MUSIC_ICON.glyph.activeOpacity
+                          : MUSIC_ICON.glyph.idleOpacity,
+                        scale: isMusicPlaying ? MUSIC_ICON.glyph.activeScale : 1,
                       }}
                       transition={
                         prefersReducedMotion
                           ? { duration: 0 }
                           : {
-                              color: { duration: MUSIC_ICON_TIMING.tint },
+                              color: {
+                                duration: seconds(STACK_HOME_TIMING.chromeTint),
+                              },
                               opacity: {
-                                duration: MUSIC_ICON_TIMING.loop,
-                                repeat: Infinity,
-                                ease: "easeInOut",
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
                               },
                               scale: {
-                                duration: MUSIC_ICON_TIMING.loop,
-                                repeat: Infinity,
-                                ease: [0.22, 1, 0.36, 1],
+                                type: "spring",
+                                stiffness: 420,
+                                damping: 30,
                               },
                             }
                       }
@@ -734,43 +743,6 @@ const App: React.FC = () => {
                     >
                       <path d={MUSIC_ICON_PATH} fill="currentColor" />
                     </motion.svg>
-
-                    <motion.div
-                      className="relative z-[1] flex items-center justify-center"
-                      animate={{
-                        opacity: isMusicPlaying ? MUSIC_ICON.glyph.activeOpacity : MUSIC_ICON.glyph.idleOpacity,
-                        scale:
-                          isMusicPlaying && !prefersReducedMotion
-                            ? [1, MUSIC_ICON.glyph.activeScale, 1]
-                            : 1,
-                        y:
-                          isMusicPlaying && !prefersReducedMotion
-                            ? [0, MUSIC_ICON.glyph.liftY, 0]
-                            : 0,
-                      }}
-                      transition={
-                        prefersReducedMotion
-                          ? { duration: 0 }
-                          : {
-                              opacity: { duration: 0.3 },
-                              scale: { duration: MUSIC_ICON_TIMING.loop, repeat: Infinity, ease: [0.22, 1, 0.36, 1] },
-                              y: { duration: MUSIC_ICON_TIMING.loop, repeat: Infinity, ease: [0.22, 1, 0.36, 1] },
-                            }
-                      }
-                    >
-                      <motion.svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 18 18"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        animate={{ color: displayAlbum.textColor }}
-                        transition={prefersReducedMotion ? { duration: 0 } : { duration: MUSIC_ICON_TIMING.tint }}
-                        style={{ color: displayAlbum.textColor }}
-                      >
-                        <path d={MUSIC_ICON_PATH} fill="currentColor" />
-                      </motion.svg>
-                    </motion.div>
 
                     <motion.div
                       className="absolute rounded-full"
@@ -791,16 +763,33 @@ const App: React.FC = () => {
                         prefersReducedMotion
                           ? { duration: 0 }
                           : {
-                              backgroundColor: { duration: MUSIC_ICON_TIMING.tint },
-                              opacity: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
-                              scaleX: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
-                              scaleY: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
-                              x: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
-                              y: { duration: MUSIC_ICON_TIMING.slash, ease: [0.32, 0.72, 0, 1] },
+                              backgroundColor: {
+                                duration: seconds(STACK_HOME_TIMING.chromeTint),
+                              },
+                              opacity: {
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
+                                ease: [0.32, 0.72, 0, 1],
+                              },
+                              scaleX: {
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
+                                ease: [0.32, 0.72, 0, 1],
+                              },
+                              scaleY: {
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
+                                ease: [0.32, 0.72, 0, 1],
+                              },
+                              x: {
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
+                                ease: [0.32, 0.72, 0, 1],
+                              },
+                              y: {
+                                duration: seconds(STACK_HOME_TIMING.musicToggle),
+                                ease: [0.32, 0.72, 0, 1],
+                              },
                             }
                       }
                     />
-                  </button>
+                  </motion.button>
                 </div>
               </header>
 
@@ -847,23 +836,21 @@ const App: React.FC = () => {
                   </AnimatePresence>
               </div>
 
-
-
-              {/* Footer for Stack Mode */}
-              <footer className="absolute bottom-0 left-0 right-0 px-6 py-6 md:p-8 flex justify-between items-end pointer-events-none" style={{ zIndex: Z.HEADER }}>
+              <footer className="absolute bottom-0 left-0 right-0 px-6 py-6 md:p-8 flex items-end justify-between pointer-events-none" style={{ zIndex: Z.HEADER }}>
                 <motion.p
                   className="text-[10px] font-bold uppercase tracking-widest"
                   animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.4 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: seconds(STACK_HOME_TIMING.chromeTint) }}
                 >
                   Stay hungry, Stay foolish
                 </motion.p>
+
                 <motion.p
                   className="text-[10px] font-bold uppercase tracking-widest"
                   animate={{ color: displayAlbum.textColor }}
                   style={{ opacity: 0.5 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: seconds(STACK_HOME_TIMING.chromeTint) }}
                 >
                   {String(Math.min(currentIndex + 1, ALBUMS.length)).padStart(2, "0")} /{" "}
                   {String(ALBUMS.length).padStart(2, "0")}

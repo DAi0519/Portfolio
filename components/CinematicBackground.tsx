@@ -46,18 +46,12 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
   edgeLite = false,
   mobileLite = false,
 }) => {
-  const accentStrong = withAlpha(color, 0.18);
-  const accentSoft = withAlpha(color, 0.08);
-  const accentWhisper = withAlpha(color, 0.04);
+  const accentStrong = withAlpha(color, 0.11);
+  const accentSoft = withAlpha(color, 0.05);
+  const accentWhisper = withAlpha(color, 0.025);
   const primaryBlobClassName = edgeLite
-    ? "absolute -left-[8vw] -top-[14vh] h-[54vh] w-[66vw] rounded-full blur-[52px] md:h-[46vh] md:w-[40vw] md:blur-[72px] mix-blend-multiply"
-    : "absolute -left-[12vw] -top-[18vh] h-[70vh] w-[85vw] rounded-full blur-[80px] md:h-[60vh] md:w-[52vw] md:blur-[120px] mix-blend-multiply";
-  const secondaryBlobClassName = edgeLite
-    ? "absolute -bottom-[16vh] right-[-8vw] h-[36vh] w-[46vw] rounded-full blur-[56px] md:h-[32vh] md:w-[24vw] md:blur-[68px] mix-blend-multiply"
-    : "absolute -bottom-[24vh] right-[-16vw] h-[48vh] w-[62vw] rounded-full blur-[90px] md:h-[44vh] md:w-[34vw] md:blur-[110px] mix-blend-multiply";
-  const sheenClassName = edgeLite
-    ? "absolute inset-[-8%] opacity-48 blur-0 mix-blend-soft-light"
-    : "absolute inset-[-12%] opacity-60 blur-[2px] mix-blend-soft-light";
+    ? "absolute -left-[6vw] -top-[10vh] h-[46vh] w-[58vw] rounded-full blur-[44px] md:h-[40vh] md:w-[36vw] md:blur-[60px] mix-blend-multiply"
+    : "absolute -left-[10vw] -top-[14vh] h-[58vh] w-[70vw] rounded-full blur-[64px] md:h-[52vh] md:w-[44vw] md:blur-[92px] mix-blend-multiply";
 
   if (mobileLite) {
     return (
@@ -69,18 +63,18 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
           className="absolute inset-0"
           style={{
             background: `
-              linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.16) 26%, rgba(255,255,255,0) 58%),
-              radial-gradient(circle at 28% 18%, ${accentSoft} 0%, transparent 34%),
-              radial-gradient(circle at 76% 82%, ${accentWhisper} 0%, transparent 28%)
+              linear-gradient(180deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.12) 24%, rgba(255,255,255,0) 56%),
+              radial-gradient(circle at 32% 18%, ${accentSoft} 0%, transparent 34%)
             `,
           }}
         />
 
         <div
-          className="absolute inset-0 opacity-45"
+          className="absolute inset-0 opacity-55"
           style={{
-            background:
-              "linear-gradient(140deg, rgba(255,255,255,0.08) 0%, transparent 42%, rgba(0,0,0,0.04) 100%)",
+            background: `
+              radial-gradient(circle at 50% 46%, transparent 44%, rgba(0,0,0,0.045) 100%)
+            `,
           }}
         />
       </div>
@@ -96,8 +90,8 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
         className="absolute inset-0"
         style={{
           background: `
-            linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.18) 24%, rgba(255,255,255,0) 52%),
-            linear-gradient(140deg, ${accentWhisper} 0%, transparent 38%, rgba(255,255,255,0.08) 100%)
+            linear-gradient(180deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.12) 22%, rgba(255,255,255,0) 52%),
+            linear-gradient(140deg, ${accentWhisper} 0%, transparent 34%, rgba(255,255,255,0.05) 100%)
           `,
         }}
       />
@@ -110,51 +104,20 @@ const CinematicBackground: React.FC<CinematicBackgroundProps> = ({
       />
 
       <div
-        className={secondaryBlobClassName}
-        style={{
-          background: `radial-gradient(circle at 45% 45%, ${accentSoft} 0%, ${accentWhisper} 32%, transparent 72%)`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0 opacity-80 mix-blend-screen"
+        className="absolute inset-0 opacity-62"
         style={{
           background: `
-            radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.18) 26%, transparent 62%),
-            radial-gradient(ellipse at 50% 56%, ${accentSoft} 0%, transparent 58%)
+            radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.1) 24%, transparent 60%),
+            radial-gradient(ellipse at 50% 56%, ${accentWhisper} 0%, transparent 56%)
           `,
         }}
       />
 
       <div
-        className={sheenClassName}
-        style={{
-          background: `linear-gradient(
-            125deg,
-            transparent 18%,
-            rgba(255,255,255,0.06) 34%,
-            rgba(255,255,255,0.22) 48%,
-            rgba(255,255,255,0.05) 60%,
-            transparent 76%
-          )`,
-        }}
-      />
-
-      <div
-        className="absolute inset-0 opacity-70"
+        className="absolute inset-0 opacity-58"
         style={{
           background: `
-            radial-gradient(circle at 50% 45%, transparent 42%, rgba(0,0,0,0.06) 100%)
-          `,
-        }}
-      />
-
-      <div
-        className="absolute inset-0 opacity-35 mix-blend-soft-light"
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(105deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 1px, transparent 1px, transparent 28px),
-            repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 34px)
+            radial-gradient(circle at 50% 45%, transparent 42%, rgba(0,0,0,0.055) 100%)
           `,
         }}
       />

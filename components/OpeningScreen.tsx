@@ -478,7 +478,7 @@ const SwitchButton: React.FC<{
         >
            {/* Scroll Hint */}
            {!isOn && (
-             <span className="text-[12px] font-normal text-neutral-400 tracking-[0.12em] mb-2 animate-pulse">
+             <span className="mb-2 animate-pulse text-[10px] font-normal tracking-[0.12em] text-neutral-400 md:text-[12px]">
                向下滑动或轻点开关进入
              </span>
            )}
