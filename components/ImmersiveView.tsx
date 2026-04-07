@@ -81,6 +81,63 @@ const getPlainSectionTitle = (text: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+// --- Mermaid Diagram Renderer ---
+const MermaidBlock: React.FC<{ code: string }> = ({ code }) => {
+  const [svg, setSvg] = React.useState<string>('');
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const render = async () => {
+      try {
+        const { default: mermaid } = await import('mermaid');
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: 'neutral',
+          themeVariables: {
+            fontFamily: '"Noto Sans SC", "PingFang SC", ui-sans-serif, system-ui, sans-serif',
+            fontSize: '13px',
+            primaryColor: '#eeecea',
+            primaryBorderColor: '#c8c5c0',
+            lineColor: '#9a9690',
+            textColor: '#37352f',
+            background: '#f7f6f3',
+            nodeBorder: '#c8c5c0',
+            clusterBkg: '#f1f0ee',
+            titleColor: '#37352f',
+            edgeLabelBackground: '#f7f6f3',
+          },
+          securityLevel: 'loose',
+        });
+        const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
+        const { svg: rendered } = await mermaid.render(id, code.trim());
+        if (!cancelled) setSvg(rendered);
+      } catch {
+        if (!cancelled) setError(true);
+      }
+    };
+    render();
+    return () => { cancelled = true; };
+  }, [code]);
+
+  if (error) return null;
+
+  return (
+    <div className="my-8 overflow-x-auto rounded-lg bg-[#f7f6f3] border border-neutral-200">
+      {svg ? (
+        <div
+          className="flex justify-center p-6 md:p-8 [&_svg]:max-w-full [&_svg]:h-auto"
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      ) : (
+        <div className="h-24 flex items-center justify-center">
+          <span className="text-neutral-300 text-xs font-mono tracking-wider">rendering…</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Update Props Interface
 const SimpleMarkdown: React.FC<{ 
     content: string; 
@@ -213,11 +270,13 @@ const SimpleMarkdown: React.FC<{
   
     // --- Tokenize content into segments (lines, tables, or galleries) ---
     const lines = content.split('\n');
-    const segs: { type: 'line' | 'table' | 'gallery' | 'details'; lines: string[] }[] = [];
-    
+    const segs: { type: 'line' | 'table' | 'gallery' | 'details' | 'mermaid'; lines: string[] }[] = [];
+
     let currentTableLines: string[] = [];
     let currentGalleryLines: string[] = [];
     let currentDetailsLines: string[] = [];
+    let currentMermaidLines: string[] = [];
+    let inMermaidBlock = false;
   
     // Helper to flush buffers
     const flushBuffers = () => {
@@ -237,8 +296,25 @@ const SimpleMarkdown: React.FC<{
   
     lines.forEach(line => {
         const trimmed = line.trim();
-        const isWriting = albumId === AlbumType.WRITING; 
-        const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]'); 
+        const isWriting = albumId === AlbumType.WRITING;
+        const isImage = !isWriting && /^!\[.*?\]\(.*?\)$/.test(trimmed) && !trimmed.includes('![VIDEO]');
+
+        if (inMermaidBlock) {
+            if (trimmed === '```') {
+                segs.push({ type: 'mermaid', lines: [...currentMermaidLines] });
+                currentMermaidLines = [];
+                inMermaidBlock = false;
+            } else {
+                currentMermaidLines.push(line);
+            }
+            return;
+        }
+
+        if (trimmed === '```mermaid') {
+            flushBuffers();
+            inMermaidBlock = true;
+            return;
+        }
 
         if (currentDetailsLines.length > 0 || trimmed.startsWith('<details')) {
             if (currentTableLines.length > 0 || currentGalleryLines.length > 0) flushBuffers();
@@ -261,7 +337,10 @@ const SimpleMarkdown: React.FC<{
         }
     });
     flushBuffers();
-    
+    if (inMermaidBlock && currentMermaidLines.length > 0) {
+        segs.push({ type: 'mermaid', lines: [...currentMermaidLines] });
+    }
+
     return { segs, parseInlineFormats };
   }, [content, albumId]);
 
@@ -505,6 +584,9 @@ const SimpleMarkdown: React.FC<{
           }
           if (segment.type === 'details') {
               return renderDetails(segment.lines, segIdx);
+          }
+          if (segment.type === 'mermaid') {
+              return <MermaidBlock key={segIdx} code={segment.lines.join('\n')} />;
           }
           return segment.lines.map((line, lineIdx) => renderLine(line, segIdx * 1000 + lineIdx));
       })}
