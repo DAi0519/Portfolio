@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Album, ProjectItem, AlbumType } from '../types';
 import { Z } from '../constants';
 import { ArrowLeft, X, ExternalLink, Play } from 'lucide-react';
@@ -496,6 +497,18 @@ const SimpleMarkdown: React.FC<{
               </p>
            </div>
          );
+      }
+
+      const numberedMatch = trimmed.match(/^(\d+)\. (.+)$/s);
+      if (numberedMatch) {
+        return (
+          <div key={i} className="flex items-baseline gap-3 mt-2 mb-2 pl-2">
+            <span className="text-sm font-mono text-neutral-500 shrink-0 min-w-[1.5em] text-right">{numberedMatch[1]}.</span>
+            <p className="flex-1 text-neutral-800 leading-[1.8] m-0 text-base font-chill font-extralight tracking-wide">
+              {parseInlineFormats(numberedMatch[2])}
+            </p>
+          </div>
+        );
       }
 
       return (
@@ -1578,11 +1591,14 @@ const ArticlePage: React.FC<{
         <ArrowLeft size={18} />
       </button>
 
-      <MiniControl
-        album={album}
-        isPlaying={isMusicPlaying}
-        onClick={onMusicToggle}
-      />
+      {createPortal(
+        <MiniControl
+          album={album}
+          isPlaying={isMusicPlaying}
+          onClick={onMusicToggle}
+        />,
+        document.body
+      )}
 
       {/* Article Content */}
       <div className="max-w-3xl mx-auto px-6 py-6 md:py-24">

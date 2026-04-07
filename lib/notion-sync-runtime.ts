@@ -171,11 +171,21 @@ async function listBlockChildren(blockId: string) {
 
 async function renderBlockChildren(blockId: string, depth = 0) {
   const children = await listBlockChildren(blockId);
-  const rendered = await Promise.all(children.map((block) => renderBlock(block, depth)));
+  let numberedCounter = 0;
+  const rendered = await Promise.all(
+    children.map((block) => {
+      if (block.type === 'numbered_list_item') {
+        numberedCounter++;
+        return renderBlock(block, depth, numberedCounter);
+      }
+      numberedCounter = 0;
+      return renderBlock(block, depth);
+    })
+  );
   return rendered.filter(Boolean).join('\n\n');
 }
 
-async function renderBlock(block: any, depth = 0): Promise<string> {
+async function renderBlock(block: any, depth = 0, listIndex?: number): Promise<string> {
   const type = block.type;
   const value = block[type] ?? {};
   const text = renderRichText(value.rich_text ?? []);
@@ -196,7 +206,7 @@ async function renderBlock(block: any, depth = 0): Promise<string> {
     case 'bulleted_list_item':
       return `${indent}- ${text}${nested}`;
     case 'numbered_list_item':
-      return `${indent}1. ${text}${nested}`;
+      return `${indent}${listIndex ?? 1}. ${text}${nested}`;
     case 'to_do':
       return `${indent}- [${value.checked ? 'x' : ' '}] ${text}${nested}`;
     case 'quote':
