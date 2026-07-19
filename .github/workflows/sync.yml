@@ -13,6 +13,7 @@ on:
       - main
   schedule:
     # Notion 托管媒体链接约 1 小时过期，半小时刷新为调度延迟留出余量。
+    # 公开仓库连续 60 天无活动会被 GitHub 自动停用，届时需重新启用工作流。
     - cron: "17,47 * * * *"
 
 permissions:
