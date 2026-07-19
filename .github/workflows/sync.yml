@@ -1,41 +1,49 @@
+#
+# [INPUT]: 依赖 GitHub Secrets、Node.js 24 与 scripts/sync-notion.ts
+# [OUTPUT]: 每 30 分钟或手动执行 Notion 到 Supabase 的内容与临时媒体链接刷新
+# [POS]: .github/workflows 的内容同步任务，替代 Vercel Cron 调度但不负责网站部署
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+#
 name: Sync Notion Content
 
 on:
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
   push:
     branches:
       - main
   schedule:
-    # 每30分钟自动运行一次 (错峰运行: 5, 35)
-    - cron: "5,35 * * * *"
+    # Notion 托管媒体链接约 1 小时过期，半小时刷新为调度延迟留出余量。
+    # 公开仓库连续 60 天无活动会被 GitHub 自动停用，届时需重新启用工作流。
+    - cron: "17,47 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notion-content-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # 允许 Action 提交代码
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Run Notion Sync
+      - name: Refresh Notion content
         run: npm run sync
         env:
-          # Notion 配置
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
-          # Supabase 配置 (需要 Service Key 来写入数据)
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
