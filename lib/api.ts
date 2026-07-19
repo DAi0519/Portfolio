@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 types 的唱片类型、constants 的静态元数据与 lib/supabase 的查询客户端
+ * [OUTPUT]: 对外提供 getAlbumWithProjects、getAllAlbums 与 getLastSyncTime
+ * [POS]: lib 的前端内容访问层，把 Supabase 行转换为页面消费的唱片模型
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 import { Album, ProjectItem, AlbumType } from '../types';
 import { ALBUMS } from '../constants';
 import { supabase } from './supabase';

@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 Notion HTTP API、Supabase REST API 与服务端环境变量
+ * [OUTPUT]: 对外提供 runNotionSyncRuntime，将 Notion 内容同步为 Supabase 项目行
+ * [POS]: lib 的 Vercel 运行时同步核心，由 api/cron/sync.ts 定时调用
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 type SyncSummary = {
   syncedCount: number;
   deletedCount: number;
@@ -24,6 +30,9 @@ type NotionRichText = {
 };
 
 const NOTION_VERSION = '2022-06-28';
+const NOTION_MAX_ATTEMPTS = 3;
+const NOTION_RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const NOTION_MAX_RETRY_DELAY_MS = 30_000;
 
 const ALBUM_TABLE_MAP: Record<string, string> = {
   INTRO: 'projects_intro',
@@ -115,23 +124,74 @@ function isVideoAsset(url: string | null, filename = '') {
   return /\.(mp4|mov|webm)(\?|$|\s)/i.test(candidate);
 }
 
-async function notionRequest<T>(path: string, init: RequestInit = {}) {
-  const notionApiKey = getEnv('NOTION_API_KEY');
-  const response = await fetch(`https://api.notion.com/v1${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${notionApiKey}`,
-      'Notion-Version': NOTION_VERSION,
-      'Content-Type': 'application/json',
-      ...(init.headers ?? {}),
-    },
-  });
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
-  if (!response.ok) {
-    throw new Error(`Notion API Error: ${response.status} ${response.statusText} - ${await response.text()}`);
+function getNotionRetryDelay(response: Response, attempt: number) {
+  const retryAfter = response.headers.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) {
+      return Math.min(seconds * 1000, NOTION_MAX_RETRY_DELAY_MS);
+    }
+
+    const retryAt = Date.parse(retryAfter);
+    if (Number.isFinite(retryAt)) {
+      return Math.min(Math.max(retryAt - Date.now(), 0), NOTION_MAX_RETRY_DELAY_MS);
+    }
   }
 
-  return (await response.json()) as T;
+  return 1000 * 2 ** (attempt - 1);
+}
+
+async function notionRequest<T>(path: string, init: RequestInit = {}) {
+  const notionApiKey = getEnv('NOTION_API_KEY');
+  const url = `https://api.notion.com/v1${path}`;
+
+  for (let attempt = 1; attempt <= NOTION_MAX_ATTEMPTS; attempt += 1) {
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${notionApiKey}`,
+          'Notion-Version': NOTION_VERSION,
+          'Content-Type': 'application/json',
+          ...(init.headers ?? {}),
+        },
+      });
+    } catch (error) {
+      if (attempt === NOTION_MAX_ATTEMPTS) throw error;
+
+      const delay = 1000 * 2 ** (attempt - 1);
+      console.warn(`Notion request failed (${attempt}/${NOTION_MAX_ATTEMPTS}); retrying in ${delay}ms`, error);
+      await wait(delay);
+      continue;
+    }
+
+    if (response.ok) {
+      return (await response.json()) as T;
+    }
+
+    const responseBody = await response.text();
+    const canRetry =
+      NOTION_RETRYABLE_STATUS.has(response.status) &&
+      attempt < NOTION_MAX_ATTEMPTS;
+
+    if (!canRetry) {
+      throw new Error(`Notion API Error: ${response.status} ${response.statusText} - ${responseBody}`);
+    }
+
+    const delay = getNotionRetryDelay(response, attempt);
+    console.warn(
+      `Notion API ${response.status} (${attempt}/${NOTION_MAX_ATTEMPTS}); retrying in ${delay}ms`
+    );
+    await wait(delay);
+  }
+
+  throw new Error('Notion request exhausted retry attempts');
 }
 
 async function listAccessibleDatabases() {

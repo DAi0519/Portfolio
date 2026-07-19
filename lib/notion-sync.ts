@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 Notion SDK、notion-to-md、Supabase SDK 与服务端环境变量
+ * [OUTPUT]: 对外提供 runNotionSync，供本地脚本执行完整内容同步
+ * [POS]: lib 的本地同步实现，与轻量 Vercel 运行时同步器承担不同执行环境
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 import { Client } from '@notionhq/client';
 import { NotionToMarkdown } from 'notion-to-md';
 import { createClient } from '@supabase/supabase-js';

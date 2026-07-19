@@ -1,3 +1,9 @@
+/**
+ * [INPUT]: 依赖 types 的 AlbumType 与 ProjectItem 数据契约
+ * [OUTPUT]: 对外提供按唱片类型组织的 INITIAL_TRACKS_BY_ALBUM 初始数据
+ * [POS]: lib 的开发期静态数据源，为远端内容不可用时提供基础数据结构
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
 import { AlbumType, ProjectItem } from '../types';
 
 export const INITIAL_TRACKS_BY_ALBUM: Record<string, ProjectItem[]> = {
