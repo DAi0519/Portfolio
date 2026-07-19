@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 Notion HTTP API、Supabase REST API 与服务端环境变量
  * [OUTPUT]: 对外提供 runNotionSyncRuntime，将 Notion 内容同步为 Supabase 项目行
- * [POS]: lib 的 Vercel 运行时同步核心，由 api/cron/sync.ts 定时调用
+ * [POS]: lib 的统一同步核心，由 GitHub Actions 主调度与 Vercel 备用接口共同调用
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 type SyncSummary = {

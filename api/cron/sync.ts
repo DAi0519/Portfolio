@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 lib/notion-sync-runtime 的同步能力，依赖 CRON_SECRET 校验 Vercel Cron 请求
  * [OUTPUT]: 对外提供 Vercel 函数配置与受保护的默认 HTTP handler
- * [POS]: api/cron 的每日同步入口，连接 Vercel 调度与 Notion-Supabase 同步运行时
+ * [POS]: api/cron 的受保护备用入口，主调度已迁移到 GitHub Actions
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { runNotionSyncRuntime } from '../../lib/notion-sync-runtime.js';

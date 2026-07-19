@@ -2,6 +2,7 @@
 React 18 + TypeScript 5.8 + Vite 6 + Supabase + Notion + Vercel
 
 <directory>
+.github/ - GitHub Actions 自动化 (1子目录: workflows)
 api/ - Vercel 服务端接口 (1子目录: cron)
 components/ - 页面与交互组件 (1子目录: UI)
 data/ - 本地项目数据
@@ -16,6 +17,6 @@ utils/ - 通用前端工具
 <config>
 package.json - 依赖与 Vite、本地同步命令入口
 vite.config.ts - Vite 开发服务器、环境注入与构建分包
-vercel.json - Vercel 每日 Notion 同步任务
+vercel.json - Vercel 项目配置，不再承载内容同步调度
 tsconfig.json - TypeScript 编译与路径别名
 </config>
